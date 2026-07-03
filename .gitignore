@@ -1,0 +1,77 @@
+# Python cache ve sanal ortamlar
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+backend/venv/
+venv/
+.venv/
+
+# Ortam ve gizli anahtar dosyalari
+.env
+.env.*
+!.env.example
+
+# Yerel veritabani ve runtime dosyalari
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+backend/data/*.db
+backend/data/*.sqlite*
+customer_package/**/data/*.db
+customer_package/**/data/*.sqlite*
+
+# Loglar ve gecici ciktilar
+*.log
+logs/
+scripts/console.txt
+tmp/
+temp/
+*.tmp
+*.bak
+*.old
+
+# Test, lint ve derleme cache'leri
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Frontend bagimliliklari ve build ciktilari
+node_modules/
+frontend/node_modules/
+dist/
+build/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Musteri paketleme ve kurulum ciktilari
+customer_package/
+scripts/cache/
+*.zip
+*.7z
+*.rar
+*.msi
+
+# Yerel AI/ajan arac dizinleri
+.claude/
+.antigravitycli/
+.codex/
+.agents/
+
+# Editor ve isletim sistemi dosyalari
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

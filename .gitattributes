@@ -1,0 +1,15 @@
+# Tüm metin dosyaları için LF kullan (Windows/Linux uyumluluğu)
+* text=auto eol=lf
+
+# Python dosyaları kesinlikle LF
+*.py text eol=lf
+
+# Markdown dosyaları LF
+*.md text eol=lf
+
+# Binary dosyalar — dönüştürme yapma
+*.onnx binary
+*.db binary
+*.png binary
+*.jpg binary
+*.jpeg binary

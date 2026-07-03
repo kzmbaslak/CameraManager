@@ -1,0 +1,192 @@
+[
+  {
+    "path": "/primarystream",
+    "brand": "American Dynamics/Illustra i610",
+    "desc": "Illustra i610 primary stream on port 7778"
+  },
+  {
+    "path": "/stream1",
+    "brand": "Generic/Illustra",
+    "desc": "Main stream for many generic/American Dynamics cameras"
+  },
+  {
+    "path": "/stream2",
+    "brand": "Generic/Illustra",
+    "desc": "Sub stream for many generic/American Dynamics cameras"
+  },
+  {
+    "path": "/videoStreamId=1",
+    "brand": "American Dynamics",
+    "desc": "American Dynamics VideoEdge/Illustra standard main stream"
+  },
+  {
+    "path": "/videoStreamId=2",
+    "brand": "American Dynamics",
+    "desc": "American Dynamics VideoEdge/Illustra standard sub stream"
+  },
+  {
+    "path": "/ufirststream",
+    "brand": "American Dynamics/Illustra",
+    "desc": "Legacy Illustra primary stream"
+  },
+  {
+    "path": "/usecondstream",
+    "brand": "American Dynamics/Illustra",
+    "desc": "Legacy Illustra secondary stream"
+  },
+  {
+    "path": "/Streaming/Channels/101",
+    "brand": "Hikvision",
+    "desc": "Hikvision main stream (Channel 1)"
+  },
+  {
+    "path": "/Streaming/Channels/102",
+    "brand": "Hikvision",
+    "desc": "Hikvision sub stream (Channel 1)"
+  },
+  {
+    "path": "/cam/realmonitor?channel=1&subtype=0",
+    "brand": "Dahua/Amcrest",
+    "desc": "Dahua & Amcrest main stream (Channel 1)"
+  },
+  {
+    "path": "/cam/realmonitor?channel=1&subtype=1",
+    "brand": "Dahua/Amcrest",
+    "desc": "Dahua & Amcrest sub stream (Channel 1)"
+  },
+  {
+    "path": "/h264Preview_01_main",
+    "brand": "Reolink",
+    "desc": "Reolink main stream"
+  },
+  {
+    "path": "/h264Preview_01_sub",
+    "brand": "Reolink",
+    "desc": "Reolink sub stream"
+  },
+  {
+    "path": "/live/ch00_0",
+    "brand": "TP-Link/Tapo",
+    "desc": "TP-Link / Tapo main stream"
+  },
+  {
+    "path": "/live/ch00_1",
+    "brand": "TP-Link/Tapo",
+    "desc": "TP-Link / Tapo sub stream"
+  },
+  {
+    "path": "/media/video1",
+    "brand": "Uniview",
+    "desc": "Uniview main stream"
+  },
+  {
+    "path": "/media/video2",
+    "brand": "Uniview",
+    "desc": "Uniview sub stream"
+  },
+  {
+    "path": "/axis-media/media.amp",
+    "brand": "Axis",
+    "desc": "Axis main stream"
+  },
+  {
+    "path": "/axis-media/media.amp?videocodec=h264",
+    "brand": "Axis",
+    "desc": "Axis H.264 stream"
+  },
+  {
+    "path": "/videoMain",
+    "brand": "Foscam",
+    "desc": "Foscam main stream"
+  },
+  {
+    "path": "/videoSub",
+    "brand": "Foscam",
+    "desc": "Foscam sub stream"
+  },
+  {
+    "path": "/secondarystream",
+    "brand": "American Dynamics",
+    "desc": "Older Illustra / American Dynamics sub stream"
+  },
+  {
+    "path": "/",
+    "brand": "Generic",
+    "desc": "Root path (Direct RTSP)"
+  },
+  {
+    "path": "/live/ch0",
+    "brand": "Generic",
+    "desc": "Generic live channel 0"
+  },
+  {
+    "path": "/onvif-media/media.amp",
+    "brand": "Generic/ONVIF",
+    "desc": "ONVIF-compliant generic stream path"
+  },
+  {
+    "path": "/media/1/video/1",
+    "brand": "VideoEdge NVR",
+    "desc": "American Dynamics VideoEdge NVR Channel 1 main stream"
+  },
+  {
+    "path": "/media/2/video/1",
+    "brand": "VideoEdge NVR",
+    "desc": "American Dynamics VideoEdge NVR Channel 2 main stream"
+  },
+  {
+    "path": "/media/3/video/1",
+    "brand": "VideoEdge NVR",
+    "desc": "American Dynamics VideoEdge NVR Channel 3 main stream"
+  },
+  {
+    "path": "/media/4/video/1",
+    "brand": "VideoEdge NVR",
+    "desc": "American Dynamics VideoEdge NVR Channel 4 main stream"
+  },
+  {
+    "path": "/profile1/media.smp",
+    "brand": "Hanwha/Samsung",
+    "desc": "Hanwha & Samsung Wisenet main stream"
+  },
+  {
+    "path": "/profile2/media.smp",
+    "brand": "Hanwha/Samsung",
+    "desc": "Hanwha & Samsung Wisenet sub stream"
+  },
+  {
+    "path": "/live.sdp",
+    "brand": "Vivotek",
+    "desc": "Vivotek main stream"
+  },
+  {
+    "path": "/video.h264",
+    "brand": "Sony",
+    "desc": "Sony main stream"
+  },
+  {
+    "path": "/video1s1",
+    "brand": "Bosch",
+    "desc": "Bosch FLEXIDOME/AUTODOME main stream"
+  },
+  {
+    "path": "/video1s2",
+    "brand": "Bosch",
+    "desc": "Bosch FLEXIDOME/AUTODOME sub stream"
+  },
+  {
+    "path": "/ch0_0.h264",
+    "brand": "Annke/Generic H.264",
+    "desc": "Annke and generic H.264 main stream"
+  },
+  {
+    "path": "/ch0_1.h264",
+    "brand": "Annke/Generic H.264",
+    "desc": "Annke and generic H.264 sub stream"
+  },
+  {
+    "path": "/video/stream",
+    "brand": "Pelco",
+    "desc": "Pelco Sarix main stream"
+  }
+]
