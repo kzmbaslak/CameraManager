@@ -85,12 +85,6 @@ def delete_user(
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
-    # Silme işlemi — repository'de delete metodu gerekir
-    from src.infrastructure.database.models import UserModel
-    from sqlalchemy.orm import Session
-
-    db: Session = repo._db
-    model = db.query(UserModel).filter(UserModel.id == user_id).first()
-    if model:
-        db.delete(model)
-        db.commit()
+    if user.username == current_user.get("sub"):
+        raise HTTPException(status_code=400, detail="Kendi hesabınızı silemezsiniz.")
+    repo.delete(user_id)

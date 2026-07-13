@@ -1,3 +1,4 @@
+// Durum ve kategori bilgisini küçük rozet olarak gösterir.
 import { type ReactNode } from 'react'
 
 type BadgeVariant = 'success' | 'danger' | 'warning' | 'info' | 'neutral'

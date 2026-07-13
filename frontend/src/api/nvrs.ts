@@ -1,3 +1,4 @@
+// NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
 import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse } from '../types/api'
 
@@ -84,4 +85,3 @@ export const nvrsApi = {
     return data
   },
 }
-

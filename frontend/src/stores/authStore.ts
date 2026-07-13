@@ -1,3 +1,4 @@
+// JWT oturum bilgisini kalıcı olarak tutan Zustand store'u.
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 

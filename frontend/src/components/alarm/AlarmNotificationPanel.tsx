@@ -1,3 +1,4 @@
+// Yeni alarm bildirimlerini üst panelde gösteren bileşen.
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, AlertTriangle, ChevronRight, BellOff } from 'lucide-react'
 import dayjs from 'dayjs'

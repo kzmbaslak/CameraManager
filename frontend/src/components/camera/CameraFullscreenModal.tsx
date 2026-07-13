@@ -1,3 +1,4 @@
+// Kamera canlı akışını tam ekran modal içinde gösterir.
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Wifi, WifiOff, AlertCircle } from 'lucide-react'

@@ -1,3 +1,4 @@
+// Standart buton bileşeni; varyant, boyut, ikon ve yüklenme durumunu destekler.
 import { type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Spinner } from './Spinner'
 

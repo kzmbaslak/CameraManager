@@ -1,3 +1,4 @@
+// Kullanıcı giriş sayfası; JWT oturumunu başlatır.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'

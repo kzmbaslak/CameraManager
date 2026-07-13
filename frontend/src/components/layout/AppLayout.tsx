@@ -1,3 +1,4 @@
+// Uygulama ana yerleşimi; sidebar ve içerik alanını düzenler.
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AlarmNotificationPanel } from '../alarm/AlarmNotificationPanel'

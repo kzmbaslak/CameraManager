@@ -1,3 +1,4 @@
+// Etiketli standart form input bileşeni.
 import { type InputHTMLAttributes, forwardRef } from 'react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {

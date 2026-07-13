@@ -1,3 +1,4 @@
+// Kimlik doğrulama API çağrıları.
 import client from './client'
 import type { LoginResponse } from '../types/api'
 

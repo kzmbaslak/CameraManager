@@ -1,3 +1,4 @@
+// React uygulamasını DOM köküne bağlayan giriş dosyası.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

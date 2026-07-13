@@ -1,3 +1,4 @@
+// Yüklenme durumları için dönen gösterge bileşeni.
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'
 }

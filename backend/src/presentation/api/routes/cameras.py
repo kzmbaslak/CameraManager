@@ -4,6 +4,7 @@ Kamera yönetimi endpoint'leri.
 POST   /cameras/                  — yeni kamera ekler
 GET    /cameras/                  — tüm kameraları listeler
 GET    /cameras/{id}              — tekil kamera detayı
+GET    /cameras/{id}/stream-token — kısa ömürlü canlı akış token'ı üretir
 DELETE /cameras/{id}              — kamera siler, akış yöneticisini durdurur
 PATCH  /cameras/{id}/status       — ACTIVE/INACTIVE değiştirir, akış yöneticisi buna göre güncellenir
 PATCH  /cameras/{id}/ai           — AI insan tespitini açar/kapatır, akış yöneticisi buna göre güncellenir
@@ -32,6 +33,7 @@ from src.infrastructure.camera.camera_scanner import (
     scan_cameras_async,
     validate_rtsp_endpoint_variants_async,
 )
+from src.infrastructure.security.jwt_service import create_stream_token
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
 
@@ -150,6 +152,24 @@ def get_camera(
     if not camera:
         raise HTTPException(status_code=404, detail="Kamera bulunamadı")
     return camera
+
+
+@router.get("/{camera_id}/stream-token")
+def create_camera_stream_token(
+    camera_id: int,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    current_user: dict = Depends(get_current_user),
+):
+    """Belirli kamera için kısa ömürlü WebSocket izleme token'ı üretir."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadı.")
+    token = create_stream_token(
+        username=current_user.get("sub", ""),
+        role=current_user.get("role", ""),
+        camera_id=camera_id,
+    )
+    return {"stream_token": token, "expires_in": 60}
 
 
 @router.patch("/{camera_id}", response_model=CameraResponse)

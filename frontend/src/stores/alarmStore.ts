@@ -1,3 +1,4 @@
+// Alarm bildirim durumunu tutan Zustand store'u.
 import { create } from 'zustand'
 import type { Alarm } from '../types/api'
 

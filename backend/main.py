@@ -30,25 +30,35 @@ models.Base.metadata.create_all(bind=engine)
 
 
 def _seed_admin_user() -> None:
-    """Veritabanında hiç kullanıcı yoksa varsayılan admin oluştur."""
+    """Env ile açıkça istenirse ilk admin kullanıcısını oluştur."""
     import bcrypt
     from src.infrastructure.database.database import SessionLocal
     from src.infrastructure.database.models import UserModel
     from src.domain.entities.user import UserRole
 
+    initial_username = os.environ.get("INITIAL_ADMIN_USERNAME", "").strip()
+    initial_password = os.environ.get("INITIAL_ADMIN_PASSWORD", "")
+
     db = SessionLocal()
     try:
         if db.query(UserModel).count() == 0:
-            password_hash = bcrypt.hashpw(b"admin123", bcrypt.gensalt()).decode("utf-8")
+            if not initial_username or not initial_password:
+                print(
+                    "[Setup] Kullanıcı bulunamadı. İlk admin için "
+                    "INITIAL_ADMIN_USERNAME ve INITIAL_ADMIN_PASSWORD env değerlerini "
+                    "tanımlayın veya backend/scripts/create_user.py komutunu kullanın."
+                )
+                return
+            password_hash = bcrypt.hashpw(initial_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
             admin = UserModel(
-                username="admin",
+                username=initial_username,
                 password_hash=password_hash,
                 role=UserRole.ADMIN,
                 is_active=True,
             )
             db.add(admin)
             db.commit()
-            print("✅ Varsayılan admin kullanıcısı oluşturuldu → kullanıcı: admin  şifre: admin123")
+            print(f"[Setup] İlk admin kullanıcısı oluşturuldu: {initial_username}")
     finally:
         db.close()
 
@@ -66,6 +76,11 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    cors_origins = [
+        origin.strip()
+        for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+        if origin.strip()
+    ]
     app = FastAPI(
         title="Güvenlik Kamera İzleme ve İnsan Tespiti",
         description="Local NVR ve AI Destekli İnsan Tespiti Sistemi",
@@ -75,7 +90,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -85,7 +100,6 @@ def create_app() -> FastAPI:
 
     # Production: frontend/dist/ klasörünü statik olarak sun
     # API router'dan SONRA tanımlanmalı — yoksa /api isteklerini yakalar
-    import os
     dist_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
     if os.path.isdir(dist_path):
         from fastapi.responses import FileResponse
@@ -121,4 +135,3 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8090, reload=True)
-

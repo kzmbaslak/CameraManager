@@ -24,6 +24,7 @@
 
 - 2026-07-03: Proje dosya agaci, izlenen model/paket dosyalari ve runtime ciktilari incelendi. `.gitignore`, yerel veritabani/env/cache, frontend build, musteri paket ciktilari, paketleme cache'i ve yerel AI arac dizinlerini disarida birakacak sekilde guncellendi; `backend/models/yolov8n.onnx` ve `backend/data/rtsp_paths.json` kaynak varlik olarak korunuyor.
 - 2026-07-03: GitHub remote deposunun bos oldugu ve ilk push'un eski commit gecmisindeki paket/cache dosyalarini gonderecegi dogrulandi. Eski gecmis yerel yedek branch'te korunarak `main` dalinin temiz kaynak commit'iyle yeniden kurulmasi planlandi.
+- 2026-07-13: Varsayılan `admin/admin123` otomatik seed davranışı kaldırıldı; ilk admin yalnızca `INITIAL_ADMIN_USERNAME` ve `INITIAL_ADMIN_PASSWORD` env değerleriyle veya `scripts/create_user.py` ile oluşturulur. CORS originleri env kontrollü hale getirildi. WebSocket canlı akış ana JWT yerine `/api/cameras/{id}/stream-token` üzerinden alınan kısa ömürlü stream token kullanır. Frontend lint hataları temizlendi ve frontend dosya başlığı yorumları tamamlandı.
 
 # Current State & Task Tracker
 
@@ -44,7 +45,7 @@
 - [x] **Güvenlik**
   - AES-256-GCM şifreleme: kamera ve NVR şifreleri veritabanında şifreli saklanır
   - JWT (HS256): `/auth/login` endpoint'i erişim token'ı üretir
-  - `get_current_user` dependency hazır (endpoint'lere eklenecek)
+  - `get_current_user` dependency ve rol tabanlı yetkilendirme backend API rotalarına entegre edildi
 - [x] **NVR Desteği**
   - `NVR` domain entity, SQLAlchemy model, repository
   - `POST /nvrs/{id}/probe` — ONVIF GetProfiles ile kanal önizleme
@@ -90,11 +91,11 @@ venv\Scripts\python.exe -c "import os,base64; print(base64.b64encode(os.urandom(
 ## Next Steps (To-Do)
 
 - [x] **JWT Koruması** — `get_current_user` ve rol tabanlı yetkilendirme (admin/operator/viewer) tüm backend API rotalarına entegre edildi, frontend token yönetimi düzeltildi.
-- [ ] **Kullanıcı yönetimi** — admin kullanıcı oluşturma endpoint'i / seed scripti (GÖREV ALINDI - Antigravity)
+- [x] **Kullanıcı yönetimi** — admin korumalı kullanıcı CRUD endpoint'leri ve CLI seed scripti mevcut; otomatik varsayılan admin kaldırıldı.
 - [x] **Arka plan worker iyileştirme** — kamera offline olduğunda `CAMERA_OFFLINE` alarmı üretilmesi, kameranın durumunun ERROR yapılması ve bağlantı geri geldiğinde alarmın otomatik RESOLVED olarak kapatılması sağlandı.
 - [x] **WS-Discovery** — `WSDiscovery` kütüphanesi entegre edildi, `/nvrs/discover` API ucu ve ön yüzde "Ağdaki Cihazları Tara" butonu/modalı ile entegrasyonu tamamlandı.
 - [x] **Frontend** — React 19 + TypeScript + Vite + TailwindCSS v4 statik arayüz (tam ekran canlı kamera izleme ve kartlara tıklayarak izleme eklendi).
-- [ ] **Şifre değiştirme** — kamera/NVR şifresi güncelleme endpoint'i (GÖREV ALINDI - Antigravity)
+- [x] **Şifre değiştirme** — kullanıcı kendi şifresini `/auth/change-password` ile, admin kullanıcı şifresini `/users/{id}` ile, kamera/NVR şifresi PATCH endpoint'leriyle güncelleyebilir.
 
 
 ## API Özeti

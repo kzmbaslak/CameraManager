@@ -1,3 +1,4 @@
+// Kamera WebSocket bağlantılarını kamera başına tek paylaşımlı bağlantıda toplar.
 import type { StreamProfile } from './useCameraStream'
 import type { StreamMessage } from '../types/api'
 
@@ -12,7 +13,8 @@ export interface StreamState {
 
 interface StreamSubscriptionOptions {
   profile: StreamProfile
-  token: string | null
+  accessToken: string | null
+  tokenFactory: () => Promise<string | null>
   onUpdate: StreamListener
 }
 
@@ -31,7 +33,8 @@ interface SharedStream {
   retryTimer: ReturnType<typeof setTimeout> | null
   reconnectTimer: ReturnType<typeof setTimeout> | null
   retryDelay: number
-  token: string | null
+  accessToken: string | null
+  tokenFactory: () => Promise<string | null>
   profile: StreamProfile
   objectUrl: string | null
   disposed: boolean
@@ -78,7 +81,7 @@ function ensureVisibilityListener() {
       return
     }
     for (const stream of streams.values()) {
-      if (stream.pendingReconnect && stream.listeners.size > 0 && stream.token) {
+      if (stream.pendingReconnect && stream.listeners.size > 0 && stream.accessToken) {
         stream.pendingReconnect = false
         requestReconnect(stream, 0)
       }
@@ -96,15 +99,15 @@ function effectiveProfile(stream: SharedStream): StreamProfile {
   return best
 }
 
-function buildUrl(cameraId: number, token: string | null, profile: StreamProfile) {
+function buildUrl(cameraId: number, token: string, profile: StreamProfile) {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
   const qs = new URLSearchParams({ profile })
-  if (token) qs.set('token', token)
+  qs.set('token', token)
   return `${protocol}//${host}/api/streams/${cameraId}?${qs.toString()}`
 }
 
-function connect(stream: SharedStream) {
+async function connect(stream: SharedStream) {
   if (stream.disposed) return
   if (stream.reconnectTimer) {
     clearTimeout(stream.reconnectTimer)
@@ -119,7 +122,12 @@ function connect(stream: SharedStream) {
     stream.websocket = null
   }
 
-  const ws = new WebSocket(buildUrl(stream.cameraId, stream.token, stream.profile))
+  const streamToken = await stream.tokenFactory()
+  if (!streamToken || stream.disposed || stream.listeners.size === 0) {
+    return
+  }
+
+  const ws = new WebSocket(buildUrl(stream.cameraId, streamToken, stream.profile))
   ws.binaryType = 'blob'
   stream.websocket = ws
 
@@ -166,7 +174,9 @@ function connect(stream: SharedStream) {
     emit(stream)
     if (!stream.disposed && stream.listeners.size > 0) {
       if (isTabVisible()) {
-        stream.retryTimer = setTimeout(() => connect(stream), stream.retryDelay)
+        stream.retryTimer = setTimeout(() => {
+          void connect(stream)
+        }, stream.retryDelay)
         stream.retryDelay = Math.min(stream.retryDelay * 2, 15_000)
       } else {
         stream.pendingReconnect = true
@@ -190,7 +200,8 @@ function ensureStream(cameraId: number): SharedStream {
     retryTimer: null,
     reconnectTimer: null,
     retryDelay: 1_000,
-    token: null,
+    accessToken: null,
+    tokenFactory: async () => null,
     profile: 'alarm',
     objectUrl: null,
     disposed: false,
@@ -235,7 +246,7 @@ function requestReconnect(stream: SharedStream, delay = 120) {
   }
   stream.reconnectTimer = setTimeout(() => {
     stream.reconnectTimer = null
-    connect(stream)
+    void connect(stream)
   }, delay)
 }
 
@@ -250,9 +261,10 @@ export function subscribeToCameraStream(cameraId: number, options: StreamSubscri
   stream.listenerProfiles.set(options.onUpdate, options.profile)
 
   const nextProfile = effectiveProfile(stream)
-  const tokenChanged = stream.token !== options.token
+  const tokenChanged = stream.accessToken !== options.accessToken
   const profileChanged = nextProfile !== stream.profile
-  stream.token = options.token
+  stream.accessToken = options.accessToken
+  stream.tokenFactory = options.tokenFactory
   stream.profile = nextProfile
 
   if (stream.retryTimer) {
@@ -265,7 +277,7 @@ export function subscribeToCameraStream(cameraId: number, options: StreamSubscri
 
   options.onUpdate(stream.state)
 
-  if (options.token && (!stream.websocket || tokenChanged || profileChanged)) {
+  if (options.accessToken && (!stream.websocket || tokenChanged || profileChanged)) {
     requestReconnect(stream, isTabVisible() ? 120 : 0)
   }
 
@@ -285,7 +297,7 @@ export function subscribeToCameraStream(cameraId: number, options: StreamSubscri
       return
     }
 
-    if (shouldReconnect && stream.token) {
+    if (shouldReconnect && stream.accessToken) {
       requestReconnect(stream, isTabVisible() ? 120 : 0)
     }
   }

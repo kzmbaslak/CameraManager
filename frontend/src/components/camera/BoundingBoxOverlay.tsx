@@ -1,3 +1,4 @@
+// Kamera görüntüsü üzerinde BoundingBox (Sınırlayıcı Kutu) çizimini yapar.
 import { useEffect, useRef } from 'react'
 import type { BoundingBox } from '../../types/api'
 

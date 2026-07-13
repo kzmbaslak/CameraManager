@@ -15,7 +15,9 @@ function loadGridPref(): GridCols {
   try {
     const v = localStorage.getItem('dashboard-grid')
     if (v === '1' || v === '2' || v === '3' || v === '4') return Number(v) as GridCols
-  } catch {}
+  } catch {
+    // localStorage kapalıysa varsayılan grid kullanılır.
+  }
   return 2
 }
 
@@ -219,7 +221,11 @@ export function DashboardPage() {
   /** Grid değişince localStorage'a kaydet */
   const handleColsChange = (next: GridCols) => {
     setCols(next)
-    try { localStorage.setItem('dashboard-grid', String(next)) } catch {}
+    try {
+      localStorage.setItem('dashboard-grid', String(next))
+    } catch {
+      // localStorage kapalıysa sadece oturum içi seçim korunur.
+    }
   }
 
   const { data: cameras = [], isLoading } = useQuery({

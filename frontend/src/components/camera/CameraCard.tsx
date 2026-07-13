@@ -1,3 +1,4 @@
+// Canlı kamera kartı; akış görüntüsü, durum ve hızlı eylemleri gösterir.
 import { useRef, useState, useEffect } from 'react'
 import { Wifi, WifiOff, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'

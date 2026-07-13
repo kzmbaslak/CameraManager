@@ -1,3 +1,4 @@
+// Uygulama route tanımları ve korumalı sayfa yönlendirmeleri.
 import { type ReactNode, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'

@@ -34,7 +34,7 @@ def create_access_token(username: str, role: str, expires_minutes: Optional[int]
         İmzalı JWT string'i.
     """
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes or _DEFAULT_EXPIRE_MINUTES)
-    payload = {"sub": username, "role": role, "exp": expire}
+    payload = {"sub": username, "role": role, "purpose": "access", "exp": expire}
     return jwt.encode(payload, _SECRET_KEY, algorithm=_ALGORITHM)
 
 
@@ -51,4 +51,28 @@ def decode_access_token(token: str) -> dict:
     Raises:
         JWTError: Token geçersiz veya süresi dolmuşsa.
     """
-    return jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
+    payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
+    if payload.get("purpose", "access") != "access":
+        raise JWTError("Token amacı erişim için uygun değil.")
+    return payload
+
+
+def create_stream_token(username: str, role: str, camera_id: int, expires_seconds: int = 60) -> str:
+    """Belirli bir kamera canlı akışı için kısa ömürlü JWT üretir."""
+    expire = datetime.utcnow() + timedelta(seconds=expires_seconds)
+    payload = {
+        "sub": username,
+        "role": role,
+        "camera_id": camera_id,
+        "purpose": "stream",
+        "exp": expire,
+    }
+    return jwt.encode(payload, _SECRET_KEY, algorithm=_ALGORITHM)
+
+
+def decode_stream_token(token: str, camera_id: int) -> dict:
+    """Kısa ömürlü stream token'ını doğrular ve kamera eşleşmesini kontrol eder."""
+    payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
+    if payload.get("purpose") != "stream" or payload.get("camera_id") != camera_id:
+        raise JWTError("Stream token bu kamera için geçerli değil.")
+    return payload

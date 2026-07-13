@@ -109,6 +109,11 @@ export interface LoginResponse {
   role: string
 }
 
+export interface StreamTokenResponse {
+  stream_token: string
+  expires_in: number
+}
+
 // WebSocket stream mesaj formatı
 export interface StreamMessage {
   frame?: string           // geriye dönük uyumluluk için Base64 JPEG; yeni akış binary JPEG kullanır

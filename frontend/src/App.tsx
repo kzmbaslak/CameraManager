@@ -1,3 +1,4 @@
+// Uygulama kökü; React Query sağlayıcısını ve router'ı bağlar.
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppRouter } from './router'
 

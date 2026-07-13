@@ -1,7 +1,7 @@
 """
 WebSocket canlı akış endpoint'i.
 
-GET /api/streams/{camera_id}?token=<jwt>
+GET /api/streams/{camera_id}?token=<short-lived-stream-jwt>
 
 Kamera başına TEK bir arka plan üretici (CameraStreamManager) RTSP'den kare
 okur ve bağlı tüm istemcilere (aynı ağdaki farklı cihazlar dahil) yayınlar.
@@ -61,15 +61,15 @@ async def stream_camera(websocket: WebSocket, camera_id: int, token: str = None,
     """
     await websocket.accept()
 
-    # JWT doğrulama
+    # Kısa ömürlü stream token doğrulama
     if not token:
-        await _reject(websocket, "Authentication token required")
+        await _reject(websocket, "Stream token required")
         return
     try:
-        from src.infrastructure.security.jwt_service import decode_access_token
-        decode_access_token(token)
+        from src.infrastructure.security.jwt_service import decode_stream_token
+        decode_stream_token(token, camera_id)
     except Exception:
-        await _reject(websocket, "Invalid or expired token")
+        await _reject(websocket, "Invalid or expired stream token")
         return
 
     from src.presentation.api.dependencies import stream_manager

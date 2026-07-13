@@ -64,7 +64,10 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 |---|---|
 | `CAMERA_ENCRYPTION_KEY` | Base64 ile kodlanmış 32 bayt AES anahtarı |
 | `JWT_SECRET_KEY` | JWT imzalama anahtarı (rastgele uzun string) |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token geçerlilik süresi (varsayılan: 60) |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Token geçerlilik süresi (varsayılan: 480 dakika) |
+| `INITIAL_ADMIN_USERNAME` | İlk kurulumda DB boşsa oluşturulacak admin kullanıcı adı |
+| `INITIAL_ADMIN_PASSWORD` | İlk kurulumda DB boşsa oluşturulacak admin şifresi |
+| `CORS_ALLOWED_ORIGINS` | Virgülle ayrılmış izinli frontend origin listesi |
 
 ### 4. Veritabanını Hazırla
 
@@ -192,13 +195,14 @@ Swagger UI: `http://localhost:8000/docs`
 ### Canlı Görüntü (WebSocket)
 
 ```
-WS /api/streams/{camera_id}
+GET /api/cameras/{camera_id}/stream-token
+WS  /api/streams/{camera_id}?token=<stream_token>
 ```
 
 Bağlantı kurulduğunda sunucu:
 1. Kameranın RTSP akışından kare okur
 2. YOLOv8 ile insan tespiti yapar
-3. JPEG olarak base64 kodlanmış kareyi JSON içinde gönderir
+3. Metadata bilgisini JSON, görüntü karesini binary JPEG olarak gönderir
 
 **Gelen mesaj formatı:**
 ```json
@@ -303,12 +307,16 @@ Authorization: Bearer <access_token>
 ### WebSocket Bağlantısı
 
 ```javascript
-const ws = new WebSocket(`ws://localhost:8000/api/streams/${cameraId}`);
+const tokenResponse = await fetch(`/api/cameras/${cameraId}/stream-token`, {
+  headers: { Authorization: `Bearer ${accessToken}` },
+}).then((r) => r.json());
+
+const ws = new WebSocket(`ws://localhost:8000/api/streams/${cameraId}?token=${tokenResponse.stream_token}`);
 ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  const img = document.getElementById('camera-feed');
-  img.src = `data:image/jpeg;base64,${data.frame}`;
-  // data.detections ile bounding box çiz
+  if (typeof event.data !== 'string') {
+    const img = document.getElementById('camera-feed');
+    img.src = URL.createObjectURL(event.data);
+  }
 };
 ```
 
@@ -326,5 +334,5 @@ ws.onmessage = (event) => {
 
 - Sistem tamamen **offline** çalışır — internet bağlantısı gerekmez.
 - WSDL dosyaları `onvif-zeep` paketi ile birlikte lokalde bulunur.
-- WS-Discovery (`POST /nvrs/discover`) ağ tarama özelliği henüz aktif değil (`wsdiscovery` paketi eklenmeli).
-- `get_current_user` JWT dependency'si hazır ancak henüz tüm endpoint'lere eklenmemiş.
+- WS-Discovery (`POST /nvrs/discover`) aktiftir ve `WSDiscovery` bağımlılığı requirements içinde bulunur.
+- HTTP API endpoint'leri JWT/RBAC dependency'leriyle korunur; WebSocket canlı akış için kısa ömürlü stream token kullanılır.

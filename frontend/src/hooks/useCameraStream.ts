@@ -1,6 +1,7 @@
 // Kamera akışına abone olur ve geçici bağlantı kesintilerinde yeniden bağlanır.
 import { useEffect, useState } from 'react'
 
+import { camerasApi } from '../api/cameras'
 import { useAuthStore } from '../stores/authStore'
 import { subscribeToCameraStream, type StreamState } from './cameraStreamRegistry'
 
@@ -18,13 +19,17 @@ export function useCameraStream(cameraId: number, enabled = true, profile: Strea
 
   useEffect(() => {
     if (!enabled) {
-      setState((s) => ({ ...s, connected: false }))
       return
     }
 
     return subscribeToCameraStream(cameraId, {
       profile,
-      token,
+      accessToken: token,
+      tokenFactory: async () => {
+        if (!token) return null
+        const data = await camerasApi.getStreamToken(cameraId)
+        return data.stream_token
+      },
       onUpdate: setState,
     })
   }, [cameraId, enabled, profile, token])

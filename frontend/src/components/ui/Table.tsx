@@ -1,3 +1,4 @@
+// Liste ve yönetim ekranları için standart tablo bileşeni.
 import { type ReactNode } from 'react'
 
 interface Column<T> {

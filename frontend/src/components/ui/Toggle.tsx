@@ -1,3 +1,4 @@
+// İkili açık/kapalı ayarlar için toggle bileşeni.
 interface ToggleProps {
   checked: boolean
   onChange: (checked: boolean) => void

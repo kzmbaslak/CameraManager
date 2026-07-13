@@ -42,7 +42,7 @@ Riskler:
 - Kanıt yönetimi yok: alarm snapshot dosyaları UI'da görüntülenmeli, indirilmeli, hash/audit bilgisi tutulmalı.
 - Alarm operasyon akışı eksik: yeni/onaylandı/çözüldü yanında atanan kullanıcı, not, önem seviyesi, olay kapatma nedeni ve alarm detay paneli eklenmeli.
 - Audit log yok: kullanıcı girişleri, kamera/NVR değişiklikleri, alarm aksiyonları ve export işlemleri kayıt altına alınmalı.
-- İlk kurulum akışı yok: admin seed, `.env` kontrolü, model varlığı, DB migrasyonu ve kamera/NVR ekleme sihirbazı tek akışa bağlanmalı.
+- İlk kurulum akışı kısmen var: otomatik varsayılan admin kaldırıldı, env kontrollü ilk admin ve CLI seed scripti var. Kalan iş: `.env` kontrolü, model varlığı, DB migrasyonu ve kamera/NVR ekleme sihirbazını tek akışa bağlamak.
 
 ### P1 - Kamera/NVR Yönetimi
 
@@ -66,7 +66,7 @@ Riskler:
 
 ### P1 - Güvenlik ve Operasyon
 
-- WebSocket token query string ile taşınıyor; loglara düşme riski var. Daha güvenli handshake veya kısa ömürlü stream token düşünülmeli.
+- WebSocket artık ana JWT yerine kısa ömürlü kamera bazlı stream token kullanıyor. Kalan risk: token hâlâ query string içinde taşındığı için production loglarında query parametreleri maskelenmeli veya ileride handshake tabanlı aktarım değerlendirilmeli.
 - HTTPS/TLS, secure cookie, token refresh/expiry UX ve oturum süresi yönetimi eksik.
 - Kamera/NVR şifre rotasyonu ve parola değiştirme akışı tamamlanmalı.
 - RBAC daha granüler olmalı: canlı izleme, kayıt izleme, export, kullanıcı yönetimi, PTZ, alarm kapatma ayrı izinlere ayrılmalı.
@@ -88,7 +88,7 @@ Riskler:
 
 ### P2 - Teknik Kalite
 
-- Kod açıklama kuralı her dosyada uygulanmamış; bazı backend/frontend dosyalarında module docstring/JSDoc eksikleri var.
+- Frontend dosya başlığı yorumu kuralı `frontend/src` altında tamamlandı. Kalan iş: backend genelinde tüm module/class/public method docstring kapsamını tamamlamak ve JSDoc kapsamını export bazında sıkılaştırmak.
 - Encoding standardı netleştirilmeli: tüm kaynak ve markdown dosyaları UTF-8 olmalı; bozuk karakterler düzeltilmeli.
 - Alembic gibi sürümlü migration yapısı yok; script tabanlı migration büyüdükçe riskli olur.
 - Test kapsamı yok: domain/use case unit testleri, repository integration testleri, API auth testleri, frontend component testleri eklenmeli.
@@ -103,7 +103,7 @@ Riskler:
 3. RTSP telemetry geçmişi: cihaz bazlı açılış süresi, başarısız deneme sayısı ve bağlantı kalitesi trendi.
 3. Alarm detay deneyimi: detay drawer, snapshot preview, not/atanan kişi/çözüm nedeni.
 4. Kamera/NVR ekleme sihirbazı: discovery -> test -> profil seç -> import -> izlemeye al.
-5. Güvenlik sertleştirme: stream token, refresh flow, izin matrisi, backup/restore.
+5. Güvenlik sertleştirme: stream token log maskeleme/handshake iyileştirmesi, refresh flow, izin matrisi, backup/restore.
 6. UX temizlik: encoding düzeltme, navigasyon isimleri, responsive sidebar, toast/modal standardı.
 7. Test ve üretimleşme: migration sistemi, unit/integration/e2e testler, servis paketleme.
 

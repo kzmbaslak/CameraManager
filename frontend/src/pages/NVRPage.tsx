@@ -12,6 +12,8 @@ import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import type { NVR, NVRCreate, NVRChannelInfo } from '../types/api'
 
+type NVRBulkAddPayload = NVRCreate[]
+
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 function getErrorMessage(error: unknown, fallback: string): string {
   const err = error as { response?: { data?: { detail?: string } }; message?: string }
@@ -37,6 +39,7 @@ function AddNVRModal({
   // initialValues değiştiğinde veya modal açıldığında formu prefill et
   useEffect(() => {
     if (initialValues) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         name: `${initialValues.brand || 'NVR'} (${initialValues.host})`,
         host: initialValues.host,
@@ -154,6 +157,7 @@ function ChannelModal({
   // Modal her açıldığında taramayı başlat
   useEffect(() => {
     if (open && nvr) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChannels([])
       setSelected(new Set())
       setImportMessage(null)
@@ -164,7 +168,11 @@ function ChannelModal({
   const toggle = (token: string) =>
     setSelected((prev) => {
       const next = new Set(prev)
-      next.has(token) ? next.delete(token) : next.add(token)
+      if (next.has(token)) {
+        next.delete(token)
+      } else {
+        next.add(token)
+      }
       return next
     })
 
@@ -383,7 +391,7 @@ function DiscoverModal({
   const handleStopRangeScan = () => rangeAbortRef.current?.abort()
 
   const { mutate: saveNVRS, isPending: isSaving, error: saveError } = useMutation({
-    mutationFn: (payload: any[]) => nvrsApi.bulkAdd(payload),
+    mutationFn: (payload: NVRBulkAddPayload) => nvrsApi.bulkAdd(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nvrs'] })
       onClose()
@@ -394,6 +402,7 @@ function DiscoverModal({
   // Modal kapandığında state temizle
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([])
     }
   }, [open])
@@ -409,7 +418,7 @@ function DiscoverModal({
     setResults((prev) => prev.map((item) => ({ ...item, selected: !allSelected })))
   }
 
-  const handleFieldChange = (index: number, field: keyof DiscoveredNVRRow, value: any) => {
+  const handleFieldChange = (index: number, field: keyof DiscoveredNVRRow, value: string | number | boolean) => {
     setResults((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
     )
