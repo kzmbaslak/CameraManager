@@ -25,6 +25,7 @@
 - 2026-07-03: Proje dosya agaci, izlenen model/paket dosyalari ve runtime ciktilari incelendi. `.gitignore`, yerel veritabani/env/cache, frontend build, musteri paket ciktilari, paketleme cache'i ve yerel AI arac dizinlerini disarida birakacak sekilde guncellendi; `backend/models/yolov8n.onnx` ve `backend/data/rtsp_paths.json` kaynak varlik olarak korunuyor.
 - 2026-07-03: GitHub remote deposunun bos oldugu ve ilk push'un eski commit gecmisindeki paket/cache dosyalarini gonderecegi dogrulandi. Eski gecmis yerel yedek branch'te korunarak `main` dalinin temiz kaynak commit'iyle yeniden kurulmasi planlandi.
 - 2026-07-13: Varsayılan `admin/admin123` otomatik seed davranışı kaldırıldı; ilk admin yalnızca `INITIAL_ADMIN_USERNAME` ve `INITIAL_ADMIN_PASSWORD` env değerleriyle veya `scripts/create_user.py` ile oluşturulur. CORS originleri env kontrollü hale getirildi. WebSocket canlı akış ana JWT yerine `/api/cameras/{id}/stream-token` üzerinden alınan kısa ömürlü stream token kullanır. Frontend lint hataları temizlendi ve frontend dosya başlığı yorumları tamamlandı.
+- 2026-07-13: İnsan tespiti alarmı geldiğinde frontend kısa sesli uyarı çalacak şekilde güncellendi. Ses açık/kapalı durumu ve ses süresi Genel Ayarlar ekranından ayarlanır; değerler tarayıcıda kalıcı `kamera-system-settings` store'unda saklanır.
 
 # Current State & Task Tracker
 

@@ -1,10 +1,11 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
 import { usersApi, type UserUpdate } from '../api/users'
 import { usePermissions } from '../hooks/usePermissions'
 import { useAuthStore } from '../stores/authStore'
+import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { Table } from '../components/ui/Table'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
@@ -132,6 +133,47 @@ const roleVariant = (role: string) => {
 
 const roleLabel = { admin: 'Admin', operator: 'Operatör', viewer: 'İzleyici' } as Record<string, string>
 
+/** İnsan tespiti sesli uyarı ayarlarını düzenler. */
+function GeneralSettingsPanel() {
+  const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
+  const soundDuration = useSystemSettingsStore((s) => s.humanDetectionSoundDurationSeconds)
+  const setSoundEnabled = useSystemSettingsStore((s) => s.setHumanDetectionSoundEnabled)
+  const setSoundDuration = useSystemSettingsStore((s) => s.setHumanDetectionSoundDurationSeconds)
+
+  return (
+    <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <Volume2 size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">İnsan Tespiti Sesli Uyarı</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Yeni insan tespiti alarmı geldiğinde bu tarayıcıda kısa bir uyarı sesi çalar.
+            </p>
+          </div>
+        </div>
+        <Toggle checked={soundEnabled} onChange={setSoundEnabled} />
+      </div>
+
+      <div className="mt-4 max-w-xs">
+        <Input
+          label="Ses Süresi (saniye)"
+          type="number"
+          min={1}
+          max={15}
+          value={soundDuration}
+          disabled={!soundEnabled}
+          title="İnsan tespiti alarmında sesin kaç saniye çalacağını belirler."
+          onChange={(e) => setSoundDuration(Number(e.target.value))}
+        />
+        <p className="text-xs text-[var(--text-secondary)] mt-1">1-15 saniye arası ayarlanabilir.</p>
+      </div>
+    </section>
+  )
+}
+
 /** Kullanıcı yönetimi sayfası */
 export function SettingsPage() {
   const [showAdd, setShowAdd] = useState(false)
@@ -200,7 +242,7 @@ export function SettingsPage() {
     <div className="p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Kullanıcılar</h1>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Genel Ayarlar</h1>
           {!canManageUsers && (
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">
               Kullanıcı yönetimi için admin yetkisi gerekli.
@@ -213,6 +255,8 @@ export function SettingsPage() {
           </Button>
         )}
       </div>
+
+      <GeneralSettingsPanel />
 
       <div>
         <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-3">Kullanıcılar</h2>
