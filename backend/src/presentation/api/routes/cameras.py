@@ -34,6 +34,7 @@ from src.infrastructure.camera.camera_scanner import (
     validate_rtsp_endpoint_variants_async,
 )
 from src.infrastructure.security.jwt_service import create_stream_token
+from src.infrastructure.security.audit_logger import write_audit_event
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
 
@@ -41,6 +42,7 @@ router = APIRouter(prefix="/cameras", tags=["Cameras"])
 @router.post("/", response_model=CameraResponse, status_code=201)
 async def add_camera(
     camera_data: CameraCreate,
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
@@ -122,6 +124,12 @@ async def add_camera(
         # RTSP doğrulaması başarılıysa kamerayı hemen aktif et ve akışı başlat
         camera = use_cases.update_camera_status(camera.id, CameraStatus.ACTIVE)
         await sm.ensure_running_state(camera.id)
+        write_audit_event(
+            "camera.create",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"camera_id": camera.id, "host": camera.host},
+        )
         return camera
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -176,6 +184,7 @@ def create_camera_stream_token(
 async def update_camera(
     camera_id: int,
     data: CameraUpdate,
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
@@ -210,15 +219,18 @@ async def update_camera(
         camera.onvif_port = data.onvif_port
     if data.username is not None:
         camera.username = data.username
-    if data.password is not None:
-        camera.encrypted_password = use_cases._encrypt_password(data.password)
-
-    updated_camera = use_cases.update_camera(camera)
+    updated_camera = use_cases.update_camera(camera, plain_password=data.password if data.password is not None else None)
 
     # Bağlantı ayarları değiştiyse yayını sıfırla ve yeniden bağlandır
     if connection_changed:
         await sm.reset_stream(camera_id)
 
+    write_audit_event(
+        "camera.update",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "connection_changed": connection_changed},
+    )
     return updated_camera
 
 
@@ -341,6 +353,7 @@ async def diagnose_camera_stream(
 @router.delete("/{camera_id}", status_code=204)
 async def delete_camera(
     camera_id: int,
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
@@ -348,12 +361,19 @@ async def delete_camera(
     """Belirli bir kamerayı sistemden siler."""
     await sm.close_all(camera_id, "Kamera silindi.")
     use_cases.delete_camera(camera_id)
+    write_audit_event(
+        "camera.delete",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id},
+    )
 
 
 @router.patch("/{camera_id}/status", response_model=CameraResponse)
 async def update_camera_status(
     camera_id: int,
     status: CameraStatus,
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
@@ -371,6 +391,12 @@ async def update_camera_status(
     else:
         await sm.ensure_running_state(camera_id)
 
+    write_audit_event(
+        "camera.status",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "status": status.value},
+    )
     return camera
 
 
@@ -378,6 +404,7 @@ async def update_camera_status(
 async def update_camera_ai(
     camera_id: int,
     enabled: bool,
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
@@ -396,6 +423,12 @@ async def update_camera_ai(
     if camera.status == CameraStatus.ACTIVE:
         await sm.ensure_running_state(camera_id)
 
+    write_audit_event(
+        "camera.ai",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "enabled": enabled},
+    )
     return camera
 
 
@@ -450,12 +483,15 @@ async def scan_cameras(
 @router.post("/bulk-add", response_model=List[CameraResponse])
 async def bulk_add_cameras(
     cameras: List[CameraCreate],
+    request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
     current_user: dict = Depends(get_operator_user),
 ):
     """Birden fazla kamerayı toplu olarak sisteme ekler."""
     try:
+        if len(cameras) > 100:
+            raise HTTPException(status_code=413, detail="Tek seferde en fazla 100 kamera eklenebilir.")
         cameras_dicts = [cam.dict() for cam in cameras]
         added = use_cases.bulk_add_cameras(cameras_dicts)
         # Tarama ile eklenen kameralar RTSP doğrulamasından geçti — hemen aktif et
@@ -464,6 +500,14 @@ async def bulk_add_cameras(
             activated = use_cases.update_camera_status(camera.id, CameraStatus.ACTIVE)
             await sm.ensure_running_state(activated.id)
             result.append(activated)
+        write_audit_event(
+            "camera.bulk_add",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"count": len(result)},
+        )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

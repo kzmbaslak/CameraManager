@@ -1,5 +1,7 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-16: Kurumsal guvenlik/DDD/SOLID bulgulari duzeltildi. JWT ve kamera sifreleme anahtarlari placeholder/fallback kabul etmeden fail-fast dogrulaniyor; scan istekleri host/port/CIDR ve maksimum adres limitleriyle kisitlandi; login/change-password ve kamera/NVR mutasyonlari audit log'a yaziliyor; CORS method/header wildcard kaldirildi; frontend auth state sessionStorage'a tasindi; stream token URL query yerine ilk WebSocket mesajiyla gonderiliyor; kamera/NVR parola sifreleme route katmanindan use-case icine alindi; stream manager ve health checker somut DB/repository importlari yerine dependency factory ile calisiyor.
+
 - Kamera/NVR bağlantı incelemesi ve yapılan düzeltmeler için `Docs_Obsidian/05_Camera_NVR_Connectivity_Notes.md` dosyasına bakın.
 - 2026-06-18: Illustra i610 için 7778 portu + `/primarystream` yolu eklendi; kamera ekleme/taramada isteğe bağlı alternatif RTSP port denemesi, kamera/NVR RTSP doğrulamalarına zaman sınırı ve NVR import sırasında erişilebilir endpoint seçimi eklendi.
 - 2026-06-18: `/primarystream` doğru i610 path'i otomatik taramada önceliklendirildi, tarama port ön kontrolüne bağımlı olmaktan çıkarıldı, NVR import gerçek frame doğrulamasıyla sıkılaştırıldı ve Kameralar ekranına RTSP "Test Et" tanısı eklendi.

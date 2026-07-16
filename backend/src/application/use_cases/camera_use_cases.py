@@ -101,7 +101,9 @@ class CameraUseCases:
     def delete_camera(self, camera_id: int) -> None:
         self.camera_repository.delete(camera_id)
 
-    def update_camera(self, camera: Camera) -> Camera:
+    def update_camera(self, camera: Camera, plain_password: Optional[str] = None) -> Camera:
+        if plain_password is not None:
+            camera.encrypted_password = self._encrypt_password(plain_password)
         return self.camera_repository.update(camera)
 
     def update_camera_status(self, camera_id: int, status: CameraStatus) -> Camera:

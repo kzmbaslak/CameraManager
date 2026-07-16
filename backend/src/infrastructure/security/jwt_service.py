@@ -14,9 +14,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import JWTError, jwt
+from src.infrastructure.security.runtime_config import require_jwt_secret
 
 # JWT imzalama için gizli anahtar — üretimde .env ile sağlanmalı
-_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-only-insecure-key-change-in-production")
+_SECRET_KEY = require_jwt_secret()
 _ALGORITHM = "HS256"
 _DEFAULT_EXPIRE_MINUTES = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 

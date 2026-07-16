@@ -1,7 +1,9 @@
 """
 WebSocket canlı akış endpoint'i.
 
-GET /api/streams/{camera_id}?token=<short-lived-stream-jwt>
+GET /api/streams/{camera_id}?profile=grid|live|alarm
+İstemci, kısa ömürlü stream token'ı bağlantı açılır açılmaz ilk WebSocket
+mesajında {"token": "..."} olarak gönderir.
 
 Kamera başına TEK bir arka plan üretici (CameraStreamManager) RTSP'den kare
 okur ve bağlı tüm istemcilere (aynı ağdaki farklı cihazlar dahil) yayınlar.
@@ -17,6 +19,7 @@ os.environ.setdefault(
 )
 
 import asyncio
+import json
 import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -54,12 +57,20 @@ async def force_disconnect(camera_id: int, reason: str = "Kamera izlemesi durdur
 
 
 @router.websocket("/{camera_id}")
-async def stream_camera(websocket: WebSocket, camera_id: int, token: str = None, profile: str = "grid"):
+async def stream_camera(websocket: WebSocket, camera_id: int, profile: str = "grid"):
     """
     Kameranın canlı görüntüsünü WebSocket ile binary JPEG olarak iletir.
     Kamera pasif, silinmiş veya erişilemez hâle gelince bağlantı kapatılır.
     """
     await websocket.accept()
+
+    # Token URL'de tasinmaz; proxy/log kayitlarina dusmemesi icin ilk
+    # WebSocket mesajinda alinir.
+    try:
+        auth_payload = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
+        token = json.loads(auth_payload).get("token")
+    except Exception:
+        token = None
 
     # Kısa ömürlü stream token doğrulama
     if not token:

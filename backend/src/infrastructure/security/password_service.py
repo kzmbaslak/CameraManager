@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import base64
 import os
+import base64
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from src.infrastructure.security.runtime_config import require_camera_encryption_key
 
 
 class PasswordEncryptionService:
@@ -40,19 +41,4 @@ class PasswordEncryptionService:
 
     @classmethod
     def _load_or_generate_key(cls) -> bytes:
-        raw = os.environ.get(cls._ENV_VAR)
-        if raw:
-            key = base64.b64decode(raw)
-            if len(key) != 32:
-                raise ValueError(f"{cls._ENV_VAR} 32 bayt (256-bit) olmalıdır.")
-            return key
-
-        # Geliştirme ortamı için deterministik sabit key (üretimde env değişkeni zorunlu)
-        import warnings
-        warnings.warn(
-            f"{cls._ENV_VAR} env değişkeni ayarlanmamış. "
-            "Geliştirme ortamı için varsayılan key kullanılıyor. "
-            "Üretimde mutlaka .env dosyasına ekleyin.",
-            stacklevel=3,
-        )
-        return b"\x00" * 32  # 256-bit sıfır key — sadece geliştirme!
+        return require_camera_encryption_key()

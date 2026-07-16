@@ -42,12 +42,20 @@ class CameraStreamManager:
         self,
         ai_service,
         password_service=None,
+        db_session_factory=None,
+        camera_repository_factory=None,
+        alarm_repository_factory=None,
+        frame_source_factory=None,
         ai_interval: float = 0.5,
         display_fps: float = 15.0,
         cooldown_seconds: int = 60,
     ):
         self._ai_service = ai_service
         self._password_service = password_service
+        self._db_session_factory = db_session_factory
+        self._camera_repository_factory = camera_repository_factory
+        self._alarm_repository_factory = alarm_repository_factory
+        self._frame_source_factory = frame_source_factory
         self._ai_interval = ai_interval
         self._frame_interval = 1.0 / display_fps
         self._cooldown_seconds = cooldown_seconds
@@ -64,6 +72,26 @@ class CameraStreamManager:
         self._idle_grace_seconds = 10.0
         self._executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cam_stream")
         self._ai_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="cam_ai")
+
+    def _new_frame_source(self):
+        if self._frame_source_factory is None:
+            raise RuntimeError("CameraStreamManager frame_source_factory yapılandırılmamış.")
+        return self._frame_source_factory()
+
+    def _open_db(self):
+        if self._db_session_factory is None:
+            raise RuntimeError("CameraStreamManager db_session_factory yapılandırılmamış.")
+        return self._db_session_factory()
+
+    def _camera_repo(self, db):
+        if self._camera_repository_factory is None:
+            raise RuntimeError("CameraStreamManager camera_repository_factory yapılandırılmamış.")
+        return self._camera_repository_factory(db)
+
+    def _alarm_repo(self, db):
+        if self._alarm_repository_factory is None:
+            raise RuntimeError("CameraStreamManager alarm_repository_factory yapılandırılmamış.")
+        return self._alarm_repository_factory(db)
 
     # ------------------------------------------------------------------
     # İzleyici (subscriber) yönetimi — WebSocket bağlantıları buradan akar
@@ -136,12 +164,9 @@ class CameraStreamManager:
 
     async def start_all_active(self) -> None:
         """Uygulama başlangıcında AI açık kameralar için producer'ı önceden başlatır."""
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
-
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            repo = SqlAlchemyCameraRepository(db)
+            repo = self._camera_repo(db)
             cameras = repo.list_all()
             total = len(cameras)
             active_count = sum(1 for c in cameras if c.status == CameraStatus.ACTIVE)
@@ -241,9 +266,7 @@ class CameraStreamManager:
         logger.info(f"[StreamManager] Kamera {camera_id} için producer başlatıldı.")
 
     async def _producer_loop(self, camera_id: int) -> None:
-        from src.infrastructure.camera.opencv_stream_reader import OpenCVStreamReader
-
-        frame_source = OpenCVStreamReader(password_service=self._password_service)
+        frame_source = self._new_frame_source()
         loop = asyncio.get_event_loop()
         idle_since: float | None = None
 
@@ -383,24 +406,18 @@ class CameraStreamManager:
 
     def _sync_check_subscribable(self, camera_id: int) -> bool:
         """ACTIVE veya ERROR durumdaki kameralara abonelik izni verir; INACTIVE → False."""
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
-
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            repo = SqlAlchemyCameraRepository(db)
+            repo = self._camera_repo(db)
             cam = repo.get_by_id(camera_id)
             return cam is not None and cam.status in (CameraStatus.ACTIVE, CameraStatus.ERROR)
         finally:
             db.close()
 
     def _sync_get_state(self, camera_id: int) -> Optional[Tuple[CameraStatus, bool]]:
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
-
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            repo = SqlAlchemyCameraRepository(db)
+            repo = self._camera_repo(db)
             cam = repo.get_by_id(camera_id)
             if not cam:
                 return None
@@ -436,13 +453,11 @@ class CameraStreamManager:
         Kendi DB session'ını açar/kapatır — thread pool'dan güvenle çağrılabilir.
         Döner: (frame | None, camera_active: bool)
         """
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
         from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
 
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            camera_repo = SqlAlchemyCameraRepository(db)
+            camera_repo = self._camera_repo(db)
 
             camera = camera_repo.get_by_id(camera_id)
             if not camera or camera.status == CameraStatus.INACTIVE:
@@ -469,15 +484,12 @@ class CameraStreamManager:
 
     def _detect_and_alarm_sync(self, camera_id: int, frame) -> Optional[object]:
         """Önceden okunmuş kare üzerinde AI tespiti ve alarm üretimi yapar."""
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
-        from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
         from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
 
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            camera_repo = SqlAlchemyCameraRepository(db)
-            alarm_repo = SqlAlchemyAlarmRepository(db)
+            camera_repo = self._camera_repo(db)
+            alarm_repo = self._alarm_repo(db)
             camera = camera_repo.get_by_id(camera_id)
             if not camera or not camera.ai_detection_enabled or camera.status != CameraStatus.ACTIVE:
                 return None

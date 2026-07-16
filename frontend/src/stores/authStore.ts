@@ -1,6 +1,6 @@
 // JWT oturum bilgisini kalıcı olarak tutan Zustand store'u.
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 interface AuthState {
   token: string | null
@@ -19,6 +19,6 @@ export const useAuthStore = create<AuthState>()(
       login: (token, username, role) => set({ token, username, role }),
       logout: () => set({ token: null, username: null, role: null }),
     }),
-    { name: 'auth' }
+    { name: 'auth-session', storage: createJSONStorage(() => sessionStorage) }
   )
 )

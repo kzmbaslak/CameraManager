@@ -73,7 +73,9 @@ class NVRUseCases:
     def delete_nvr(self, nvr_id: int) -> None:
         self._repo.delete(nvr_id)
 
-    def update_nvr(self, nvr: NVR) -> NVR:
+    def update_nvr(self, nvr: NVR, plain_password: Optional[str] = None) -> NVR:
+        if plain_password is not None:
+            nvr.encrypted_password = self._encrypt_password(plain_password)
         return self._repo.update(nvr)
 
     def bulk_add_nvrs(self, nvrs_list: list) -> list[NVR]:

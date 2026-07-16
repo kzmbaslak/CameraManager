@@ -20,7 +20,7 @@ taze veritabanı oturumu (Session) ile oluşturulur.
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from src.infrastructure.database.database import get_db
+from src.infrastructure.database.database import SessionLocal, get_db
 from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
@@ -41,9 +41,23 @@ from src.infrastructure.security.password_service import PasswordEncryptionServi
 password_service = PasswordEncryptionService()
 frame_source = OpenCVStreamReader(password_service=password_service)
 ai_service = ONNXInferenceService()
-stream_manager = CameraStreamManager(ai_service=ai_service, password_service=password_service)
+stream_manager = CameraStreamManager(
+    ai_service=ai_service,
+    password_service=password_service,
+    db_session_factory=SessionLocal,
+    camera_repository_factory=SqlAlchemyCameraRepository,
+    alarm_repository_factory=SqlAlchemyAlarmRepository,
+    frame_source_factory=lambda: OpenCVStreamReader(password_service=password_service),
+)
 nvr_probe_service = ONVIFProbeService()
-health_checker = CameraHealthChecker(check_interval=10.0, timeout=3.0, cooldown_seconds=60)
+health_checker = CameraHealthChecker(
+    check_interval=10.0,
+    timeout=3.0,
+    cooldown_seconds=60,
+    db_session_factory=SessionLocal,
+    camera_repository_factory=SqlAlchemyCameraRepository,
+    alarm_repository_factory=SqlAlchemyAlarmRepository,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -157,4 +171,3 @@ def get_operator_user(current_user: dict = Depends(get_current_user)) -> dict:
             detail="Bu işlem için Admin veya Operatör yetkisi gereklidir."
         )
     return current_user
-

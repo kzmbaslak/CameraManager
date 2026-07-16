@@ -99,11 +99,10 @@ function effectiveProfile(stream: SharedStream): StreamProfile {
   return best
 }
 
-function buildUrl(cameraId: number, token: string, profile: StreamProfile) {
+function buildUrl(cameraId: number, profile: StreamProfile) {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
   const qs = new URLSearchParams({ profile })
-  qs.set('token', token)
   return `${protocol}//${host}/api/streams/${cameraId}?${qs.toString()}`
 }
 
@@ -127,11 +126,12 @@ async function connect(stream: SharedStream) {
     return
   }
 
-  const ws = new WebSocket(buildUrl(stream.cameraId, streamToken, stream.profile))
+  const ws = new WebSocket(buildUrl(stream.cameraId, stream.profile))
   ws.binaryType = 'blob'
   stream.websocket = ws
 
   ws.onopen = () => {
+    ws.send(JSON.stringify({ token: streamToken }))
     stream.retryDelay = 1_000
     stream.state = { ...stream.state, connected: true }
     emit(stream)

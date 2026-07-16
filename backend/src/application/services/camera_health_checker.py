@@ -18,12 +18,38 @@ logger = logging.getLogger(__name__)
 class CameraHealthChecker:
     """status != 'inactive' olan tüm kameralara periyodik TCP ping atar."""
 
-    def __init__(self, check_interval: float = 10.0, timeout: float = 3.0, cooldown_seconds: int = 60):
+    def __init__(
+        self,
+        check_interval: float = 10.0,
+        timeout: float = 3.0,
+        cooldown_seconds: int = 60,
+        db_session_factory=None,
+        camera_repository_factory=None,
+        alarm_repository_factory=None,
+    ):
         self._check_interval = check_interval
         self._timeout = timeout
         self._cooldown_seconds = cooldown_seconds
+        self._db_session_factory = db_session_factory
+        self._camera_repository_factory = camera_repository_factory
+        self._alarm_repository_factory = alarm_repository_factory
         self._task: asyncio.Task | None = None
         self._last_offline_alarm: Dict[int, datetime] = {}
+
+    def _open_db(self):
+        if self._db_session_factory is None:
+            raise RuntimeError("CameraHealthChecker db_session_factory yapılandırılmamış.")
+        return self._db_session_factory()
+
+    def _camera_repo(self, db):
+        if self._camera_repository_factory is None:
+            raise RuntimeError("CameraHealthChecker camera_repository_factory yapılandırılmamış.")
+        return self._camera_repository_factory(db)
+
+    def _alarm_repo(self, db):
+        if self._alarm_repository_factory is None:
+            raise RuntimeError("CameraHealthChecker alarm_repository_factory yapılandırılmamış.")
+        return self._alarm_repository_factory(db)
 
     def start(self) -> None:
         """Arka plan döngüsünü başlatır (zaten çalışıyorsa atlar)."""
@@ -57,16 +83,13 @@ class CameraHealthChecker:
             return False
 
     def _check_all_sync(self) -> None:
-        from src.infrastructure.database.database import SessionLocal
-        from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
-        from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
         from src.domain.entities.camera import CameraStatus
         from src.domain.entities.alarm import Alarm, AlarmType, AlarmStatus
 
-        db = SessionLocal()
+        db = self._open_db()
         try:
-            camera_repo = SqlAlchemyCameraRepository(db)
-            alarm_repo = SqlAlchemyAlarmRepository(db)
+            camera_repo = self._camera_repo(db)
+            alarm_repo = self._alarm_repo(db)
 
             cameras = [c for c in camera_repo.list_all() if c.status != CameraStatus.INACTIVE]
 

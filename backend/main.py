@@ -16,7 +16,7 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
 
 # .env dosyasını oku — diğer tüm importlardan ÖNCE olmalı
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -24,8 +24,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.presentation.api import router as api_router
 from src.infrastructure.database.database import engine
 from src.infrastructure.database import models
+from src.infrastructure.security.runtime_config import validate_security_environment
 
 # Veritabanı tablolarını oluştur
+validate_security_environment()
 models.Base.metadata.create_all(bind=engine)
 
 
@@ -92,8 +94,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     app.include_router(api_router, prefix="/api")

@@ -1,41 +1,45 @@
 """
-NVR (Network Video Recorder) Pydantic şemaları.
+NVR (Network Video Recorder) Pydantic semalari.
 
-Bu modüldeki sınıflar, NVR API endpoint'lerinin istek (request)
-ve yanıt (response) veri yapılarını tanımlar.
+Bu moduldeki siniflar, NVR API endpoint'lerinin istek ve yanit veri
+yapilarini tanimlar. Parolalar yanitlarda hicbir zaman dondurulmez.
 """
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+from src.presentation.api.security_validators import validate_host, validate_port, validate_scan_target
 
 
 class NVRCreate(BaseModel):
-    """
-    Yeni NVR cihazı eklemek için kullanıcıdan alınan veriler.
-    Şifre burada düz metin olarak gelir; servis katmanında AES-256 ile şifrelenerek
-    veritabanına kaydedilir.
-    """
-    name: str                          # Tanımlayıcı isim (örn: "Giriş Katı NVR")
-    host: str                          # IP adresi veya hostname
-    onvif_port: int = 80               # ONVIF yönetim portu (genellikle 80 veya 8080)
-    username: Optional[str] = None     # ONVIF kullanıcı adı
-    password: Optional[str] = None     # Düz metin şifre — kaydedilmez, şifrelenir
-    brand: Optional[str] = None        # NVR markası (örn: VideoEdge)
-    model: Optional[str] = None        # NVR modeli
+    name: str = Field(min_length=1, max_length=120)
+    host: str = Field(min_length=1, max_length=255)
+    onvif_port: int = 80
+    username: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=256)
+    brand: Optional[str] = Field(default=None, max_length=120)
+    model: Optional[str] = Field(default=None, max_length=120)
+
+    @field_validator("host")
+    @classmethod
+    def _validate_host(cls, value: str) -> str:
+        return validate_host(value)
+
+    @field_validator("onvif_port")
+    @classmethod
+    def _validate_onvif_port(cls, value: int) -> int:
+        return validate_port(value, 80)
 
 
 class NVRResponse(BaseModel):
-    """
-    API'nin NVR bilgisi dönerken kullandığı yanıt modeli.
-    Şifre hiçbir zaman döndürülmez.
-    """
     id: int
     name: str
     host: str
     onvif_port: int
     username: Optional[str] = None
-    brand: Optional[str] = None        # ONVIF'ten otomatik alınan marka
-    model: Optional[str] = None        # ONVIF'ten otomatik alınan model
+    brand: Optional[str] = None
+    model: Optional[str] = None
     is_active: bool
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -45,56 +49,66 @@ class NVRResponse(BaseModel):
 
 
 class NVRUpdate(BaseModel):
-    """NVR cihazını kısmi olarak güncellemek için kullanılan istek modeli. None alanlar değiştirilmez."""
-    name: Optional[str] = None
-    host: Optional[str] = None
+    """NVR cihazini kismi olarak gunceller. None alanlar degistirilmez."""
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    host: Optional[str] = Field(default=None, max_length=255)
     onvif_port: Optional[int] = None
-    username: Optional[str] = None
-    password: Optional[str] = None   # None → şifre değiştirilmez
+    username: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=256)
+
+    @field_validator("host")
+    @classmethod
+    def _validate_host(cls, value: Optional[str]) -> Optional[str]:
+        return validate_host(value) if value is not None else value
+
+    @field_validator("onvif_port")
+    @classmethod
+    def _validate_onvif_port(cls, value: Optional[int]) -> Optional[int]:
+        return validate_port(value, 80) if value is not None else value
 
 
 class NVRProbeRequest(BaseModel):
-    """
-    NVR kanallarını sorgulamak için kullanılan istek modeli.
-    nvr_id URL parametresiyle geldiğinden bu şema şu an kullanılmıyor;
-    ileride kimlik bilgisi override için ayrılmıştır.
-    """
-    onvif_port: Optional[int] = None   # None ise kayıtlı port kullanılır
+    onvif_port: Optional[int] = None
+
+    @field_validator("onvif_port")
+    @classmethod
+    def _validate_onvif_port(cls, value: Optional[int]) -> Optional[int]:
+        return validate_port(value, 80) if value is not None else value
 
 
 class NVRChannelInfo(BaseModel):
-    """
-    NVR'dan ONVIF ile okunan bir kamera kanalının önizleme bilgileri.
-    Sisteme kaydetmeden önce kullanıcıya gösterilir.
-    """
-    profile_token: str              # ONVIF profil token'ı (her kanal benzersiz)
-    profile_name: str               # Kanal adı (örn: "MainStream", "Kanal-1")
-    manufacturer: Optional[str] = None   # Cihaz markası
-    model: Optional[str] = None         # Cihaz modeli
-    rtsp_url: str                   # NVR üzerinden tam RTSP adresi
+    profile_token: str = Field(min_length=1, max_length=256)
+    profile_name: str = Field(min_length=1, max_length=256)
+    manufacturer: Optional[str] = Field(default=None, max_length=120)
+    model: Optional[str] = Field(default=None, max_length=120)
+    rtsp_url: str = Field(min_length=1, max_length=2048)
 
 
 class NVRDiscoverResponse(BaseModel):
-    """
-    WS-Discovery ile ağda bulunan bir ONVIF cihazının bilgileri.
-    """
     xaddr: str
     host: str
     port: int
 
 
 class NVRImportRequest(BaseModel):
-    """
-    Seçili ONVIF/RTSP kanallarını içe aktarmak için kullanılan istek modeli.
-    """
-    channels: List[NVRChannelInfo]
+    channels: List[NVRChannelInfo] = Field(min_length=1, max_length=64)
 
 
 class NVRScanRequest(BaseModel):
-    ip_range: str
+    ip_range: str = Field(min_length=1, max_length=64)
     rtsp_port: Optional[int] = 554
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=256)
+
+    @field_validator("ip_range")
+    @classmethod
+    def _validate_ip_range(cls, value: str) -> str:
+        return validate_scan_target(value)
+
+    @field_validator("rtsp_port")
+    @classmethod
+    def _validate_rtsp_port(cls, value: Optional[int]) -> Optional[int]:
+        return validate_port(value, 554) if value is not None else value
 
 
 class NVRScanResponse(BaseModel):
@@ -102,5 +116,3 @@ class NVRScanResponse(BaseModel):
     port: int
     brand: str
     model: str
-
-

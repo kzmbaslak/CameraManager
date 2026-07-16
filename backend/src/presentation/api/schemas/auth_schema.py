@@ -3,13 +3,13 @@ Kimlik doğrulama (authentication) Pydantic şemaları.
 
 Login isteği ve JWT token yanıtı için veri modelleri.
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
     """Kullanıcı giriş isteği — kullanıcı adı ve şifre."""
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=256)
 
 
 class TokenResponse(BaseModel):
@@ -22,6 +22,5 @@ class TokenResponse(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     """Kullanıcının kendi şifresini değiştirmek için kullandığı istek modeli."""
-    old_password: str                  # Mevcut şifre
-    new_password: str                  # Yeni şifre
-
+    old_password: str = Field(min_length=1, max_length=256)      # Mevcut şifre
+    new_password: str = Field(min_length=8, max_length=256)      # Yeni şifre

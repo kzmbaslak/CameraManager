@@ -39,6 +39,7 @@ from src.presentation.api.schemas.nvr_schema import (
     NVRScanResponse,
 )
 from src.presentation.api.schemas.camera_schema import CameraResponse
+from src.infrastructure.security.audit_logger import write_audit_event
 
 logger = logging.getLogger(__name__)
 
@@ -286,12 +287,13 @@ router = APIRouter(prefix="/nvrs", tags=["NVR Cihazları"])
 @router.post("/", response_model=NVRResponse, status_code=201)
 def add_nvr(
     data: NVRCreate,
+    request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
     """Sisteme yeni bir NVR cihazı ekler."""
     try:
-        return use_cases.add_nvr(
+        nvr = use_cases.add_nvr(
             name=data.name,
             host=data.host,
             onvif_port=data.onvif_port,
@@ -300,6 +302,13 @@ def add_nvr(
             brand=data.brand,
             model=data.model,
         )
+        write_audit_event(
+            "nvr.create",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"nvr_id": nvr.id, "host": nvr.host},
+        )
+        return nvr
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -330,6 +339,7 @@ def get_nvr(
 def update_nvr(
     nvr_id: int,
     data: NVRUpdate,
+    request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
@@ -346,17 +356,21 @@ def update_nvr(
         nvr.onvif_port = data.onvif_port
     if data.username is not None:
         nvr.username = data.username
-    if data.password is not None:
-        from src.presentation.api.dependencies import password_service
-        nvr.encrypted_password = password_service.encrypt(data.password)
-
-    return use_cases.update_nvr(nvr)
+    updated = use_cases.update_nvr(nvr, plain_password=data.password if data.password is not None else None)
+    write_audit_event(
+        "nvr.update",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"nvr_id": nvr_id},
+    )
+    return updated
 
 
 @router.patch("/{nvr_id}/status", response_model=NVRResponse)
 def update_nvr_status(
     nvr_id: int,
     is_active: bool,
+    request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
@@ -365,17 +379,31 @@ def update_nvr_status(
     if not nvr:
         raise HTTPException(status_code=404, detail="NVR bulunamadı.")
     nvr.is_active = is_active
-    return use_cases.update_nvr(nvr)
+    updated = use_cases.update_nvr(nvr)
+    write_audit_event(
+        "nvr.status",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"nvr_id": nvr_id, "is_active": is_active},
+    )
+    return updated
 
 
 @router.delete("/{nvr_id}", status_code=204)
 def delete_nvr(
     nvr_id: int,
+    request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
     """Belirli bir NVR cihazını siler (bağlı kameralar nvr_id=null olur)."""
     use_cases.delete_nvr(nvr_id)
+    write_audit_event(
+        "nvr.delete",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"nvr_id": nvr_id},
+    )
 
 
 @router.post("/{nvr_id}/probe", response_model=List[NVRChannelInfo])
@@ -412,6 +440,7 @@ async def probe_nvr_channels(
 async def import_nvr_cameras(
     nvr_id: int,
     body: NVRImportRequest,
+    request: Request,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
@@ -475,6 +504,12 @@ async def import_nvr_cameras(
             imported.append(camera)
 
         logger.info(f"[NVR Import] Tamamlandı — {len(imported)} kamera aktarıldı")
+        write_audit_event(
+            "nvr.import",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"nvr_id": nvr_id, "count": len(imported)},
+        )
         return imported
     except Exception as e:
         logger.error(f"[NVR Import] Hata: {e}")
@@ -569,13 +604,24 @@ async def scan_nvrs(
 @router.post("/bulk-add", response_model=List[NVRResponse], status_code=201)
 def bulk_add_nvrs(
     nvrs: List[NVRCreate],
+    request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
     """Birden fazla NVR cihazını toplu olarak sisteme ekler."""
     try:
+        if len(nvrs) > 100:
+            raise HTTPException(status_code=413, detail="Tek seferde en fazla 100 NVR eklenebilir.")
         nvrs_dicts = [nvr.dict() for nvr in nvrs]
         added = use_cases.bulk_add_nvrs(nvrs_dicts)
+        write_audit_event(
+            "nvr.bulk_add",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"count": len(added)},
+        )
         return added
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
