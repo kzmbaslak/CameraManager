@@ -62,11 +62,11 @@ function NotificationCard({
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 80, scale: 0.98 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="w-[360px] overflow-hidden rounded-lg border border-danger/50 bg-bg-card shadow-2xl"
+      className="w-[360px] overflow-hidden rounded-md border border-danger/50 bg-bg-card shadow-2xl"
       role="alert"
       aria-live="assertive"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-danger/20 bg-danger/10 px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3 border-b border-danger/25 bg-danger/15 px-3 py-2.5">
         <div className="flex min-w-0 items-start gap-2">
           <motion.div animate={{ opacity: [1, 0.35, 1] }} transition={{ repeat: Infinity, duration: 1 }}>
             <AlertTriangle size={16} className="mt-0.5 text-danger" />
@@ -191,7 +191,7 @@ export function AlarmNotificationPanel() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 shadow-xl"
+            className="flex items-center gap-2 rounded-md border border-border bg-bg-secondary px-3 py-2 shadow-2xl"
           >
             <Button
               size="sm"

@@ -14,10 +14,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-[var(--accent)] hover:bg-blue-600 text-white',
-  secondary: 'bg-[var(--bg-card)] hover:bg-[var(--border)] text-[var(--text-primary)] border border-[var(--border)]',
-  danger: 'bg-[var(--danger)] hover:bg-red-600 text-white',
-  ghost: 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+  primary: 'bg-accent hover:bg-accent-hover text-white',
+  secondary: 'bg-bg-elevated hover:bg-border text-text-primary border border-border',
+  danger: 'bg-danger hover:bg-danger-strong text-white',
+  ghost: 'hover:bg-bg-elevated text-text-secondary hover:text-text-primary',
 }
 
 const sizeClasses: Record<Size, string> = {
@@ -40,7 +40,7 @@ export function Button({
     <button
       disabled={disabled || loading}
       className={`
-        inline-flex items-center justify-center rounded-lg font-medium
+        inline-flex items-center justify-center rounded-md font-medium
         transition-colors duration-150 cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variantClasses[variant]} ${sizeClasses[size]} ${className}

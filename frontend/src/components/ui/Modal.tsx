@@ -35,13 +35,13 @@ export function Modal({ open, onClose, title, children, width = 'max-w-md' }: Mo
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15 }}
-            className={`relative w-full ${width} bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl`}
+            className={`relative w-full ${width} bg-bg-card border border-border rounded-lg shadow-2xl`}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg hover:bg-[var(--border)] text-[var(--text-secondary)] transition-colors"
+                className="p-1 rounded-md hover:bg-border text-text-secondary transition-colors"
               >
                 <X size={16} />
               </button>

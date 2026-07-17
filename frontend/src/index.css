@@ -1,32 +1,41 @@
 @import "tailwindcss";
 
-/* Uygulama geneli koyu tema renk değişkenleri */
+/* VMS/SOC operator console color tokens */
 :root {
   color-scheme: dark;
-  --bg-primary: #0f1117;
-  --bg-secondary: #1a1d27;
-  --bg-card: #1e2235;
-  --border: #2a2f45;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --danger: #ef4444;
-  --danger-strong: #dc2626;
-  --danger-soft: rgba(239, 68, 68, 0.12);
+  --bg-primary: #0b0f14;
+  --bg-secondary: #151a21;
+  --bg-card: #1f2630;
+  --bg-elevated: #252d38;
+  --border: #303846;
+  --border-strong: #465160;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --info: #0891b2;
+  --danger: #dc2626;
+  --danger-strong: #b91c1c;
+  --danger-soft: rgba(220, 38, 38, 0.16);
   --success: #22c55e;
   --warning: #f59e0b;
+  --shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.38);
 }
 
 @theme {
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
   --color-bg-card: var(--bg-card);
+  --color-bg-elevated: var(--bg-elevated);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-info: var(--info);
   --color-danger: var(--danger);
   --color-danger-strong: var(--danger-strong);
   --color-success: var(--success);
@@ -43,6 +52,10 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
+}
+
+body::selection {
+  background: rgba(37, 99, 235, 0.35);
 }
 
 button:focus-visible,
@@ -69,5 +82,5 @@ textarea:focus-visible {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4060;
+  background: var(--border-strong);
 }

@@ -1,4 +1,4 @@
-// Grid boyutu seçici — 1×1, 2×2, 3×3, 4×4 seçenekleri sunar
+// Select camera grid density.
 import type { GridCols } from './CameraGrid'
 
 interface GridSizeSelectorProps {
@@ -6,27 +6,23 @@ interface GridSizeSelectorProps {
   onChange: (cols: GridCols) => void
 }
 
-/** Grid ızgarasını temsil eden küçük SVG ikonları */
 const GridIcon = ({ cols }: { cols: GridCols }) => {
-  const n = cols
-  const cells = Array.from({ length: n * n })
+  const cells = Array.from({ length: cols * cols })
   const gap = 1
   const cellSize = cols === 1 ? 10 : cols === 2 ? 5 : cols === 3 ? 3 : 2.5
 
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      {cells.map((_, i) => {
-        const row = Math.floor(i / n)
-        const col = i % n
-        const total = cellSize * n + gap * (n - 1)
+      {cells.map((_, index) => {
+        const row = Math.floor(index / cols)
+        const col = index % cols
+        const total = cellSize * cols + gap * (cols - 1)
         const offset = (16 - total) / 2
-        const x = offset + col * (cellSize + gap)
-        const y = offset + row * (cellSize + gap)
         return (
           <rect
-            key={i}
-            x={x}
-            y={y}
+            key={index}
+            x={offset + col * (cellSize + gap)}
+            y={offset + row * (cellSize + gap)}
             width={cellSize}
             height={cellSize}
             rx={0.5}
@@ -39,28 +35,26 @@ const GridIcon = ({ cols }: { cols: GridCols }) => {
 }
 
 const options: { cols: GridCols; label: string }[] = [
-  { cols: 1, label: '1×1' },
-  { cols: 2, label: '2×2' },
-  { cols: 3, label: '3×3' },
-  { cols: 4, label: '4×4' },
+  { cols: 1, label: '1x1' },
+  { cols: 2, label: '2x2' },
+  { cols: 3, label: '3x3' },
+  { cols: 4, label: '4x4' },
 ]
 
-/** Kullanıcının dashboard'da kaç sütunlu grid göreceğini seçmesini sağlar */
 export function GridSizeSelector({ value, onChange }: GridSizeSelectorProps) {
   return (
-    <div className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-lg p-1">
+    <div className="flex items-center gap-1 rounded-md border border-border bg-bg-secondary p-1">
       {options.map(({ cols, label }) => (
         <button
           key={cols}
           title={label}
+          aria-label={`${label} kamera grid görünümü`}
           onClick={() => onChange(cols)}
-          className={`
-            flex items-center justify-center w-8 h-8 rounded transition-colors
-            ${value === cols
-              ? 'bg-[var(--accent)] text-white'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-            }
-          `}
+          className={`flex h-8 w-8 items-center justify-center rounded transition-colors ${
+            value === cols
+              ? 'bg-accent text-white'
+              : 'text-text-secondary hover:bg-bg-card hover:text-text-primary'
+          }`}
         >
           <GridIcon cols={cols} />
         </button>
