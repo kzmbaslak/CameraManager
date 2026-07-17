@@ -14,6 +14,24 @@ import type { Alarm } from '../../types/api'
 
 dayjs.locale('tr')
 
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="rounded border border-border bg-bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold text-text-primary">
+      {children}
+    </kbd>
+  )
+}
+
+function ShortcutLegend() {
+  return (
+    <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-text-secondary">
+      <Kbd>Space</Kbd><span>Sustur</span>
+      <Kbd>A</Kbd><span>Onayla</span>
+      <Kbd>Enter</Kbd><span>Canlı</span>
+    </div>
+  )
+}
+
 const typeLabel: Record<string, string> = {
   human_detected: 'İnsan Tespiti',
   motion_detected: 'Hareket',
@@ -205,6 +223,9 @@ export function AlarmNotificationPanel() {
             >
               Gizle
             </Button>
+            <div className="ml-1 hidden border-l border-border pl-3 md:block">
+              <ShortcutLegend />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -22,6 +22,14 @@ function loadGridPref(): GridCols {
   return 2
 }
 
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="rounded border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[var(--danger)]">
+      {children}
+    </kbd>
+  )
+}
+
 // ─────────────────────────────────────────────
 // Kamera durum özet kartı
 // ─────────────────────────────────────────────
@@ -316,6 +324,10 @@ export function DashboardPage() {
               >
                 <CheckCircle size={14} />
               </button>
+              <span className="hidden items-center gap-1.5 border-l border-[var(--danger)]/25 pl-2 text-[11px] text-[var(--danger)] lg:flex">
+                <Kbd>Space</Kbd><span>Sustur</span>
+                <Kbd>A</Kbd><span>Onayla</span>
+              </span>
             </div>
           )}
 

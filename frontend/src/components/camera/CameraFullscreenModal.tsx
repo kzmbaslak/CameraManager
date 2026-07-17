@@ -9,6 +9,14 @@ import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { Button } from '../ui/Button'
 
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="rounded border border-border bg-bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold text-text-primary">
+      {children}
+    </kbd>
+  )
+}
+
 export function CameraFullscreenModal() {
   const {
     expandedCameraId,
@@ -166,7 +174,11 @@ export function CameraFullscreenModal() {
                   </strong>
                 </span>
                 <span>AI: <strong className="text-text-primary">{camera.ai_detection_enabled ? 'Açık' : 'Kapalı'}</strong></span>
-                <span className="ml-auto text-text-secondary">Kısayol: Space susturur, A onaylar, Esc kapatır</span>
+                <span className="ml-auto flex items-center gap-1.5 text-text-secondary">
+                  <Kbd>Space</Kbd><span>Sustur</span>
+                  <Kbd>A</Kbd><span>Onayla</span>
+                  <Kbd>Esc</Kbd><span>Kapat</span>
+                </span>
               </div>
             )}
           </motion.div>
