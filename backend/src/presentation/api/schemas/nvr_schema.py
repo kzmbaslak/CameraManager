@@ -82,6 +82,21 @@ class NVRChannelInfo(BaseModel):
     manufacturer: Optional[str] = Field(default=None, max_length=120)
     model: Optional[str] = Field(default=None, max_length=120)
     rtsp_url: str = Field(min_length=1, max_length=2048)
+    source: str = Field(default="onvif", max_length=32)
+    diagnostic: Optional[str] = Field(default=None, max_length=1024)
+
+
+class NVRProbeDiagnostics(BaseModel):
+    source: str
+    onvif_ok: bool
+    fallback_used: bool
+    device_manufacturer: Optional[str] = None
+    device_model: Optional[str] = None
+    profile_count: int = 0
+    stream_uri_count: int = 0
+    onvif_error: Optional[str] = None
+    fallback_error: Optional[str] = None
+    channels: List[NVRChannelInfo] = Field(default_factory=list)
 
 
 class NVRDiscoverResponse(BaseModel):

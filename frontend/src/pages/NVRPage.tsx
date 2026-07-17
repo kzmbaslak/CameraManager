@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
-import type { NVR, NVRCreate, NVRChannelInfo } from '../types/api'
+import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
 
@@ -143,14 +143,16 @@ function ChannelModal({
   const qc = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [channels, setChannels] = useState<NVRChannelInfo[]>([])
+  const [diagnostics, setDiagnostics] = useState<NVRProbeDiagnostics | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
 
   const { mutate: scanChannels, isPending, error } = useMutation({
-    mutationFn: () => nvrsApi.probe(nvr!.id),
+    mutationFn: () => nvrsApi.probeDiagnostics(nvr!.id),
     onSuccess: (data) => {
       setImportMessage(null)
-      setChannels(data)
-      setSelected(new Set(data.map((c) => c.profile_token)))
+      setDiagnostics(data)
+      setChannels(data.channels)
+      setSelected(new Set(data.channels.map((c) => c.profile_token)))
     },
   })
 
@@ -159,6 +161,7 @@ function ChannelModal({
     if (open && nvr) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setChannels([])
+      setDiagnostics(null)
       setSelected(new Set())
       setImportMessage(null)
       scanChannels()
@@ -216,6 +219,35 @@ function ChannelModal({
 
         {!isPending && !error && (
           <>
+            {diagnostics && (
+              <div className={`rounded-lg border px-3 py-2 text-xs ${
+                diagnostics.onvif_ok
+                  ? 'border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)]'
+                  : diagnostics.fallback_used && diagnostics.channels.length > 0
+                  ? 'border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]'
+                  : 'border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]'
+              }`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={diagnostics.onvif_ok ? 'success' : diagnostics.channels.length > 0 ? 'warning' : 'danger'}>
+                    {diagnostics.onvif_ok ? 'ONVIF Başarılı' : diagnostics.channels.length > 0 ? 'RTSP Fallback' : 'Kanal Bulunamadı'}
+                  </Badge>
+                  <span>
+                    {diagnostics.onvif_ok
+                      ? `${diagnostics.stream_uri_count} ONVIF stream URI alındı.`
+                      : diagnostics.channels.length > 0
+                      ? `ONVIF başarısız oldu, ${diagnostics.channels.length} kanal RTSP fallback ile bulundu.`
+                      : 'ONVIF ve RTSP fallback kanal döndürmedi.'}
+                  </span>
+                </div>
+                {!diagnostics.onvif_ok && diagnostics.onvif_error && (
+                  <p className="mt-1 text-[11px] text-[var(--text-secondary)]">ONVIF hata: {diagnostics.onvif_error}</p>
+                )}
+                {diagnostics.fallback_error && (
+                  <p className="mt-1 text-[11px] text-[var(--text-secondary)]">RTSP fallback hata: {diagnostics.fallback_error}</p>
+                )}
+              </div>
+            )}
+
             {channels.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-[var(--border)] rounded-lg text-[var(--text-secondary)] text-sm">
                 Herhangi bir aktif kanal veya RTSP yayını tespit edilemedi.
@@ -241,6 +273,7 @@ function ChannelModal({
                         </th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Profil / Ad</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Marka / Model</th>
+                        <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Kaynak</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">RTSP URL</th>
                       </tr>
                     </thead>
@@ -263,6 +296,11 @@ function ChannelModal({
                           </td>
                           <td className="px-3 py-2 text-[var(--text-primary)] font-medium">{ch.profile_name}</td>
                           <td className="px-3 py-2 text-[var(--text-secondary)]">{ch.manufacturer ?? '—'} / {ch.model ?? '—'}</td>
+                          <td className="px-3 py-2">
+                            <Badge variant={ch.source === 'onvif' ? 'success' : 'warning'}>
+                              {ch.source === 'onvif' ? 'ONVIF' : 'RTSP'}
+                            </Badge>
+                          </td>
                           <td className="px-3 py-2 text-[var(--text-secondary)] font-mono text-xs truncate max-w-[200px]" title={ch.rtsp_url}>{ch.rtsp_url}</td>
                         </tr>
                       ))}

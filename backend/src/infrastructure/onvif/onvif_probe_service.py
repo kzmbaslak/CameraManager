@@ -53,6 +53,8 @@ class ONVIFProbeService(ICameraProbeService):
         profiles_data = self._to_dict(cam, raw_profiles)
 
         profiles = profiles_data.get("Profiles", [])
+        if not profiles and isinstance(raw_profiles, (list, tuple)):
+            profiles = [self._to_dict(cam, item) for item in raw_profiles]
         if isinstance(profiles, dict):
             profiles = [profiles]
 
@@ -144,6 +146,16 @@ class ONVIFProbeService(ICameraProbeService):
     @staticmethod
     def _to_dict(cam, obj) -> dict:
         """zeep nesnelerini dict'e çevirir."""
+        try:
+            from zeep.helpers import serialize_object
+            serialized = serialize_object(obj)
+            if isinstance(serialized, dict):
+                return serialized
+            if isinstance(serialized, list):
+                return {"Profiles": serialized}
+        except Exception:
+            pass
+
         try:
             if hasattr(cam, "to_dict"):
                 return cam.to_dict(obj) or {}

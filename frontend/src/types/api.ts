@@ -87,6 +87,21 @@ export interface NVRChannelInfo {
   manufacturer: string | null
   model: string | null
   rtsp_url: string
+  source: 'onvif' | 'rtsp_fallback' | string
+  diagnostic: string | null
+}
+
+export interface NVRProbeDiagnostics {
+  source: 'onvif' | 'rtsp_fallback' | 'none' | string
+  onvif_ok: boolean
+  fallback_used: boolean
+  device_manufacturer: string | null
+  device_model: string | null
+  profile_count: number
+  stream_uri_count: number
+  onvif_error: string | null
+  fallback_error: string | null
+  channels: NVRChannelInfo[]
 }
 
 export interface User {

@@ -15,6 +15,8 @@ class CameraProbeResult:
     profile_name: str
     serial_number: Optional[str] = None
     firmware_version: Optional[str] = None
+    source: str = "onvif"
+    diagnostic: Optional[str] = None
 
 
 @dataclass

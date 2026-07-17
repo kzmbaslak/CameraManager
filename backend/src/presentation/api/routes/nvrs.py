@@ -35,6 +35,7 @@ from src.presentation.api.schemas.nvr_schema import (
     NVRChannelInfo,
     NVRDiscoverResponse,
     NVRImportRequest,
+    NVRProbeDiagnostics,
     NVRScanRequest,
     NVRScanResponse,
 )
@@ -281,6 +282,86 @@ async def get_nvr_channels_hybrid(nvr, plain_pass, probe_svc) -> List[NVRChannel
         for ch in rtsp_channels
     ]
 
+async def get_nvr_channels_hybrid(nvr, plain_pass, probe_svc) -> List[NVRChannelInfo]:
+    diagnostics = await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc)
+    return diagnostics.channels
+
+
+async def get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc) -> NVRProbeDiagnostics:
+    onvif_error = None
+    fallback_error = None
+
+    try:
+        channels = probe_svc.get_stream_uris(
+            host=nvr.host,
+            onvif_port=nvr.onvif_port,
+            username=nvr.username or "",
+            password=plain_pass,
+        )
+        if channels:
+            channel_infos = [
+                NVRChannelInfo(
+                    profile_token=ch.profile_token,
+                    profile_name=ch.profile_name,
+                    manufacturer=ch.manufacturer,
+                    model=ch.model,
+                    rtsp_url=ch.rtsp_url,
+                    source="onvif",
+                    diagnostic="ONVIF GetProfiles/GetStreamUri başarılı.",
+                )
+                for ch in channels
+            ]
+            return NVRProbeDiagnostics(
+                source="onvif",
+                onvif_ok=True,
+                fallback_used=False,
+                device_manufacturer=channel_infos[0].manufacturer,
+                device_model=channel_infos[0].model,
+                profile_count=len(channel_infos),
+                stream_uri_count=len(channel_infos),
+                channels=channel_infos,
+            )
+        onvif_error = "ONVIF bağlantısı başarılı olabilir ancak stream profili/URI dönmedi."
+    except Exception as exc:
+        onvif_error = str(exc)
+        logger.warning(f"NVR ONVIF probe failed for {nvr.host}, falling back to RTSP scan: {exc}")
+
+    from src.infrastructure.camera.camera_scanner import scan_nvr_channels_async
+    try:
+        rtsp_channels = await scan_nvr_channels_async(
+            host=nvr.host,
+            rtsp_port=554,
+            username=nvr.username or "",
+            password=plain_pass,
+        )
+        channel_infos = [
+            NVRChannelInfo(
+                profile_token=ch["profile_token"],
+                profile_name=ch["profile_name"],
+                manufacturer=ch["manufacturer"],
+                model=ch["model"],
+                rtsp_url=ch["rtsp_url"],
+                source="rtsp_fallback",
+                diagnostic=f"ONVIF başarısız: {onvif_error}",
+            )
+            for ch in rtsp_channels
+        ]
+    except Exception as exc:
+        fallback_error = str(exc)
+        channel_infos = []
+
+    return NVRProbeDiagnostics(
+        source="rtsp_fallback" if channel_infos else "none",
+        onvif_ok=False,
+        fallback_used=True,
+        profile_count=0,
+        stream_uri_count=0,
+        onvif_error=onvif_error,
+        fallback_error=fallback_error,
+        channels=channel_infos,
+    )
+
+
 router = APIRouter(prefix="/nvrs", tags=["NVR Cihazları"])
 
 
@@ -434,6 +515,29 @@ async def probe_nvr_channels(
         return channels
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.post("/{nvr_id}/probe/diagnostics", response_model=NVRProbeDiagnostics)
+async def probe_nvr_channels_diagnostics(
+    nvr_id: int,
+    nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
+    probe_svc=Depends(get_nvr_probe_service),
+    current_user: dict = Depends(get_operator_user),
+):
+    """NVR kanal keşfini ONVIF/fallback teşhis bilgisiyle döner."""
+    nvr = nvr_use_cases.get_nvr(nvr_id)
+    if not nvr:
+        raise HTTPException(status_code=404, detail="NVR bulunamadı.")
+
+    from src.presentation.api.dependencies import password_service
+    plain_pass = ""
+    if nvr.encrypted_password:
+        try:
+            plain_pass = password_service.decrypt(nvr.encrypted_password)
+        except Exception:
+            plain_pass = nvr.encrypted_password
+
+    return await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc)
 
 
 @router.post("/{nvr_id}/import", response_model=List[CameraResponse], status_code=201)

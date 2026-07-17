@@ -1,6 +1,6 @@
 // NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
-import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse } from '../types/api'
+import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics } from '../types/api'
 
 /** NVR güncelleme için kısmi veri tipi */
 export interface NVRUpdate {
@@ -58,6 +58,12 @@ export const nvrsApi = {
   /** ONVIF ile NVR kanallarını listeler — kaydetmez, yalnızca önizleme. */
   probe: async (id: number): Promise<NVRChannelInfo[]> => {
     const { data } = await client.post<NVRChannelInfo[]>(`/nvrs/${id}/probe`)
+    return data
+  },
+
+  /** ONVIF/RTSP fallback ayrıntılarıyla NVR kanal keşfi yapar. */
+  probeDiagnostics: async (id: number): Promise<NVRProbeDiagnostics> => {
+    const { data } = await client.post<NVRProbeDiagnostics>(`/nvrs/${id}/probe/diagnostics`)
     return data
   },
 
