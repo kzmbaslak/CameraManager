@@ -1,7 +1,7 @@
-// Alarm tablosu satırı — tip, açıklama, durum, güven skoru, zaman, onaylama
+// Alarm table row with status, confidence, timestamp and quick acknowledgement.
 import dayjs from 'dayjs'
 import 'dayjs/locale/tr'
-import { CheckCircle, Wifi, User, Activity } from 'lucide-react'
+import { Activity, CheckCircle, User, Wifi } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import type { Alarm } from '../../types/api'
@@ -45,7 +45,6 @@ const statusVariant = {
 
 const statusLabel = { new: 'Yeni', acknowledged: 'Onaylandı', resolved: 'Çözüldü' }
 
-/** Alarm tablosunda tek bir alarm satırını gösterir */
 export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: AlarmRowProps) {
   const cfg = typeConfig[alarm.alarm_type] ?? {
     label: alarm.alarm_type,
@@ -54,16 +53,13 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: Al
   }
 
   return (
-    <tr className="border-b border-border last:border-0 hover:bg-bg-secondary/60 transition-colors">
-      {/* Kamera */}
+    <tr className="border-b border-border transition-colors last:border-0 hover:bg-bg-secondary/60">
       <td className="px-4 py-3">
         <span className="text-sm font-medium text-text-primary">
           {cameraName ?? `#${alarm.camera_id}`}
         </span>
       </td>
-
-      {/* Tip + açıklama */}
-      <td className="px-4 py-3 max-w-[280px]">
+      <td className="max-w-[280px] px-4 py-3">
         <div className="flex items-start gap-2">
           <span className={`mt-0.5 shrink-0 ${
             alarm.alarm_type === 'human_detected' ? 'text-danger' :
@@ -73,40 +69,26 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: Al
             {cfg.icon}
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-text-primary leading-tight">
-              {cfg.label}
-            </p>
+            <p className="text-sm font-medium leading-tight text-text-primary">{cfg.label}</p>
             {alarm.message && (
-              <p className="text-xs text-text-secondary mt-0.5 leading-snug">
-                {alarm.message}
-              </p>
+              <p className="mt-0.5 text-xs leading-snug text-text-secondary">{alarm.message}</p>
             )}
           </div>
         </div>
       </td>
-
-      {/* Durum */}
       <td className="px-4 py-3">
         <Badge variant={statusVariant[alarm.status]} dot>
           {statusLabel[alarm.status]}
         </Badge>
       </td>
-
-      {/* Güven — yalnızca insan/hareket için anlamlı */}
-      <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+      <td className="px-4 py-3 text-sm tabular-nums text-text-secondary">
         {alarm.alarm_type !== 'camera_offline' && alarm.confidence != null
           ? `%${Math.round(alarm.confidence * 100)}`
-          : '—'}
+          : '-'}
       </td>
-
-      {/* Zaman */}
-      <td className="px-4 py-3 text-sm text-text-secondary whitespace-nowrap">
-        {alarm.created_at
-          ? dayjs(alarm.created_at).format('DD.MM.YYYY HH:mm:ss')
-          : '—'}
+      <td className="whitespace-nowrap px-4 py-3 text-sm text-text-secondary">
+        {alarm.created_at ? dayjs(alarm.created_at).format('DD.MM.YYYY HH:mm:ss') : '-'}
       </td>
-
-      {/* Onayla */}
       <td className="px-4 py-3">
         {alarm.status === 'new' && onAcknowledge && (
           <Button
@@ -115,6 +97,7 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: Al
             icon={<CheckCircle size={13} />}
             loading={acknowledging}
             onClick={() => onAcknowledge(alarm.id)}
+            aria-label={`${cameraName ?? `Kamera ${alarm.camera_id}`} alarmını onayla`}
           >
             Onayla
           </Button>

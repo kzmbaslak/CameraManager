@@ -1,7 +1,7 @@
 // Alarm yönetimi sayfası — filtreleme (kamera, tip, durum, tarih), listeleme, onaylama
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Filter, RotateCcw } from 'lucide-react'
+import { CheckCircle, Filter, RotateCcw } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
@@ -176,10 +176,16 @@ export function AlarmsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['alarms'] }),
   })
 
+  const acknowledgeFiltered = useMutation({
+    mutationFn: async (ids: number[]) => Promise.all(ids.map((id) => alarmsApi.acknowledge(id))),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['alarms'] }),
+  })
+
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))
 
   const hasActiveFilter =
     cameraFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all' || dateRange !== 'all'
+  const filteredNewAlarmIds = filtered.filter((alarm) => alarm.status === 'new').map((alarm) => alarm.id)
 
   const handleReset = () => {
     setCameraFilter('all')
@@ -199,6 +205,17 @@ export function AlarmsPage() {
             {hasActiveFilter && <span className="text-accent ml-1">· Filtre aktif</span>}
           </p>
         </div>
+        {filteredNewAlarmIds.length > 0 && (
+          <Button
+            size="sm"
+            variant="danger"
+            icon={<CheckCircle size={14} />}
+            loading={acknowledgeFiltered.isPending}
+            onClick={() => acknowledgeFiltered.mutate(filteredNewAlarmIds)}
+          >
+            Görünen Yeni Alarmları Onayla ({filteredNewAlarmIds.length})
+          </Button>
+        )}
       </div>
 
       {/* Filtre çubuğu */}

@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-17: Alarm operator UX akisi iyilestirildi. Global alarm bildirimi artik kalici mudahale paneli gibi calisir; kullanici tek tusla "Sustur ve Onayla" yapabilir, 5 dakika sessize alabilir, tum yeni alarmlari toplu onaylayabilir ve alarmdan dogrudan canli goruntuye gecebilir. Tam ekran kamera modalina ayni alarm aksiyonlari ve Space/A/Enter/Esc kisayollari eklendi. Dashboard yeni alarm sayaci hizli sessize alma/toplu onay aksiyonlari tasir. Eski Vite CSS kalintilari temizlendi ve genel focus-visible halkasi eklendi.
 - 2026-07-16: Kurumsal guvenlik/DDD/SOLID bulgulari duzeltildi. JWT ve kamera sifreleme anahtarlari placeholder/fallback kabul etmeden fail-fast dogrulaniyor; scan istekleri host/port/CIDR ve maksimum adres limitleriyle kisitlandi; login/change-password ve kamera/NVR mutasyonlari audit log'a yaziliyor; CORS method/header wildcard kaldirildi; frontend auth state sessionStorage'a tasindi; stream token URL query yerine ilk WebSocket mesajiyla gonderiliyor; kamera/NVR parola sifreleme route katmanindan use-case icine alindi; stream manager ve health checker somut DB/repository importlari yerine dependency factory ile calisiyor.
 
 - Kamera/NVR bağlantı incelemesi ve yapılan düzeltmeler için `Docs_Obsidian/05_Camera_NVR_Connectivity_Notes.md` dosyasına bakın.

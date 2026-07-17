@@ -1,13 +1,14 @@
 // Dashboard — canlı kamera izleme, grid boyutu seçimi, alarm sayacı, kamera durum özeti, kamera izleme paneli
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bell, Wifi, WifiOff, Video, PanelRight, X, Check } from 'lucide-react'
+import { Bell, Wifi, WifiOff, Video, PanelRight, X, Check, CheckCircle, VolumeX } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { camerasApi } from '../api/cameras'
 import { alarmsApi } from '../api/alarms'
 import { CameraGrid, type GridCols } from '../components/camera/CameraGrid'
 import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
+import { useAlarmStore } from '../stores/alarmStore'
 import type { Alarm, Camera } from '../types/api'
 
 /** localStorage'dan grid tercihini okur; yoksa 2×2 kullanır */
@@ -217,6 +218,7 @@ export function DashboardPage() {
   const [cols, setCols] = useState<GridCols>(loadGridPref)
   const [panelOpen, setPanelOpen] = useState(false)
   const qc = useQueryClient()
+  const { stopSound, muteSoundFor } = useAlarmStore()
 
   /** Grid değişince localStorage'a kaydet */
   const handleColsChange = (next: GridCols) => {
@@ -246,6 +248,14 @@ export function DashboardPage() {
     mutationFn: ({ id, nextStatus }: { id: number; nextStatus: 'active' | 'inactive' }) =>
       camerasApi.updateStatus(id, nextStatus),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] }),
+  })
+
+  const acknowledgeAllAlarms = useMutation({
+    mutationFn: async (ids: number[]) => Promise.all(ids.map((id) => alarmsApi.acknowledge(id))),
+    onSuccess: () => {
+      stopSound()
+      void qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
   })
 
   // kamera id → son alarm eşlemesi
@@ -287,6 +297,25 @@ export function DashboardPage() {
               <span className="text-sm font-medium text-[var(--danger)]">
                 {newAlarms.length} yeni alarm
               </span>
+              <button
+                type="button"
+                title="Alarm sesini 5 dakika sessize al"
+                aria-label="Alarm sesini 5 dakika sessize al"
+                onClick={() => muteSoundFor(5 * 60 * 1000)}
+                className="ml-1 rounded p-1 text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/15"
+              >
+                <VolumeX size={14} />
+              </button>
+              <button
+                type="button"
+                title="Tüm yeni alarmları onayla"
+                aria-label="Tüm yeni alarmları onayla"
+                disabled={acknowledgeAllAlarms.isPending}
+                onClick={() => acknowledgeAllAlarms.mutate(newAlarms.map((alarm) => alarm.id))}
+                className="rounded p-1 text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/15 disabled:opacity-50"
+              >
+                <CheckCircle size={14} />
+              </button>
             </div>
           )}
 

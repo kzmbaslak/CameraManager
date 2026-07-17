@@ -12,6 +12,8 @@
   --accent: #3b82f6;
   --accent-hover: #2563eb;
   --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --danger-soft: rgba(239, 68, 68, 0.12);
   --success: #22c55e;
   --warning: #f59e0b;
 }
@@ -26,6 +28,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
   --color-success: var(--success);
   --color-warning: var(--warning);
 }
@@ -40,6 +43,15 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 ::-webkit-scrollbar {

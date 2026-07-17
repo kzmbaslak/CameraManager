@@ -1,132 +1,228 @@
-// Yeni alarm bildirimlerini üst panelde gösteren bileşen.
+// Persistent alarm action panel shown above every page.
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, AlertTriangle, ChevronRight, BellOff } from 'lucide-react'
+import { useEffect } from 'react'
+import { AlertTriangle, BellOff, CheckCircle, Eye, VolumeX, XCircle } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import 'dayjs/locale/tr'
+import { alarmsApi } from '../../api/alarms'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmNotifications } from '../../hooks/useAlarmNotifications'
+import { Button } from '../ui/Button'
+import type { Alarm } from '../../types/api'
 
 dayjs.locale('tr')
 
 const typeLabel: Record<string, string> = {
-  human_detected: 'İnsan Tespit',
+  human_detected: 'İnsan Tespiti',
   motion_detected: 'Hareket',
   camera_offline: 'Kamera Çevrimdışı',
 }
 
-// Tek bir bildirim kartı — küçük canlı kamera önizlemesi içerir
 function NotificationCard({
-  alarmId,
-  cameraId,
-  alarmType,
+  alarm,
   receivedAt,
+  onAcknowledge,
+  onFalseAlarm,
+  busy,
 }: {
-  alarmId: number
-  cameraId: number
-  alarmType: string
+  alarm: Alarm
   receivedAt: number
+  onAcknowledge: (alarm: Alarm) => void
+  onFalseAlarm: (alarm: Alarm) => void
+  busy: boolean
 }) {
   const { dismiss, setExpandedCamera } = useAlarmStore()
-  // Kamera çevrimdışı alarmında stream açmaya çalışmak anlamsız — kamera zaten erişilemiyor
-  const streamEnabled = alarmType !== 'camera_offline'
-  const { frame, connected } = useCameraStream(cameraId, streamEnabled, 'alarm')
+  const streamEnabled = alarm.alarm_type !== 'camera_offline'
+  const { frame, connected } = useCameraStream(alarm.camera_id, streamEnabled, 'alarm')
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: 80, scale: 0.95 }}
+      initial={{ opacity: 0, x: 80, scale: 0.98 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 80, scale: 0.95 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="bg-[var(--bg-card)] border border-[var(--danger)]/40 rounded-xl overflow-hidden shadow-xl w-72"
+      exit={{ opacity: 0, x: 80, scale: 0.98 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="w-[360px] overflow-hidden rounded-lg border border-danger/50 bg-bg-card shadow-2xl"
+      role="alert"
+      aria-live="assertive"
     >
-      {/* Üst şerit */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--danger)]/10 border-b border-[var(--danger)]/20">
-        <div className="flex items-center gap-2">
-          <motion.div
-            animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ repeat: Infinity, duration: 1 }}
-          >
-            <AlertTriangle size={13} className="text-[var(--danger)]" />
+      <div className="flex items-start justify-between gap-3 border-b border-danger/20 bg-danger/10 px-3 py-2.5">
+        <div className="flex min-w-0 items-start gap-2">
+          <motion.div animate={{ opacity: [1, 0.35, 1] }} transition={{ repeat: Infinity, duration: 1 }}>
+            <AlertTriangle size={16} className="mt-0.5 text-danger" />
           </motion.div>
-          <span className="text-xs font-semibold text-[var(--danger)]">
-            {typeLabel[alarmType] ?? alarmType}
-          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-danger">{typeLabel[alarm.alarm_type] ?? alarm.alarm_type}</p>
+            <p className="text-xs text-text-secondary">
+              Kamera #{alarm.camera_id} · {dayjs(receivedAt).format('HH:mm:ss')}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-[var(--text-secondary)]">
-            {dayjs(receivedAt).format('HH:mm:ss')}
-          </span>
-          <button
-            onClick={() => dismiss(alarmId)}
-            className="p-0.5 rounded hover:bg-[var(--border)] text-[var(--text-secondary)] transition-colors"
-          >
-            <X size={12} />
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-label="Bildirimi gizle"
+          title="Sadece bildirimi gizle"
+          onClick={() => dismiss(alarm.id)}
+          className="rounded p-1 text-text-secondary transition-colors hover:bg-border hover:text-text-primary"
+        >
+          <XCircle size={16} />
+        </button>
       </div>
 
-      {/* Küçük kamera önizleme — tıklayınca tam ekran */}
       <button
-        onClick={() => setExpandedCamera(cameraId)}
-        className="relative w-full aspect-video bg-[var(--bg-primary)] flex items-center justify-center group overflow-hidden"
+        type="button"
+        onClick={() => setExpandedCamera(alarm.camera_id, alarm.id)}
+        className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-bg-primary"
       >
         {frame ? (
-          <img src={frame} alt="alarm" className="w-full h-full object-cover" />
+          <img src={frame} alt="Alarm kamera önizlemesi" className="h-full w-full object-cover" />
         ) : (
-          <div className="text-xs text-[var(--text-secondary)]">
-            {connected ? 'Bağlanıyor...' : 'Bağlantı yok'}
-          </div>
+          <div className="text-xs text-text-secondary">{connected ? 'Bağlanıyor...' : 'Bağlantı yok'}</div>
         )}
-        {/* hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-xs font-medium transition-opacity">
-            <ChevronRight size={13} />
-            Tam Ekran
-          </div>
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/65 px-3 py-2 text-xs text-white">
+          <span>Canlı görüntüyü aç</span>
+          <Eye size={14} />
         </div>
       </button>
+
+      <div className="grid grid-cols-2 gap-2 p-3">
+        <Button
+          size="sm"
+          variant="danger"
+          icon={<CheckCircle size={14} />}
+          loading={busy}
+          onClick={() => onAcknowledge(alarm)}
+          className="col-span-2"
+        >
+          Sustur ve Onayla
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<Eye size={14} />}
+          onClick={() => setExpandedCamera(alarm.camera_id, alarm.id)}
+        >
+          Canlı Aç
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<XCircle size={14} />}
+          loading={busy}
+          onClick={() => onFalseAlarm(alarm)}
+        >
+          Yanlış Alarm
+        </Button>
+      </div>
     </motion.div>
   )
 }
 
-// Tüm bildirimleri yöneten kapsayıcı — her sayfanın üzerinde durur
 export function AlarmNotificationPanel() {
-  // Hook burada çağrılır — AppLayout içinde mount edildiğinde polling başlar
   useAlarmNotifications()
 
-  const { notifications, dismissAll } = useAlarmStore()
+  const qc = useQueryClient()
+  const { notifications, dismiss, dismissAll, stopSound, muteSoundFor, setExpandedCamera } = useAlarmStore()
+
+  const acknowledge = useMutation({
+    mutationFn: alarmsApi.acknowledge,
+    onSuccess: (alarm) => {
+      stopSound()
+      dismiss(alarm.id)
+      void qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const acknowledgeAll = useMutation({
+    mutationFn: async (alarms: Alarm[]) => Promise.all(alarms.map((alarm) => alarmsApi.acknowledge(alarm.id))),
+    onSuccess: () => {
+      stopSound()
+      dismissAll()
+      void qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const handleAcknowledge = (alarm: Alarm) => acknowledge.mutate(alarm.id)
+  const handleFalseAlarm = (alarm: Alarm) => acknowledge.mutate(alarm.id)
+  const handleMute = () => muteSoundFor(5 * 60 * 1000)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (notifications.length === 0) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      const firstAlarm = notifications[0].alarm
+      if (e.code === 'Space') {
+        e.preventDefault()
+        stopSound()
+      }
+      if (e.key === 'a' || e.key === 'A') acknowledge.mutate(firstAlarm.id)
+      if (e.key === 'Enter') setExpandedCamera(firstAlarm.camera_id, firstAlarm.id)
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [acknowledge, notifications, setExpandedCamera, stopSound])
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 items-end">
-      {/* Tümünü kapat butonu — birden fazla bildirim varsa göster */}
+    <div className="fixed right-4 top-4 z-[100] flex max-h-[calc(100vh-2rem)] flex-col items-end gap-2">
       <AnimatePresence>
-        {notifications.length > 1 && (
-          <motion.button
-            initial={{ opacity: 0, y: 8 }}
+        {notifications.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            onClick={dismissAll}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-full text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow transition-colors"
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-2 shadow-xl"
           >
-            <BellOff size={12} />
-            Tümünü kapat ({notifications.length})
-          </motion.button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<VolumeX size={13} />}
+              onClick={handleMute}
+            >
+              5 dk Sessiz
+            </Button>
+            {notifications.length > 1 && (
+              <Button
+                size="sm"
+                variant="danger"
+                icon={<CheckCircle size={13} />}
+                loading={acknowledgeAll.isPending}
+                onClick={() => acknowledgeAll.mutate(notifications.map((n) => n.alarm))}
+              >
+                Tümünü Onayla ({notifications.length})
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<BellOff size={13} />}
+              onClick={() => {
+                stopSound()
+                dismissAll()
+              }}
+            >
+              Gizle
+            </Button>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="popLayout">
-        {notifications.map(({ alarm, receivedAt }) => (
-          <NotificationCard
-            key={alarm.id}
-            alarmId={alarm.id}
-            cameraId={alarm.camera_id}
-            alarmType={alarm.alarm_type}
-            receivedAt={receivedAt}
-          />
-        ))}
-      </AnimatePresence>
+      <div className="flex flex-col items-end gap-2 overflow-y-auto pr-1">
+        <AnimatePresence mode="popLayout">
+          {notifications.map(({ alarm, receivedAt }) => (
+            <NotificationCard
+              key={alarm.id}
+              alarm={alarm}
+              receivedAt={receivedAt}
+              busy={acknowledge.isPending && acknowledge.variables === alarm.id}
+              onAcknowledge={handleAcknowledge}
+              onFalseAlarm={handleFalseAlarm}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

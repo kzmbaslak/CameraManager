@@ -67,7 +67,7 @@ function playHumanDetectionSound(durationSeconds: number, stopPrevious: () => vo
  */
 export function useAlarmNotifications() {
   const token = useAuthStore((s) => s.token)
-  const { addNotification, dismissedIds } = useAlarmStore()
+  const { addNotification, dismissedIds, soundMutedUntil, soundStopSignal } = useAlarmStore()
   const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
   const soundDuration = useSystemSettingsStore((s) => s.humanDetectionSoundDurationSeconds)
   const seenIds = useRef<Set<number>>(new Set(dismissedIds))
@@ -91,11 +91,16 @@ export function useAlarmNotifications() {
       if (alarm.alarm_type === 'camera_offline') return
 
       addNotification(alarm)
-      if (alarm.alarm_type === 'human_detected' && soundEnabled) {
+      const soundMuted = soundMutedUntil !== null && soundMutedUntil > Date.now()
+      if (alarm.alarm_type === 'human_detected' && soundEnabled && !soundMuted) {
         stopSoundRef.current = playHumanDetectionSound(soundDuration, stopSoundRef.current)
       }
     })
-  }, [addNotification, newAlarms, soundDuration, soundEnabled])
+  }, [addNotification, newAlarms, soundDuration, soundEnabled, soundMutedUntil])
+
+  useEffect(() => {
+    stopSoundRef.current()
+  }, [soundStopSignal])
 
   useEffect(() => () => stopSoundRef.current(), [])
 
