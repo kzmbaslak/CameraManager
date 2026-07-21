@@ -7,6 +7,12 @@ import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { useAlarmStore } from '../../stores/alarmStore'
 import type { Alarm, Camera } from '../../types/api'
 
+function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
+  if (!detectedAt) return false
+  const timestamp = Date.parse(detectedAt)
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= ttlMs
+}
+
 interface CameraCardProps {
   camera: Camera
   latestAlarm?: Alarm | null
@@ -18,7 +24,7 @@ export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
   const [isNearViewport, setIsNearViewport] = useState(false)
   const { setExpandedCamera } = useAlarmStore()
 
-  const { frame, alarmTriggered, connected } = useCameraStream(
+  const { frame, alarmTriggered, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     camera.id,
     camera.status !== 'inactive' && isNearViewport,
   )
@@ -43,16 +49,19 @@ export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
     return () => observer.disconnect()
   }, [])
 
-  const box = alarmTriggered && latestAlarm?.bounding_box ? latestAlarm.bounding_box : null
+  const hasFreshDetection = isRecentDetection(detectedAt)
+  const activeDetections = hasFreshDetection ? detections : []
+  const fallbackBox = latestAlarm?.bounding_box ?? null
+  const isAlarmActive = alarmTriggered || hasFreshDetection || Boolean(latestAlarm?.bounding_box)
 
   return (
     <div className={`flex flex-col overflow-hidden rounded-md border bg-bg-card ${
-      alarmTriggered ? 'border-danger shadow-[0_0_0_1px_rgba(220,38,38,0.35)]' : 'border-border'
+      isAlarmActive ? 'border-danger shadow-[0_0_0_1px_rgba(220,38,38,0.35)]' : 'border-border'
     }`}>
       <div className="flex items-center justify-between border-b border-border bg-bg-secondary px-3 py-2">
         <span className="truncate text-sm font-medium text-text-primary">{camera.name}</span>
         <div className="flex shrink-0 items-center gap-1.5">
-          {alarmTriggered && (
+          {isAlarmActive && (
             <motion.div animate={{ opacity: [1, 0.35, 1] }} transition={{ repeat: Infinity, duration: 1 }}>
               <AlertCircle size={14} className="text-danger" />
             </motion.div>
@@ -88,7 +97,15 @@ export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
             </span>
           </div>
         )}
-        <BoundingBoxOverlay box={box} containerWidth={dims.w} containerHeight={dims.h} />
+        <BoundingBoxOverlay
+          detections={activeDetections}
+          box={!activeDetections.length ? fallbackBox : null}
+          containerWidth={dims.w}
+          containerHeight={dims.h}
+          sourceWidth={frameWidth}
+          sourceHeight={frameHeight}
+          fit="cover"
+        />
 
         {camera.status === 'active' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
@@ -99,7 +116,7 @@ export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
           </div>
         )}
 
-        {alarmTriggered && (
+        {isAlarmActive && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}

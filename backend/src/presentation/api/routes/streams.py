@@ -115,6 +115,10 @@ async def stream_camera(websocket: WebSocket, camera_id: int, profile: str = "gr
                 await websocket.send_json({
                     "alarm_triggered": bool(message.get("alarm_triggered")),
                     "alarm_id": message.get("alarm_id"),
+                    "detections": message.get("detections", []),
+                    "frame_width": message.get("frame_width"),
+                    "frame_height": message.get("frame_height"),
+                    "detected_at": message.get("detected_at"),
                 })
 
             if should_send_frame:

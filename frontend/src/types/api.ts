@@ -44,6 +44,12 @@ export interface BoundingBox {
   height: number
 }
 
+export interface Detection {
+  label: string
+  confidence: number
+  bounding_box: BoundingBox
+}
+
 export interface Alarm {
   id: number
   camera_id: number
@@ -134,6 +140,10 @@ export interface StreamMessage {
   frame?: string           // geriye dönük uyumluluk için Base64 JPEG; yeni akış binary JPEG kullanır
   alarm_triggered: boolean
   alarm_id: number | null
+  detections?: Detection[]
+  frame_width?: number | null
+  frame_height?: number | null
+  detected_at?: string | null
 }
 
 export interface CameraScanRequest {

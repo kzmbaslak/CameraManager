@@ -1,15 +1,15 @@
 // Operator dashboard: live camera grid, alarm status bar and camera watch control.
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bell, Check, CheckCircle, PanelRight, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Activity, Bell, Check, CheckCircle, MapPinned, PanelRight, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { CameraGrid, type GridCols } from '../components/camera/CameraGrid'
 import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
 import { useAlarmStore } from '../stores/alarmStore'
-import type { Alarm, Camera } from '../types/api'
+import type { Alarm, Camera, CameraStreamDiagnostics } from '../types/api'
 
 function loadGridPref(): GridCols {
   try {
@@ -183,6 +183,66 @@ function CameraPanel({ cameras, pendingId, onToggle, onClose }: CameraPanelProps
   )
 }
 
+function OperatorAssistPanel({
+  newAlarmCount,
+  watchedCount,
+  health,
+}: {
+  newAlarmCount: number
+  watchedCount: number
+  health: CameraStreamDiagnostics[]
+}) {
+  const runningCount = health.filter((item) => item.producer_running).length
+  const staleCount = health.filter((item) => (item.last_frame_age_seconds ?? 0) > 10).length
+  const aiBusyCount = health.filter((item) => item.ai_task_running).length
+
+  return (
+    <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-3">
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
+        <Activity size={18} className={newAlarmCount > 0 ? 'text-danger' : 'text-success'} />
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Alarm Akisi</p>
+          <p className="truncate text-sm text-text-primary">
+            {newAlarmCount > 0 ? `${newAlarmCount} yeni alarm inceleme bekliyor` : 'Yeni alarm yok'}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
+        <Video size={18} className={staleCount > 0 ? 'text-warning' : 'text-success'} />
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Canli Saglik</p>
+          <p className="truncate text-sm text-text-primary">
+            {runningCount} / {Math.min(watchedCount, health.length || watchedCount)} uretici aktif
+            {aiBusyCount > 0 ? ` · ${aiBusyCount} AI gorevi` : ''}
+            {staleCount > 0 ? ` · ${staleCount} geciken kare` : ''}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
+        <ShieldCheck size={18} className="text-accent" />
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Guvenlik Kontrolu</p>
+          <p className="truncate text-sm text-text-primary">
+            Kisa omurlu stream token · RTSP testinde anonim erisim uyarisi
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2 lg:col-span-3">
+        <MapPinned size={18} className="text-accent" />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
+          <span>Olay akisi: kamera kartina tikla, kutulu canli goruntuyu ac.</span>
+          <span><Kbd>Space</Kbd> alarm sesini susturur.</span>
+          <span><Kbd>A</Kbd> aktif alarmi onaylar.</span>
+          <span><Kbd>Esc</Kbd> detay/tam ekran kapatir.</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DashboardPage() {
   const [cols, setCols] = useState<GridCols>(loadGridPref)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -233,6 +293,17 @@ export function DashboardPage() {
   const offlineCameras = cameras.filter((camera) => camera.status === 'error')
   const inactiveCameras = cameras.filter((camera) => camera.status === 'inactive')
   const watchedCameras = cameras.filter((camera) => camera.status !== 'inactive')
+  const healthQueries = useQueries({
+    queries: watchedCameras.slice(0, 8).map((camera) => ({
+      queryKey: ['camera-stream-diagnostics', camera.id],
+      queryFn: () => camerasApi.diagnoseStream(camera.id),
+      enabled: camera.status === 'active',
+      refetchInterval: 15_000,
+    })),
+  })
+  const health = healthQueries
+    .map((query) => query.data)
+    .filter((item): item is CameraStreamDiagnostics => Boolean(item))
 
   function handleToggle(camera: Camera) {
     const isWatched = camera.status !== 'inactive'
@@ -301,6 +372,14 @@ export function DashboardPage() {
           <StatusCard icon={<WifiOff size={20} />} label="Çevrimdışı / Hata" count={offlineCameras.length} color="text-danger" cameras={offlineCameras} />
           <StatusCard icon={<Video size={20} className="opacity-60" />} label="İzleme Kapalı" count={inactiveCameras.length} color="text-text-secondary" cameras={inactiveCameras} />
         </div>
+      )}
+
+      {!isLoading && cameras.length > 0 && (
+        <OperatorAssistPanel
+          newAlarmCount={newAlarms.length}
+          watchedCount={watchedCameras.length}
+          health={health}
+        />
       )}
 
       <div className="relative min-h-0 flex-1">

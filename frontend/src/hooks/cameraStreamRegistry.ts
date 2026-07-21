@@ -1,6 +1,6 @@
 // Kamera WebSocket bağlantılarını kamera başına tek paylaşımlı bağlantıda toplar.
 import type { StreamProfile } from './useCameraStream'
-import type { StreamMessage } from '../types/api'
+import type { Detection, StreamMessage } from '../types/api'
 
 type StreamListener = (state: StreamState) => void
 
@@ -8,6 +8,10 @@ export interface StreamState {
   frame: string | null
   alarmTriggered: boolean
   alarmId: number | null
+  detections: Detection[]
+  frameWidth: number | null
+  frameHeight: number | null
+  detectedAt: string | null
   connected: boolean
 }
 
@@ -50,6 +54,10 @@ function initialState(): StreamState {
     frame: null,
     alarmTriggered: false,
     alarmId: null,
+    detections: [],
+    frameWidth: null,
+    frameHeight: null,
+    detectedAt: null,
     connected: false,
   }
 }
@@ -161,8 +169,12 @@ async function connect(stream: SharedStream) {
     stream.state = {
       ...stream.state,
       frame: msg.frame ? `data:image/jpeg;base64,${msg.frame}` : stream.state.frame,
-      alarmTriggered: Boolean(msg.alarm_triggered),
-      alarmId: msg.alarm_id ?? null,
+      alarmTriggered: msg.alarm_triggered ? true : Boolean(msg.detections?.length),
+      alarmId: msg.alarm_id ?? (msg.detections?.length ? stream.state.alarmId : null),
+      detections: msg.detections ?? stream.state.detections,
+      frameWidth: msg.frame_width ?? stream.state.frameWidth,
+      frameHeight: msg.frame_height ?? stream.state.frameHeight,
+      detectedAt: msg.detected_at ?? stream.state.detectedAt,
       connected: true,
     }
     emit(stream)

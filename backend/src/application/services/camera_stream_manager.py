@@ -69,6 +69,7 @@ class CameraStreamManager:
         self._last_ai_time: Dict[int, float] = {}
         self._active_ai_tasks: Dict[int, asyncio.Task] = {}
         self._ai_enabled_cache: Dict[int, bool] = {}
+        self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
         self._idle_grace_seconds = 10.0
         self._executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cam_stream")
         self._ai_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="cam_ai")
@@ -285,7 +286,6 @@ class CameraStreamManager:
                     logger.info(f"[StreamManager] Kamera {camera_id} pasif/silinmiş — producer durduruluyor.")
                     break
 
-                alarm = None
                 if frame is not None:
                     ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                     if ret:
@@ -293,6 +293,7 @@ class CameraStreamManager:
                             "frame": buffer.tobytes(),
                             "alarm_triggered": False,
                             "alarm_id": None,
+                            **self._recent_detection_payload(camera_id),
                         })
                     else:
                         logger.debug(f"[StreamManager] Kamera {camera_id} frame encode başarısız")
@@ -339,17 +340,24 @@ class CameraStreamManager:
 
         async def _runner() -> None:
             try:
-                alarm = await loop.run_in_executor(self._ai_executor, lambda: self._detect_and_alarm_sync(camera_id, frame))
+                result = await loop.run_in_executor(self._ai_executor, lambda: self._detect_and_alarm_sync(camera_id, frame))
+                if result is None:
+                    return
+                alarm = result.alarm
+                detection_payload = self._serialize_detection_result(result)
+                if detection_payload["detections"]:
+                    self._latest_detection_messages[camera_id] = (time.monotonic(), detection_payload)
+                    self._broadcast(camera_id, {
+                        "frame": None,
+                        "alarm_triggered": bool(alarm),
+                        "alarm_id": alarm.id if alarm else None,
+                        **detection_payload,
+                    })
                 if alarm:
                     logger.info(
                         f"[StreamManager] Kamera {camera_id} — insan tespiti! "
                         f"Güven: %{int(alarm.confidence * 100)}, Alarm ID: {alarm.id}"
                     )
-                    self._broadcast(camera_id, {
-                        "frame": None,
-                        "alarm_triggered": True,
-                        "alarm_id": alarm.id,
-                    })
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
@@ -399,6 +407,48 @@ class CameraStreamManager:
                 q.put_nowait(message)
             except asyncio.QueueFull:
                 pass
+
+    def _recent_detection_payload(self, camera_id: int) -> dict:
+        """Son tespit kutularini kisa sure canli kare mesajlarina ekler."""
+        cached = self._latest_detection_messages.get(camera_id)
+        if not cached:
+            return {
+                "detections": [],
+                "frame_width": None,
+                "frame_height": None,
+                "detected_at": None,
+            }
+        detected_at, payload = cached
+        if time.monotonic() - detected_at > 5.0:
+            self._latest_detection_messages.pop(camera_id, None)
+            return {
+                "detections": [],
+                "frame_width": None,
+                "frame_height": None,
+                "detected_at": None,
+            }
+        return payload
+
+    def _serialize_detection_result(self, result) -> dict:
+        """Detection nesnelerini WebSocket JSON mesajina uygun hale getirir."""
+        return {
+            "detections": [
+                {
+                    "label": detection.label,
+                    "confidence": detection.confidence,
+                    "bounding_box": {
+                        "x": detection.bounding_box.x,
+                        "y": detection.bounding_box.y,
+                        "width": detection.bounding_box.width,
+                        "height": detection.bounding_box.height,
+                    },
+                }
+                for detection in result.detections
+            ],
+            "frame_width": result.frame_width,
+            "frame_height": result.frame_height,
+            "detected_at": result.detected_at.isoformat() + "Z",
+        }
 
     # ------------------------------------------------------------------
     # Bloklayıcı (senkron) işlemler — ThreadPoolExecutor içinde çalışır
@@ -502,8 +552,8 @@ class CameraStreamManager:
                 cooldown_seconds=self._cooldown_seconds,
             )
             use_case._last_alarms = dict(self._last_alarm_times.get(camera_id, {}))
-            alarm = use_case.detect_and_alarm(camera_id, frame)
+            result = use_case.analyze_and_alarm(camera_id, frame)
             self._last_alarm_times[camera_id] = dict(use_case._last_alarms)
-            return alarm
+            return result
         finally:
             db.close()

@@ -13,6 +13,10 @@ export function useCameraStream(cameraId: number, enabled = true, profile: Strea
     frame: null,
     alarmTriggered: false,
     alarmId: null,
+    detections: [],
+    frameWidth: null,
+    frameHeight: null,
+    detectedAt: null,
     connected: false,
   })
   const token = useAuthStore((s) => s.token)

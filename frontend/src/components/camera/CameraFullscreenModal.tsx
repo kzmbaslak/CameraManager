@@ -1,5 +1,5 @@
 // Fullscreen live camera modal with alarm actions.
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, CheckCircle, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,13 @@ import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { Button } from '../ui/Button'
+import { BoundingBoxOverlay } from './BoundingBoxOverlay'
+
+function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
+  if (!detectedAt) return false
+  const timestamp = Date.parse(detectedAt)
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= ttlMs
+}
 
 function Kbd({ children }: { children: string }) {
   return (
@@ -27,6 +34,8 @@ export function CameraFullscreenModal() {
     muteSoundFor,
   } = useAlarmStore()
   const qc = useQueryClient()
+  const videoRef = useRef<HTMLDivElement>(null)
+  const [dims, setDims] = useState({ w: 960, h: 540 })
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -36,12 +45,15 @@ export function CameraFullscreenModal() {
 
   const camera = cameras.find((c) => c.id === expandedCameraId) ?? null
 
-  const { frame, alarmTriggered, alarmId, connected } = useCameraStream(
+  const { frame, alarmTriggered, alarmId, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     expandedCameraId ?? 0,
     expandedCameraId !== null,
     'live',
   )
   const actionableAlarmId = expandedAlarmId ?? alarmId
+  const hasFreshDetection = isRecentDetection(detectedAt)
+  const activeDetections = hasFreshDetection ? detections : []
+  const isAlarmActive = alarmTriggered || hasFreshDetection
 
   const acknowledge = useMutation({
     mutationFn: alarmsApi.acknowledge,
@@ -68,6 +80,16 @@ export function CameraFullscreenModal() {
     return () => document.removeEventListener('keydown', handler)
   }, [acknowledge, actionableAlarmId, setExpandedCamera, stopSound])
 
+  useEffect(() => {
+    if (!videoRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setDims({ w: Math.round(width), h: Math.round(height) })
+    })
+    observer.observe(videoRef.current)
+    return () => observer.disconnect()
+  }, [expandedCameraId])
+
   return (
     <AnimatePresence>
       {expandedCameraId !== null && (
@@ -88,7 +110,7 @@ export function CameraFullscreenModal() {
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                {alarmTriggered && (
+                {isAlarmActive && (
                   <motion.div animate={{ opacity: [1, 0.35, 1] }} transition={{ repeat: Infinity, duration: 1 }}>
                     <AlertCircle size={16} className="text-danger" />
                   </motion.div>
@@ -116,7 +138,7 @@ export function CameraFullscreenModal() {
               </button>
             </div>
 
-            <div className="relative flex aspect-video items-center justify-center bg-bg-primary">
+            <div ref={videoRef} className="relative flex aspect-video items-center justify-center bg-bg-primary">
               {frame ? (
                 <img src={frame} alt={camera?.name} className="h-full w-full object-contain" />
               ) : (
@@ -125,8 +147,16 @@ export function CameraFullscreenModal() {
                   <span className="text-sm">Görüntü bekleniyor...</span>
                 </div>
               )}
+              <BoundingBoxOverlay
+                detections={activeDetections}
+                containerWidth={dims.w}
+                containerHeight={dims.h}
+                sourceWidth={frameWidth}
+                sourceHeight={frameHeight}
+                fit="contain"
+              />
 
-              {alarmTriggered && (
+              {isAlarmActive && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
