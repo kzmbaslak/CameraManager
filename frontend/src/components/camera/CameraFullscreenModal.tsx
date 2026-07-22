@@ -9,6 +9,15 @@ import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { Button } from '../ui/Button'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
+import { CameraCard } from './CameraCard'
+
+type FullscreenLayout = 1 | 4 | 9
+
+const fullscreenLayoutClass: Record<FullscreenLayout, string> = {
+  1: 'grid-cols-1',
+  4: 'grid-cols-2',
+  9: 'grid-cols-3',
+}
 
 function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
   if (!detectedAt) return false
@@ -36,6 +45,7 @@ export function CameraFullscreenModal() {
   const qc = useQueryClient()
   const videoRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 960, h: 540 })
+  const [layout, setLayout] = useState<FullscreenLayout>(1)
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -44,6 +54,14 @@ export function CameraFullscreenModal() {
   })
 
   const camera = cameras.find((c) => c.id === expandedCameraId) ?? null
+  const watchedCameras = cameras
+    .filter((item) => item.id === expandedCameraId || item.status !== 'inactive')
+    .sort((left, right) => {
+      if (left.id === expandedCameraId) return -1
+      if (right.id === expandedCameraId) return 1
+      return left.id - right.id
+    })
+    .slice(0, layout)
 
   const { frame, alarmTriggered, alarmId, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     expandedCameraId ?? 0,
@@ -128,6 +146,22 @@ export function CameraFullscreenModal() {
                   </span>
                 )}
               </div>
+              <div className="flex shrink-0 items-center gap-1 rounded-md border border-border bg-bg-secondary p-1">
+                {([1, 4, 9] as FullscreenLayout[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    title={`${value} kamera tam ekran layout`}
+                    aria-label={`${value} kamera tam ekran layout`}
+                    onClick={() => setLayout(value)}
+                    className={`h-7 min-w-8 rounded px-2 text-xs font-semibold transition-colors ${
+                      layout === value ? 'bg-accent text-white' : 'text-text-secondary hover:bg-bg-card hover:text-text-primary'
+                    }`}
+                  >
+                    {value === 1 ? '1' : value === 4 ? '2x2' : '3x3'}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 aria-label="Tam ekran kamerayı kapat"
@@ -138,6 +172,7 @@ export function CameraFullscreenModal() {
               </button>
             </div>
 
+            {layout === 1 ? (
             <div ref={videoRef} className="relative flex aspect-video items-center justify-center bg-bg-primary">
               {frame ? (
                 <img src={frame} alt={camera?.name} className="h-full w-full object-contain" />
@@ -189,6 +224,17 @@ export function CameraFullscreenModal() {
                 </motion.div>
               )}
             </div>
+            ) : (
+              <div className={`grid ${fullscreenLayoutClass[layout]} gap-2 bg-bg-primary p-2`}>
+                {watchedCameras.map((item) => (
+                  <CameraCard
+                    key={item.id}
+                    camera={item}
+                    streamProfile={item.id === expandedCameraId ? 'live' : 'grid'}
+                  />
+                ))}
+              </div>
+            )}
 
             {camera && (
               <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-border px-5 py-3 text-xs text-text-secondary">
