@@ -11,6 +11,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, error, className = '', id, ...props }, ref) => {
     const generatedId = useId()
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-') ?? generatedId
+    const errorId = error ? `${inputId}-error` : undefined
     const [visible, setVisible] = useState(false)
 
     return (
@@ -25,6 +26,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             ref={ref}
             id={inputId}
             type={visible ? 'text' : 'password'}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={errorId}
             className={`
               w-full rounded-lg px-3 py-2 pr-10 text-sm
               bg-[var(--bg-primary)] border text-[var(--text-primary)]
@@ -45,7 +48,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             {visible ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
-        {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+        {error && <p id={errorId} className="text-xs text-[var(--danger)]">{error}</p>}
       </div>
     )
   }
