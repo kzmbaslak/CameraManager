@@ -92,6 +92,26 @@ GET /api/security/posture
 
 Bu kontroller `.env` varlığı, `backend/models/yolov8n.onnx`, veritabanı şeması ve aktif admin kullanıcısını raporlar.
 
+### 4.1. Yedekleme ve Geri Yükleme
+
+SQLite veritabanı, `.env`, `backend/data`, YOLO modeli ve snapshot dosyalarını SHA-256 manifest ile yedeklemek için:
+
+```bash
+venv\Scripts\python scripts\backup_system.py
+```
+
+Arşivi yazmadan doğrulamak için:
+
+```bash
+venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --dry-run
+```
+
+Geri yükleme mevcut dosyaların üstüne yazar; uygulama kapalıyken ve yalnızca doğrulanmış arşivlerde çalıştırılmalıdır:
+
+```bash
+venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --force
+```
+
 ### 5. Sunucuyu Başlat
 
 ```bash

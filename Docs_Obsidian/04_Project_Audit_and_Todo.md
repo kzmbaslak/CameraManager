@@ -69,7 +69,7 @@ Riskler:
 - HTTPS/TLS, secure cookie, token refresh/expiry UX ve oturum süresi yönetimi eksik.
 - Kamera/NVR şifre rotasyonu ve parola değiştirme akışı tamamlanmalı.
 - RBAC daha granüler olmalı: canlı izleme, kayıt izleme, export, kullanıcı yönetimi, PTZ, alarm kapatma ayrı izinlere ayrılmalı.
-- Backup/restore yok: SQLite DB, config, model ve snapshot/video kayıtlarının yedekleme geri yükleme akışı olmalı.
+- Backup/restore kısmen eklendi: SQLite DB, `.env`, `backend/data`, YOLO modeli ve snapshot dosyaları SHA-256 manifestli zip arşivine alınabiliyor; restore script'i manifest/hash doğrulaması, path sınırı, `--dry-run` ve `--force` koruması kullanıyor. Kalan iş bunu admin arayüzüne, zamanlanmış yedekleme politikasına ve ileride video kayıt klasörlerine bağlamak.
 - Servis/daemon paketleme yok: Windows service veya systemd benzeri üretim çalıştırma, log rotation ve health endpoint derinleştirilmeli.
 
 ### P2 - Frontend UX
