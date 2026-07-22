@@ -32,6 +32,8 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "ai_confidence_threshold",
         "ai_iou_threshold",
         "ai_alarm_cooldown_seconds",
+        "ai_frame_stride",
+        "ai_inference_width",
         "ai_active_start",
         "ai_active_end",
         "ai_roi_polygon",

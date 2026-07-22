@@ -36,6 +36,8 @@ def ensure_camera_ai_settings_columns() -> None:
         "ai_confidence_threshold": "REAL DEFAULT 0.5",
         "ai_iou_threshold": "REAL DEFAULT 0.45",
         "ai_alarm_cooldown_seconds": "INTEGER DEFAULT 60",
+        "ai_frame_stride": "INTEGER DEFAULT 1",
+        "ai_inference_width": "INTEGER DEFAULT 640",
         "ai_active_start": "TEXT",
         "ai_active_end": "TEXT",
         "ai_roi_polygon": "TEXT",

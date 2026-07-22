@@ -54,14 +54,14 @@ Riskler:
 
 ### P1 - AI ve Olay Tespiti
 
-- AI pipeline ayrıştırıldı: canlı yayın capture hattı artık ayrı çalışıyor, AI tespiti ise arka planda bağımsız görev olarak tetikleniyor. Kalan iş, tam anlamıyla tek capture hattı üzerinde düşük çözünürlüklü AI örnekleme ve daha akıllı frame stride kontrolü kurmak.
+- AI pipeline ayrıştırıldı: canlı yayın capture hattı artık ayrı çalışıyor, AI tespiti ise arka planda bağımsız görev olarak tetikleniyor. Kamera bazlı frame stride ve düşük çözünürlüklü AI örnekleme ayarları eklendi; bounding box koordinatları orijinal kareye geri ölçekleniyor. Kalan iş bu ayarları otomatik yük/adaptif kalite politikasına bağlamak.
 - RTSP açılış optimizasyonu ve kalıcı sağlık geçmişi eklendi: `OpenCVStreamReader` ilk başarılı frame'i cache'ler, cihaz bazlı warm-up/backoff uygular; health checker TCP erişilebilirlik, latency ve hata nedenini kaydeder. Kalan iyileştirme, FPS/reconnect/uptime gibi daha derin akış kalite metriklerini aynı geçmiş grafiğine bağlamak.
 - Vite build kökü açıkça sabitlendi; Windows path çözümleme kaynaklı HTML emit hatası giderildi ve frontend build tekrar kararlı.
-- Detection ayarları kısmen kamera bazlı: confidence, IoU, cooldown, aktif saatler ve ROI/poligon eklendi. Kalan iş frame stride ve düşük çözünürlüklü AI örnekleme ayarlarını operatör kontrollü hale getirmek.
+- Detection ayarları kamera bazlı: confidence, IoU, cooldown, frame stride, AI örnekleme genişliği, aktif saatler ve ROI/poligon operatör kontrollü hale geldi. Kalan iş bu ayarları toplu şablon/preset yönetimine bağlamak.
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
 - False positive yönetimi başladı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor ve DB/audit kaydı oluşuyor. Kalan iş örnekleri eğitim/threshold iyileştirme havuzuna bağlamak.
-- AI performans ekranı yok: inference süresi, provider, CPU/GPU kullanımı ve stream başına FPS izlenmeli.
+- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride ve örnekleme genişliği gösteriliyor. Kalan iş inference süresi, CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
 
 ### P1 - Güvenlik ve Operasyon
 

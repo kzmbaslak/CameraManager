@@ -28,6 +28,8 @@ class Camera:
     ai_confidence_threshold: float = 0.5
     ai_iou_threshold: float = 0.45
     ai_alarm_cooldown_seconds: int = 60
+    ai_frame_stride: int = 1
+    ai_inference_width: int = 640
     ai_active_start: Optional[str] = None
     ai_active_end: Optional[str] = None
     ai_roi_polygon: Optional[str] = None

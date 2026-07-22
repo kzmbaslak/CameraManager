@@ -56,6 +56,8 @@ class CameraCreate(BaseModel):
     ai_confidence_threshold: float = Field(default=0.5, ge=0.05, le=0.95)
     ai_iou_threshold: float = Field(default=0.45, ge=0.05, le=0.95)
     ai_alarm_cooldown_seconds: int = Field(default=60, ge=5, le=3600)
+    ai_frame_stride: int = Field(default=1, ge=1, le=30)
+    ai_inference_width: int = Field(default=640, ge=320, le=1280)
     ai_active_start: Optional[str] = Field(default=None, max_length=5)
     ai_active_end: Optional[str] = Field(default=None, max_length=5)
     ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
@@ -99,6 +101,8 @@ class CameraUpdate(BaseModel):
     ai_confidence_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
     ai_iou_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
     ai_alarm_cooldown_seconds: Optional[int] = Field(default=None, ge=5, le=3600)
+    ai_frame_stride: Optional[int] = Field(default=None, ge=1, le=30)
+    ai_inference_width: Optional[int] = Field(default=None, ge=320, le=1280)
     ai_active_start: Optional[str] = Field(default=None, max_length=5)
     ai_active_end: Optional[str] = Field(default=None, max_length=5)
     ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
@@ -145,6 +149,8 @@ class CameraResponse(BaseModel):
     ai_confidence_threshold: float
     ai_iou_threshold: float
     ai_alarm_cooldown_seconds: int
+    ai_frame_stride: int
+    ai_inference_width: int
     ai_active_start: Optional[str] = None
     ai_active_end: Optional[str] = None
     ai_roi_polygon: Optional[str] = None
@@ -216,6 +222,9 @@ class CameraStreamDiagnostics(BaseModel):
     subscriber_count: int
     active_profile: str
     ai_task_running: bool
+    ai_provider: Optional[str] = None
+    ai_frame_stride: int
+    ai_inference_width: int
     cached_frame_available: bool
     last_broadcast_age_seconds: Optional[float] = None
     last_frame_age_seconds: Optional[float] = None

@@ -69,6 +69,8 @@ class CameraStreamManager:
         self._last_ai_time: Dict[int, float] = {}
         self._active_ai_tasks: Dict[int, asyncio.Task] = {}
         self._ai_enabled_cache: Dict[int, bool] = {}
+        self._ai_frame_stride_cache: Dict[int, int] = {}
+        self._ai_frame_counters: Dict[int, int] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
         self._idle_grace_seconds = 10.0
         self._executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cam_stream")
@@ -275,12 +277,12 @@ class CameraStreamManager:
             while not self._stop_flags.get(camera_id, False):
                 t0 = loop.time()
                 try:
-                    frame, camera_active = await loop.run_in_executor(
+                    frame, camera_active, ai_enabled, ai_frame_stride = await loop.run_in_executor(
                         self._executor, lambda: self._read_frame_sync(camera_id, frame_source)
                     )
                 except Exception as exc:
                     logger.warning(f"[StreamManager] Kamera {camera_id} kare okuma hatası: {exc}")
-                    frame, camera_active = None, True
+                    frame, camera_active, ai_enabled, ai_frame_stride = None, True, self._sync_check_ai_enabled_cached(camera_id), 1
 
                 if not camera_active:
                     logger.info(f"[StreamManager] Kamera {camera_id} pasif/silinmiş — producer durduruluyor.")
@@ -301,8 +303,7 @@ class CameraStreamManager:
                     logger.debug(f"[StreamManager] Kamera {camera_id} frame=None (bağlantı kuruluyor veya hatalı)")
 
                 has_subscribers = bool(self._subscribers.get(camera_id))
-                ai_enabled = self._sync_check_ai_enabled_cached(camera_id)
-                should_run_ai = frame is not None and ai_enabled and self._should_run_ai(camera_id)
+                should_run_ai = frame is not None and ai_enabled and self._should_run_ai(camera_id, ai_frame_stride)
 
                 if should_run_ai:
                     self._last_ai_time[camera_id] = loop.time()
@@ -325,8 +326,12 @@ class CameraStreamManager:
             frame_source.release(camera_id)
             self._producers.pop(camera_id, None)
 
-    def _should_run_ai(self, camera_id: int) -> bool:
+    def _should_run_ai(self, camera_id: int, frame_stride: int = 1) -> bool:
         """AI taramasının bu turda tetiklenmeye uygun olup olmadığını döner."""
+        stride = max(1, frame_stride)
+        self._ai_frame_counters[camera_id] = self._ai_frame_counters.get(camera_id, 0) + 1
+        if (self._ai_frame_counters[camera_id] - 1) % stride != 0:
+            return False
         now = time.monotonic()
         last = self._last_ai_time.get(camera_id, 0.0)
         if now - last < self._ai_interval:
@@ -492,6 +497,8 @@ class CameraStreamManager:
             "subscriber_count": subscriber_count,
             "active_profile": self._effective_profile_name(camera_id),
             "ai_task_running": bool(ai_task and not ai_task.done()),
+            "ai_provider": getattr(self._ai_service, "active_provider", None),
+            "ai_frame_stride": self._ai_frame_stride_cache.get(camera_id, 1),
             "cached_frame_available": cached is not None,
             "last_broadcast_age_seconds": (now - last_broadcast_at) if last_broadcast_at else None,
             "last_broadcast_at_monotonic": last_broadcast_at,
@@ -511,9 +518,10 @@ class CameraStreamManager:
 
             camera = camera_repo.get_by_id(camera_id)
             if not camera or camera.status == CameraStatus.INACTIVE:
-                return None, False
+                return None, False, False, 1
 
             self._ai_enabled_cache[camera_id] = camera.ai_detection_enabled
+            self._ai_frame_stride_cache[camera_id] = max(1, getattr(camera, "ai_frame_stride", 1) or 1)
 
             use_case = ProcessFrameUseCase(
                 camera_repository=camera_repo,
@@ -526,9 +534,9 @@ class CameraStreamManager:
             # Önceden yüklenmiş kamera objesi geçiriliyor — çift DB sorgusunu önler
             frame = use_case.read_frame(camera_id, camera=camera)
             if frame is None:
-                return None, True
+                return None, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id]
 
-            return frame, True
+            return frame, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id]
         finally:
             db.close()
 

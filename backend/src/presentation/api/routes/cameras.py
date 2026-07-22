@@ -131,6 +131,8 @@ async def add_camera(
             ai_confidence_threshold=camera_data.ai_confidence_threshold,
             ai_iou_threshold=camera_data.ai_iou_threshold,
             ai_alarm_cooldown_seconds=camera_data.ai_alarm_cooldown_seconds,
+            ai_frame_stride=camera_data.ai_frame_stride,
+            ai_inference_width=camera_data.ai_inference_width,
             ai_active_start=camera_data.ai_active_start,
             ai_active_end=camera_data.ai_active_end,
             ai_roi_polygon=camera_data.ai_roi_polygon,
@@ -242,6 +244,12 @@ async def update_camera(
         ai_settings_changed = True
     if data.ai_alarm_cooldown_seconds is not None:
         camera.ai_alarm_cooldown_seconds = data.ai_alarm_cooldown_seconds
+        ai_settings_changed = True
+    if data.ai_frame_stride is not None:
+        camera.ai_frame_stride = data.ai_frame_stride
+        ai_settings_changed = True
+    if data.ai_inference_width is not None:
+        camera.ai_inference_width = data.ai_inference_width
         ai_settings_changed = True
     if data.ai_active_start is not None:
         camera.ai_active_start = data.ai_active_start
@@ -369,6 +377,9 @@ async def diagnose_camera_stream(
         "subscriber_count": runtime_stats["subscriber_count"],
         "active_profile": runtime_stats["active_profile"],
         "ai_task_running": runtime_stats["ai_task_running"],
+        "ai_provider": runtime_stats["ai_provider"],
+        "ai_frame_stride": camera.ai_frame_stride,
+        "ai_inference_width": camera.ai_inference_width,
         "cached_frame_available": runtime_stats["cached_frame_available"],
         "last_broadcast_age_seconds": runtime_stats["last_broadcast_age_seconds"],
         "last_frame_age_seconds": frame_stats["last_frame_age_seconds"],

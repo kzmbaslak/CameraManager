@@ -358,6 +358,8 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     ai_confidence_threshold: camera.ai_confidence_threshold,
     ai_iou_threshold: camera.ai_iou_threshold,
     ai_alarm_cooldown_seconds: camera.ai_alarm_cooldown_seconds,
+    ai_frame_stride: camera.ai_frame_stride,
+    ai_inference_width: camera.ai_inference_width,
     ai_active_start: camera.ai_active_start ?? '',
     ai_active_end: camera.ai_active_end ?? '',
     ai_roi_polygon: camera.ai_roi_polygon ?? '',
@@ -455,6 +457,13 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
             <Input label="IoU" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_iou_threshold ?? 0.45} onChange={(e) => setForm((f) => ({ ...f, ai_iou_threshold: Number(e.target.value) }))} />
             <Input label="Cooldown sn" type="number" min="5" max="3600" value={form.ai_alarm_cooldown_seconds ?? 60} onChange={(e) => setForm((f) => ({ ...f, ai_alarm_cooldown_seconds: Number(e.target.value) }))} />
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Input label="Frame Stride" type="number" min="1" max="30" value={form.ai_frame_stride ?? 1} onChange={(e) => setForm((f) => ({ ...f, ai_frame_stride: Number(e.target.value) }))} />
+            <Input label="AI Genislik" type="number" min="320" max="1280" step="32" value={form.ai_inference_width ?? 640} onChange={(e) => setForm((f) => ({ ...f, ai_inference_width: Number(e.target.value) }))} />
+          </div>
+          <p className="mt-1 text-[10px] text-[var(--text-secondary)]">
+            Frame stride AI'nin kac karede bir calisacagini, AI genislik ise tespit icin kullanilan kucuk kare boyutunu belirler.
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Input label="Aktif Baslangic" placeholder="00:00" value={form.ai_active_start ?? ''} onChange={(e) => setForm((f) => ({ ...f, ai_active_start: e.target.value || null }))} />
             <Input label="Aktif Bitis" placeholder="23:59" value={form.ai_active_end ?? ''} onChange={(e) => setForm((f) => ({ ...f, ai_active_end: e.target.value || null }))} />
@@ -826,6 +835,9 @@ export function CamerasPage() {
                   <span>Profil: <strong className="text-[var(--text-primary)]">{streamDiagnostic.active_profile}</strong></span>
                   <span>Subscriber: <strong className="text-[var(--text-primary)]">{streamDiagnostic.subscriber_count}</strong></span>
                   <span>AI Görevi: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_task_running ? 'Açık' : 'Kapalı'}</strong></span>
+                  <span>AI Provider: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_provider ?? 'Yok'}</strong></span>
+                  <span>AI Stride: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_frame_stride}</strong></span>
+                  <span>AI Genislik: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_inference_width}px</strong></span>
                   <span>Cache: <strong className="text-[var(--text-primary)]">{streamDiagnostic.cached_frame_available ? 'Var' : 'Yok'}</strong></span>
                   <span>Open Deneme: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_attempts}</strong></span>
                   <span>Open Hata: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_failures}</strong></span>

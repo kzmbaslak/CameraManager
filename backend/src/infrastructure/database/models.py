@@ -43,6 +43,8 @@ class CameraModel(Base):
     ai_confidence_threshold = Column(Float, default=0.5)
     ai_iou_threshold = Column(Float, default=0.45)
     ai_alarm_cooldown_seconds = Column(Integer, default=60)
+    ai_frame_stride = Column(Integer, default=1)
+    ai_inference_width = Column(Integer, default=640)
     ai_active_start = Column(String, nullable=True)
     ai_active_end = Column(String, nullable=True)
     ai_roi_polygon = Column(String, nullable=True)

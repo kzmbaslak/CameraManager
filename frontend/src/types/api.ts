@@ -17,6 +17,8 @@ export interface Camera {
   ai_confidence_threshold: number
   ai_iou_threshold: number
   ai_alarm_cooldown_seconds: number
+  ai_frame_stride: number
+  ai_inference_width: number
   ai_active_start: string | null
   ai_active_end: string | null
   ai_roi_polygon: string | null
@@ -41,6 +43,8 @@ export interface CameraCreate {
   ai_confidence_threshold?: number
   ai_iou_threshold?: number
   ai_alarm_cooldown_seconds?: number
+  ai_frame_stride?: number
+  ai_inference_width?: number
   ai_active_start?: string | null
   ai_active_end?: string | null
   ai_roi_polygon?: string | null
@@ -206,6 +210,9 @@ export interface CameraStreamDiagnostics {
   subscriber_count: number
   active_profile: string
   ai_task_running: boolean
+  ai_provider: string | null
+  ai_frame_stride: number
+  ai_inference_width: number
   cached_frame_available: boolean
   last_broadcast_age_seconds: number | null
   last_frame_age_seconds: number | null

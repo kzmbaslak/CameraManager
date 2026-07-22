@@ -124,6 +124,43 @@ class ProcessFrameUseCase:
                 filtered.append(detection)
         return tuple(filtered)
 
+    def _resize_frame_for_ai(self, frame: object, camera) -> tuple[object, float]:
+        """AI icin kareyi kucultur; bounding box geri olcegi icin oran dondurur."""
+        target_width = getattr(camera, "ai_inference_width", 640) or 640
+        if not hasattr(frame, "shape") or len(frame.shape) < 2:
+            return frame, 1.0
+        original_width = int(frame.shape[1])
+        original_height = int(frame.shape[0])
+        if original_width <= 0 or original_width <= target_width:
+            return frame, 1.0
+        scale = target_width / original_width
+        target_height = max(1, int(round(original_height * scale)))
+        return cv2.resize(frame, (target_width, target_height), interpolation=cv2.INTER_AREA), scale
+
+    def _scale_detections(self, detections: Tuple[Detection, ...], scale: float, frame_width: Optional[int], frame_height: Optional[int]) -> Tuple[Detection, ...]:
+        """Kucuk AI karesindeki kutulari orijinal kare koordinatina tasir."""
+        if scale == 1.0:
+            return detections
+        scaled: list[Detection] = []
+        for detection in detections:
+            box = detection.bounding_box
+            x = int(round(box.x / scale))
+            y = int(round(box.y / scale))
+            width = int(round(box.width / scale))
+            height = int(round(box.height / scale))
+            if frame_width is not None:
+                x = max(0, min(x, frame_width - 1))
+                width = max(1, min(width, frame_width - x))
+            if frame_height is not None:
+                y = max(0, min(y, frame_height - 1))
+                height = max(1, min(height, frame_height - y))
+            scaled.append(Detection(
+                label=detection.label,
+                confidence=detection.confidence,
+                bounding_box=BoundingBox(x=x, y=y, width=width, height=height),
+            ))
+        return tuple(scaled)
+
     def read_frame(self, camera_id: int, camera=None) -> Optional[object]:
         """Kameradan tek kare okur ve kamera durumunu active/error olarak gunceller."""
         if camera is None:
@@ -168,11 +205,13 @@ class ProcessFrameUseCase:
                 detected_at=detected_at,
             )
 
+        ai_frame, ai_scale = self._resize_frame_for_ai(frame, camera)
         detections = tuple(self.ai_service.detect_humans(
-            frame,
+            ai_frame,
             conf_threshold=getattr(camera, "ai_confidence_threshold", None),
             iou_threshold=getattr(camera, "ai_iou_threshold", None),
         ))
+        detections = self._scale_detections(detections, ai_scale, frame_width, frame_height)
         detections = self._filter_roi(detections, camera, frame_width, frame_height)
 
         if detections:

@@ -17,6 +17,7 @@ class ONNXInferenceService(IAIInferenceService):
         self.model_path = model_path
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
+        self.active_provider = None
         
         # GPU (DirectML) varsa kullanır, yoksa otomatik CPU'ya düşer.
         # DirectML, Windows üzerindeki tüm GPU'ları (Nvidia, AMD, Intel) DirectX 12 üzerinden kullanır.
@@ -34,9 +35,11 @@ class ONNXInferenceService(IAIInferenceService):
             self._output_name = self.session.get_outputs()[0].name
             self._input_shape = self.session.get_inputs()[0].shape
             active = self.session.get_providers()[0]
+            self.active_provider = active
             print(f"[AI] ONNX modeli yüklendi — provider: {active}")
         except Exception as e:
             self.session = None
+            self.active_provider = None
             print(f"[AI] ONNX modeli yüklenemedi: {e}")
 
     def _letterbox(self, img: np.ndarray, new_shape=(640, 640), color=(114, 114, 114)) -> Tuple[np.ndarray, float, Tuple[float, float]]:

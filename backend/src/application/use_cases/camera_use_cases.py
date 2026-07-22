@@ -30,6 +30,8 @@ class CameraUseCases:
         ai_confidence_threshold: float = 0.5,
         ai_iou_threshold: float = 0.45,
         ai_alarm_cooldown_seconds: int = 60,
+        ai_frame_stride: int = 1,
+        ai_inference_width: int = 640,
         ai_active_start: Optional[str] = None,
         ai_active_end: Optional[str] = None,
         ai_roi_polygon: Optional[str] = None,
@@ -77,6 +79,8 @@ class CameraUseCases:
             existing.ai_confidence_threshold = ai_confidence_threshold
             existing.ai_iou_threshold = ai_iou_threshold
             existing.ai_alarm_cooldown_seconds = ai_alarm_cooldown_seconds
+            existing.ai_frame_stride = ai_frame_stride
+            existing.ai_inference_width = ai_inference_width
             existing.ai_active_start = ai_active_start
             existing.ai_active_end = ai_active_end
             existing.ai_roi_polygon = ai_roi_polygon
@@ -104,6 +108,8 @@ class CameraUseCases:
             ai_confidence_threshold=ai_confidence_threshold,
             ai_iou_threshold=ai_iou_threshold,
             ai_alarm_cooldown_seconds=ai_alarm_cooldown_seconds,
+            ai_frame_stride=ai_frame_stride,
+            ai_inference_width=ai_inference_width,
             ai_active_start=ai_active_start,
             ai_active_end=ai_active_end,
             ai_roi_polygon=ai_roi_polygon,

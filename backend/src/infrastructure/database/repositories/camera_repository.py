@@ -25,6 +25,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             ai_confidence_threshold=model.ai_confidence_threshold if model.ai_confidence_threshold is not None else 0.5,
             ai_iou_threshold=model.ai_iou_threshold if model.ai_iou_threshold is not None else 0.45,
             ai_alarm_cooldown_seconds=model.ai_alarm_cooldown_seconds or 60,
+            ai_frame_stride=model.ai_frame_stride or 1,
+            ai_inference_width=model.ai_inference_width or 640,
             ai_active_start=model.ai_active_start,
             ai_active_end=model.ai_active_end,
             ai_roi_polygon=model.ai_roi_polygon,
@@ -51,6 +53,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             ai_confidence_threshold=entity.ai_confidence_threshold,
             ai_iou_threshold=entity.ai_iou_threshold,
             ai_alarm_cooldown_seconds=entity.ai_alarm_cooldown_seconds,
+            ai_frame_stride=entity.ai_frame_stride,
+            ai_inference_width=entity.ai_inference_width,
             ai_active_start=entity.ai_active_start,
             ai_active_end=entity.ai_active_end,
             ai_roi_polygon=entity.ai_roi_polygon,
@@ -101,6 +105,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
         model.ai_confidence_threshold = camera.ai_confidence_threshold
         model.ai_iou_threshold = camera.ai_iou_threshold
         model.ai_alarm_cooldown_seconds = camera.ai_alarm_cooldown_seconds
+        model.ai_frame_stride = camera.ai_frame_stride
+        model.ai_inference_width = camera.ai_inference_width
         model.ai_active_start = camera.ai_active_start
         model.ai_active_end = camera.ai_active_end
         model.ai_roi_polygon = camera.ai_roi_polygon
