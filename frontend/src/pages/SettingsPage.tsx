@@ -1,5 +1,5 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -178,6 +178,9 @@ function GeneralSettingsPanel() {
 export function SettingsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
+  const [userSearch, setUserSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'operator' | 'viewer'>('all')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const qc = useQueryClient()
   const { canManageUsers } = usePermissions()
   const currentUsername = useAuthStore((s) => s.username)
@@ -186,6 +189,27 @@ export function SettingsPage() {
     queryKey: ['users'],
     queryFn: usersApi.list,
   })
+
+  const filteredUsers = useMemo(() => {
+    const needle = userSearch.trim().toLowerCase()
+    return users.filter((user) => {
+      const matchesSearch = !needle || user.username.toLowerCase().includes(needle)
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter
+      const matchesActive =
+        activeFilter === 'all' ||
+        (activeFilter === 'active' && user.is_active) ||
+        (activeFilter === 'inactive' && !user.is_active)
+      return matchesSearch && matchesRole && matchesActive
+    })
+  }, [activeFilter, roleFilter, userSearch, users])
+
+  const hasUserFilter = userSearch.trim() !== '' || roleFilter !== 'all' || activeFilter !== 'all'
+
+  const resetUserFilters = () => {
+    setUserSearch('')
+    setRoleFilter('all')
+    setActiveFilter('all')
+  }
 
   /** Kullanıcıyı sistemden siler */
   const deleteUser = useMutation({
@@ -259,11 +283,50 @@ export function SettingsPage() {
       <GeneralSettingsPanel />
 
       <div>
-        <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-3">Kullanıcılar</h2>
+        <div className="mb-3 flex flex-col gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Kullanıcılar</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {filteredUsers.length} / {users.length} kullanici
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Kullanici adi ara"
+              className="w-full sm:w-72"
+            />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'operator' | 'viewer')}
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              <option value="all">Tum Roller</option>
+              <option value="admin">Admin</option>
+              <option value="operator">Operator</option>
+              <option value="viewer">Izleyici</option>
+            </select>
+            <select
+              value={activeFilter}
+              onChange={(e) => setActiveFilter(e.target.value as 'all' | 'active' | 'inactive')}
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              <option value="all">Tum Durumlar</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Pasif</option>
+            </select>
+            {hasUserFilter && (
+              <Button size="sm" variant="secondary" onClick={resetUserFilters}>
+                Filtreleri Sifirla
+              </Button>
+            )}
+          </div>
+        </div>
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : (
-          <Table columns={columns} data={users} keyFn={(u) => u.id} emptyText="Kullanıcı bulunamadı." />
+          <Table columns={columns} data={filteredUsers} keyFn={(u) => u.id} emptyText={hasUserFilter ? 'Filtrelerle eslesen kullanici bulunamadi.' : 'Kullanıcı bulunamadı.'} />
         )}
       </div>
 
