@@ -16,6 +16,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
+import { getApiErrorMessage } from '../utils/apiError'
 import type { User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
@@ -32,7 +33,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
       onClose()
       setForm({ username: '', password: '', role: 'viewer' })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Kullanici eklenemedi', description: 'Bilgileri kontrol edip tekrar deneyin.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kullanici eklenemedi', description: getApiErrorMessage(err, 'Kullanici adi, sifre ve rol bilgisini kontrol edin.') }),
   })
 
   return (
@@ -41,7 +42,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
         <Input label="Kullanıcı Adı" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
         <PasswordInput label="Şifre" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
         <RoleSelect value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} />
-        {error && <p className="text-xs text-[var(--danger)]">Hata oluştu, tekrar deneyin.</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getApiErrorMessage(error, 'Kullanici adi, sifre ve rol bilgisini kontrol edin.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Ekle</Button>
@@ -71,7 +72,7 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
       showToast({ variant: 'success', title: 'Kullanici guncellendi', description: user?.username })
       onClose()
     },
-    onError: () => showToast({ variant: 'danger', title: 'Kullanici guncellenemedi', description: 'Degisiklikler kaydedilemedi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kullanici guncellenemedi', description: getApiErrorMessage(err, 'Rol, aktiflik veya sifre degisikligi kaydedilemedi.') }),
   })
 
   if (!user) return null
@@ -105,7 +106,7 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
         {isSelf && (
           <p className="text-xs text-[var(--warning)]">Kendi hesabınızı devre dışı bırakamazsınız.</p>
         )}
-        {error && <p className="text-xs text-[var(--danger)]">Hata oluştu, tekrar deneyin.</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getApiErrorMessage(error, 'Rol, aktiflik veya sifre degisikligi kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Kaydet</Button>
@@ -229,7 +230,7 @@ export function SettingsPage() {
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['users'] })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Kullanici silinemedi', description: 'Silme islemi tamamlanamadi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kullanici silinemedi', description: getApiErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
   })
 
   const columns = [

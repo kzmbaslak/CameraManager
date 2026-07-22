@@ -131,7 +131,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
-        {error && <p className="text-xs text-[var(--danger)]">Hata oluştu, tekrar deneyin.</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Kaydet</Button>

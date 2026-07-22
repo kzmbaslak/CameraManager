@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
+import { getApiErrorMessage } from '../utils/apiError'
 import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
 import dayjs from 'dayjs'
 
@@ -392,7 +393,7 @@ export function AlarmsPage() {
       qc.invalidateQueries({ queryKey: ['alarms'] })
       showToast({ variant: 'success', title: 'Alarm onaylandi', description: `Alarm #${alarm.id}` })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Alarm onaylanamadi', description: 'Islem tamamlanamadi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Alarm onaylanamadi', description: getApiErrorMessage(err, 'Alarm onaylama islemi tamamlanamadi.') }),
   })
 
   const updateAlarm = useMutation({
@@ -403,7 +404,7 @@ export function AlarmsPage() {
       qc.invalidateQueries({ queryKey: ['alarms'] })
       showToast({ variant: 'success', title: 'Alarm notu kaydedildi', description: `Alarm #${alarm.id}` })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Alarm guncellenemedi', description: 'Not veya atama kaydedilemedi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Alarm guncellenemedi', description: getApiErrorMessage(err, 'Not veya atama kaydedilemedi.') }),
   })
 
   const resolveAlarm = useMutation({
@@ -414,7 +415,7 @@ export function AlarmsPage() {
       qc.invalidateQueries({ queryKey: ['alarms'] })
       showToast({ variant: 'success', title: 'Alarm kapatildi', description: `Alarm #${alarm.id}` })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Alarm kapatilamadi', description: 'Cozum islemi tamamlanamadi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Alarm kapatilamadi', description: getApiErrorMessage(err, 'Cozum islemi tamamlanamadi.') }),
   })
 
   const falsePositiveAlarm = useMutation({
@@ -424,7 +425,7 @@ export function AlarmsPage() {
       qc.invalidateQueries({ queryKey: ['alarms'] })
       showToast({ variant: 'success', title: 'Yanlis alarm olarak kapatildi', description: `Alarm #${alarm.id}` })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Yanlis alarm isaretlenemedi', description: 'Islem tamamlanamadi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Yanlis alarm isaretlenemedi', description: getApiErrorMessage(err, 'Yanlis alarm islemi tamamlanamadi.') }),
   })
 
   const acknowledgeFiltered = useMutation({
@@ -433,7 +434,7 @@ export function AlarmsPage() {
       qc.invalidateQueries({ queryKey: ['alarms'] })
       showToast({ variant: 'success', title: 'Alarmlar onaylandi', description: `${items.length} alarm onaylandi.` })
     },
-    onError: () => showToast({ variant: 'danger', title: 'Alarmlar onaylanamadi', description: 'Toplu onay islemi tamamlanamadi.' }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Alarmlar onaylanamadi', description: getApiErrorMessage(err, 'Toplu onay islemi tamamlanamadi.') }),
   })
 
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))
