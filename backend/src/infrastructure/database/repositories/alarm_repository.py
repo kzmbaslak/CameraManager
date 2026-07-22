@@ -22,6 +22,9 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             bounding_box=bbox,
             snapshot_path=model.snapshot_path,
             message=model.message,
+            assigned_to=model.assigned_to,
+            operator_note=model.operator_note,
+            resolution_reason=model.resolution_reason,
             created_at=model.created_at,
             acknowledged_at=model.acknowledged_at,
             resolved_at=model.resolved_at
@@ -36,6 +39,9 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             confidence=entity.confidence,
             snapshot_path=entity.snapshot_path,
             message=entity.message,
+            assigned_to=entity.assigned_to,
+            operator_note=entity.operator_note,
+            resolution_reason=entity.resolution_reason,
             created_at=entity.created_at,
             acknowledged_at=entity.acknowledged_at,
             resolved_at=entity.resolved_at
@@ -93,6 +99,9 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             model.confidence = alarm.confidence
             model.snapshot_path = alarm.snapshot_path
             model.message = alarm.message
+            model.assigned_to = alarm.assigned_to
+            model.operator_note = alarm.operator_note
+            model.resolution_reason = alarm.resolution_reason
             model.acknowledged_at = alarm.acknowledged_at
             model.resolved_at = alarm.resolved_at
             if alarm.bounding_box:

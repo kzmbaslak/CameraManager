@@ -32,6 +32,18 @@ export const alarmsApi = {
     return data
   },
 
+  /** Alarm atama ve operator notu alanlarini gunceller. */
+  update: async (alarmId: number, payload: { assigned_to?: string | null; operator_note?: string | null }): Promise<Alarm> => {
+    const { data } = await client.patch<Alarm>(`/alarms/${alarmId}`, payload)
+    return data
+  },
+
+  /** Alarmi cozum nedeni ile kapatir. */
+  resolve: async (alarmId: number, payload: { resolution_reason?: string | null }): Promise<Alarm> => {
+    const { data } = await client.post<Alarm>(`/alarms/${alarmId}/resolve`, payload)
+    return data
+  },
+
   /** Alarm kanit snapshot dosyasini blob olarak getirir. */
   snapshot: async (alarmId: number): Promise<Blob> => {
     const { data } = await client.get<Blob>(`/alarms/${alarmId}/snapshot`, { responseType: 'blob' })

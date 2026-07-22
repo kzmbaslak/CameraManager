@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from src.domain.entities.alarm import AlarmStatus, AlarmType
@@ -18,9 +18,25 @@ class AlarmResponse(BaseModel):
     bounding_box: Optional[BoundingBoxSchema]
     snapshot_path: Optional[str]
     message: Optional[str]
+    assigned_to: Optional[str] = None
+    operator_note: Optional[str] = None
+    resolution_reason: Optional[str] = None
     created_at: Optional[datetime]
     acknowledged_at: Optional[datetime]
     resolved_at: Optional[datetime]
 
     class Config:
         from_attributes = True
+
+
+class AlarmUpdate(BaseModel):
+    """Alarm operasyon alanlarini kismi olarak gunceller."""
+
+    assigned_to: Optional[str] = Field(default=None, max_length=128)
+    operator_note: Optional[str] = Field(default=None, max_length=2000)
+
+
+class AlarmResolveRequest(BaseModel):
+    """Alarm kapatma istegi."""
+
+    resolution_reason: Optional[str] = Field(default=None, max_length=500)

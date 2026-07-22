@@ -71,6 +71,9 @@ export interface Alarm {
   bounding_box: BoundingBox | null
   snapshot_path: string | null
   message: string | null
+  assigned_to: string | null
+  operator_note: string | null
+  resolution_reason: string | null
   created_at: string | null
   acknowledged_at: string | null
   resolved_at: string | null

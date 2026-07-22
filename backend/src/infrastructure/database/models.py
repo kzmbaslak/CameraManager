@@ -84,6 +84,9 @@ class AlarmModel(Base):
 
     snapshot_path = Column(String, nullable=True)
     message = Column(String, nullable=True)
+    assigned_to = Column(String, nullable=True)
+    operator_note = Column(String, nullable=True)
+    resolution_reason = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     acknowledged_at = Column(DateTime, nullable=True)

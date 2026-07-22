@@ -147,7 +147,11 @@ function AlarmDetailDrawer({
   onClose,
   onOpenLive,
   onAcknowledge,
+  onSave,
+  onResolve,
   acknowledging,
+  saving,
+  resolving,
 }: {
   alarm: Alarm
   cameraName?: string
@@ -156,8 +160,16 @@ function AlarmDetailDrawer({
   onClose: () => void
   onOpenLive: () => void
   onAcknowledge: () => void
+  onSave: (payload: { assigned_to: string | null; operator_note: string | null }) => void
+  onResolve: (payload: { resolution_reason: string | null }) => void
   acknowledging: boolean
+  saving: boolean
+  resolving: boolean
 }) {
+  const [assignedTo, setAssignedTo] = useState(alarm.assigned_to ?? '')
+  const [operatorNote, setOperatorNote] = useState(alarm.operator_note ?? '')
+  const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
+
   return (
     <div className="fixed inset-0 z-[160] flex justify-end bg-black/35">
       <button className="flex-1" aria-label="Alarm detay panelini kapat" onClick={onClose} />
@@ -212,6 +224,61 @@ function AlarmDetailDrawer({
               {alarm.message}
             </p>
           )}
+
+          <div className="mt-4 flex flex-col gap-3 rounded-md border border-border bg-bg-secondary p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Operasyon</p>
+            <label className="flex flex-col gap-1 text-sm text-text-primary">
+              Atanan kisi
+              <input
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                placeholder="Operator veya ekip"
+                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-text-primary">
+              Operator notu
+              <textarea
+                value={operatorNote}
+                onChange={(e) => setOperatorNote(e.target.value)}
+                placeholder="Olay inceleme notu"
+                className="min-h-24 rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+              />
+            </label>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={saving}
+              onClick={() => onSave({
+                assigned_to: assignedTo.trim() || null,
+                operator_note: operatorNote.trim() || null,
+              })}
+            >
+              Notu Kaydet
+            </Button>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-bg-secondary p-3">
+            <label className="flex flex-col gap-1 text-sm text-text-primary">
+              Cozum nedeni
+              <input
+                value={resolutionReason}
+                onChange={(e) => setResolutionReason(e.target.value)}
+                placeholder="Gercek alarm, yanlis alarm, test, vb."
+                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+              />
+            </label>
+            {alarm.status !== 'resolved' && (
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={resolving}
+                onClick={() => onResolve({ resolution_reason: resolutionReason.trim() || null })}
+              >
+                Cozuldu Olarak Kapat
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex shrink-0 gap-2 border-t border-border p-4">
@@ -268,7 +335,28 @@ export function AlarmsPage() {
 
   const acknowledge = useMutation({
     mutationFn: alarmsApi.acknowledge,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['alarms'] }),
+    onSuccess: (alarm) => {
+      setSelectedAlarm((current) => current?.id === alarm.id ? alarm : current)
+      qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const updateAlarm = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: { assigned_to: string | null; operator_note: string | null } }) =>
+      alarmsApi.update(id, payload),
+    onSuccess: (alarm) => {
+      setSelectedAlarm(alarm)
+      qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const resolveAlarm = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: { resolution_reason: string | null } }) =>
+      alarmsApi.resolve(id, payload),
+    onSuccess: (alarm) => {
+      setSelectedAlarm(alarm)
+      qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
   })
 
   const acknowledgeFiltered = useMutation({
@@ -413,7 +501,11 @@ export function AlarmsPage() {
             setSelectedAlarm(null)
           }}
           onAcknowledge={() => acknowledge.mutate(selectedAlarm.id)}
+          onSave={(payload) => updateAlarm.mutate({ id: selectedAlarm.id, payload })}
+          onResolve={(payload) => resolveAlarm.mutate({ id: selectedAlarm.id, payload })}
           acknowledging={acknowledge.isPending && acknowledge.variables === selectedAlarm.id}
+          saving={updateAlarm.isPending && updateAlarm.variables?.id === selectedAlarm.id}
+          resolving={resolveAlarm.isPending && resolveAlarm.variables?.id === selectedAlarm.id}
         />
       )}
     </div>

@@ -1,11 +1,12 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from typing import List, Optional
 from src.presentation.api.dependencies import get_alarm_repository, get_current_user, get_operator_user
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
-from src.presentation.api.schemas.alarm_schema import AlarmResponse
+from src.infrastructure.security.audit_logger import write_audit_event
+from src.presentation.api.schemas.alarm_schema import AlarmResolveRequest, AlarmResponse, AlarmUpdate
 from src.domain.entities.alarm import AlarmStatus, AlarmType
 
 router = APIRouter(prefix="/alarms", tags=["Alarms"])
@@ -67,6 +68,7 @@ def get_alarm_snapshot(
 @router.post("/{alarm_id}/acknowledge", response_model=AlarmResponse)
 def acknowledge_alarm(
     alarm_id: int,
+    request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
     current_user: dict = Depends(get_operator_user),
 ):
@@ -77,4 +79,61 @@ def acknowledge_alarm(
         raise HTTPException(status_code=404, detail="Alarm bulunamadı (Alarm not found)")
     
     alarm.acknowledge(datetime.utcnow())
-    return repo.update(alarm)
+    updated = repo.update(alarm)
+    write_audit_event(
+        "alarm.acknowledge",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id},
+    )
+    return updated
+
+
+@router.patch("/{alarm_id}", response_model=AlarmResponse)
+def update_alarm(
+    alarm_id: int,
+    data: AlarmUpdate,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Alarm atama ve operator notu alanlarini gunceller."""
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm:
+        raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
+    alarm.assigned_to = data.assigned_to
+    alarm.operator_note = data.operator_note
+    updated = repo.update(alarm)
+    write_audit_event(
+        "alarm.update",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "assigned_to": data.assigned_to},
+    )
+    return updated
+
+
+@router.post("/{alarm_id}/resolve", response_model=AlarmResponse)
+def resolve_alarm(
+    alarm_id: int,
+    data: AlarmResolveRequest,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Alarmi cozum nedeniyle kapatir."""
+    from datetime import datetime
+
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm:
+        raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
+    alarm.resolution_reason = data.resolution_reason
+    alarm.resolve(datetime.utcnow())
+    updated = repo.update(alarm)
+    write_audit_event(
+        "alarm.resolve",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "resolution_reason": data.resolution_reason},
+    )
+    return updated

@@ -36,6 +36,9 @@ class Alarm:
     bounding_box: Optional[BoundingBox] = None
     snapshot_path: Optional[str] = None
     message: Optional[str] = None
+    assigned_to: Optional[str] = None
+    operator_note: Optional[str] = None
+    resolution_reason: Optional[str] = None
     created_at: Optional[datetime] = None
     acknowledged_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None

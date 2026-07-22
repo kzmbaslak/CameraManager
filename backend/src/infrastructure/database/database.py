@@ -50,6 +50,29 @@ def ensure_camera_ai_settings_columns() -> None:
         conn.close()
 
 
+def ensure_alarm_operation_columns() -> None:
+    """Eski SQLite kurulumlarinda alarm operasyon kolonlarini idempotent ekler."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    columns = {
+        "assigned_to": "TEXT",
+        "operator_note": "TEXT",
+        "resolution_reason": "TEXT",
+    }
+    conn = sqlite3.connect(db_path)
+    try:
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(alarms)").fetchall()}
+        for column, definition in columns.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE alarms ADD COLUMN {column} {definition}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_db():
     """FastAPI dependency — request başına bir DB session açar, biter bitmez kapatır."""
     db = SessionLocal()
