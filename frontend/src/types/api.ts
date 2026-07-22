@@ -202,6 +202,23 @@ export interface CameraStreamDiagnostics {
   last_broadcast_at: string | null
 }
 
+export interface SecurityPostureFinding {
+  severity: 'critical' | 'high' | 'medium' | 'low' | string
+  message: string
+}
+
+export interface SecurityPosture {
+  status: 'hardened' | 'attention' | string
+  jwt_secret_configured: boolean
+  camera_encryption_key_configured: boolean
+  cors_origins_configured: boolean
+  https_enabled: boolean
+  secure_cookie_auth: boolean
+  stream_token_transport: string
+  stream_token_ttl_seconds: number
+  findings: SecurityPostureFinding[]
+}
+
 export interface NVRScanRequest {
   ip_range: string
   rtsp_port?: number

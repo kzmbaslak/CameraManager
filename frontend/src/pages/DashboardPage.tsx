@@ -5,11 +5,12 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { Activity, Bell, Check, CheckCircle, MapPinned, PanelRight, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
+import { systemApi } from '../api/system'
 import { CameraGrid, type GridCols } from '../components/camera/CameraGrid'
 import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
 import { useAlarmStore } from '../stores/alarmStore'
-import type { Alarm, Camera, CameraStreamDiagnostics } from '../types/api'
+import type { Alarm, Camera, CameraStreamDiagnostics, SecurityPosture } from '../types/api'
 
 function loadGridPref(): GridCols {
   try {
@@ -187,10 +188,12 @@ function OperatorAssistPanel({
   newAlarmCount,
   watchedCount,
   health,
+  security,
 }: {
   newAlarmCount: number
   watchedCount: number
   health: CameraStreamDiagnostics[]
+  security: SecurityPosture | null
 }) {
   const runningCount = health.filter((item) => item.producer_running).length
   const staleCount = health.filter((item) => (item.last_frame_age_seconds ?? 0) > 10).length
@@ -221,11 +224,15 @@ function OperatorAssistPanel({
       </div>
 
       <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
-        <ShieldCheck size={18} className="text-accent" />
+        <ShieldCheck size={18} className={security?.status === 'hardened' ? 'text-success' : 'text-warning'} />
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-text-secondary">Guvenlik Kontrolu</p>
           <p className="truncate text-sm text-text-primary">
-            Kisa omurlu stream token · RTSP testinde anonim erisim uyarisi
+            {security
+              ? security.findings.length > 0
+                ? `${security.findings.length} sertlestirme maddesi bekliyor · token ${security.stream_token_ttl_seconds} sn`
+                : 'Temel kontroller temiz · stream token ilk WS mesajinda'
+              : 'Guvenlik durusu okunuyor'}
           </p>
         </div>
       </div>
@@ -268,6 +275,12 @@ export function DashboardPage() {
     queryKey: ['alarms', 'new'],
     queryFn: () => alarmsApi.listByStatus('new', 50),
     refetchInterval: 10_000,
+  })
+
+  const { data: securityPosture = null } = useQuery({
+    queryKey: ['security-posture'],
+    queryFn: systemApi.securityPosture,
+    refetchInterval: 60_000,
   })
 
   const toggleWatch = useMutation({
@@ -379,6 +392,7 @@ export function DashboardPage() {
           newAlarmCount={newAlarms.length}
           watchedCount={watchedCameras.length}
           health={health}
+          security={securityPosture}
         />
       )}
 
