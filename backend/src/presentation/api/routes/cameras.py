@@ -13,7 +13,14 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from typing import List
 from urllib.parse import unquote, urlparse
-from src.presentation.api.dependencies import get_camera_use_cases, get_stream_manager, get_current_user, get_operator_user, frame_source
+from src.presentation.api.dependencies import (
+    get_camera_health_repository,
+    get_camera_use_cases,
+    get_stream_manager,
+    get_current_user,
+    get_operator_user,
+    frame_source,
+)
 from src.application.use_cases.camera_use_cases import CameraUseCases
 from src.application.services.camera_stream_manager import CameraStreamManager
 from src.presentation.api.schemas.camera_schema import (
@@ -22,6 +29,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraResponse,
     CameraScanRequest,
     CameraScanResult,
+    CameraHealthSummaryResponse,
     CameraStreamDiagnostics,
 )
 from src.domain.entities.camera import CameraStatus
@@ -374,6 +382,38 @@ async def diagnose_camera_stream(
         "last_success_at": frame_stats["last_success_at"],
         "last_failure_at": frame_stats["last_failure_at"],
         "last_broadcast_at": frame_stats["last_success_at"],
+    }
+
+
+@router.get("/{camera_id}/diagnostics/health-history", response_model=CameraHealthSummaryResponse)
+async def diagnose_camera_health_history(
+    camera_id: int,
+    limit: int = 120,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    health_repo=Depends(get_camera_health_repository),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Kayitli kameranin son erisilebilirlik olcumlerini ve trend ozetini dondurur."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    safe_limit = min(max(limit, 1), 500)
+    samples = list(health_repo.list_recent(camera_id, safe_limit))
+    reachable_count = sum(1 for sample in samples if sample.reachable)
+    unreachable_count = len(samples) - reachable_count
+    latest = samples[0] if samples else None
+
+    return {
+        "camera_id": camera_id,
+        "sample_count": len(samples),
+        "reachable_count": reachable_count,
+        "unreachable_count": unreachable_count,
+        "availability_percent": round((reachable_count / len(samples)) * 100, 1) if samples else None,
+        "latest_checked_at": latest.checked_at if latest else None,
+        "latest_latency_ms": latest.latency_ms if latest else None,
+        "latest_failure_reason": latest.failure_reason if latest else None,
+        "samples": samples,
     }
 
 

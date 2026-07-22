@@ -25,6 +25,7 @@ from src.infrastructure.database.repositories.camera_repository import SqlAlchem
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.database.repositories.nvr_repository import SqlAlchemyNVRRepository
+from src.infrastructure.database.repositories.camera_health_repository import SqlAlchemyCameraHealthRepository
 from src.application.use_cases.camera_use_cases import CameraUseCases
 from src.application.use_cases.nvr_use_cases import NVRUseCases
 from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
@@ -57,6 +58,7 @@ health_checker = CameraHealthChecker(
     db_session_factory=SessionLocal,
     camera_repository_factory=SqlAlchemyCameraRepository,
     alarm_repository_factory=SqlAlchemyAlarmRepository,
+    health_repository_factory=SqlAlchemyCameraHealthRepository,
 )
 
 
@@ -79,6 +81,10 @@ def get_user_repository(db: Session = Depends(get_db)) -> SqlAlchemyUserReposito
 def get_nvr_repository(db: Session = Depends(get_db)) -> SqlAlchemyNVRRepository:
     """NVR CRUD işlemleri için SQLAlchemy repository döner."""
     return SqlAlchemyNVRRepository(db)
+
+def get_camera_health_repository(db: Session = Depends(get_db)) -> SqlAlchemyCameraHealthRepository:
+    """Kamera saglik gecmisi repository'sini dondurur."""
+    return SqlAlchemyCameraHealthRepository(db)
 
 
 # ---------------------------------------------------------------------------

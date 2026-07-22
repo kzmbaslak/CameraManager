@@ -93,3 +93,15 @@ class AlarmModel(Base):
     resolved_at = Column(DateTime, nullable=True)
 
     camera = relationship("CameraModel", back_populates="alarms")
+
+
+class CameraHealthSampleModel(Base):
+    __tablename__ = "camera_health_samples"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
+    checked_at = Column(DateTime, default=datetime.utcnow, index=True)
+    reachable = Column(Boolean, default=False)
+    status = Column(String, default="unknown")
+    latency_ms = Column(Float, nullable=True)
+    failure_reason = Column(String, nullable=True)

@@ -9,8 +9,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import socket
+import time
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class CameraHealthChecker:
         db_session_factory=None,
         camera_repository_factory=None,
         alarm_repository_factory=None,
+        health_repository_factory=None,
     ):
         self._check_interval = check_interval
         self._timeout = timeout
@@ -33,6 +35,7 @@ class CameraHealthChecker:
         self._db_session_factory = db_session_factory
         self._camera_repository_factory = camera_repository_factory
         self._alarm_repository_factory = alarm_repository_factory
+        self._health_repository_factory = health_repository_factory
         self._task: asyncio.Task | None = None
         self._last_offline_alarm: Dict[int, datetime] = {}
 
@@ -50,6 +53,12 @@ class CameraHealthChecker:
         if self._alarm_repository_factory is None:
             raise RuntimeError("CameraHealthChecker alarm_repository_factory yapılandırılmamış.")
         return self._alarm_repository_factory(db)
+
+    def _health_repo(self, db):
+        """Saglik gecmisi repository'si yapilandirildiysa dondurur."""
+        if self._health_repository_factory is None:
+            return None
+        return self._health_repository_factory(db)
 
     def start(self) -> None:
         """Arka plan döngüsünü başlatır (zaten çalışıyorsa atlar)."""
@@ -74,13 +83,14 @@ class CameraHealthChecker:
         except asyncio.CancelledError:
             pass
 
-    def _ping(self, host: str, port: int) -> bool:
+    def _ping(self, host: str, port: int) -> Tuple[bool, Optional[float], Optional[str]]:
         """TCP bağlantısı kurulabiliyor mu — kamera/NVR portunun açık olup olmadığını test eder."""
         try:
+            started_at = time.monotonic()
             with socket.create_connection((host, port), timeout=self._timeout):
-                return True
-        except OSError:
-            return False
+                return True, (time.monotonic() - started_at) * 1000, None
+        except OSError as exc:
+            return False, None, exc.__class__.__name__
 
     def _check_all_sync(self) -> None:
         from src.domain.entities.camera import CameraStatus
@@ -90,11 +100,26 @@ class CameraHealthChecker:
         try:
             camera_repo = self._camera_repo(db)
             alarm_repo = self._alarm_repo(db)
+            health_repo = self._health_repo(db)
 
             cameras = [c for c in camera_repo.list_all() if c.status != CameraStatus.INACTIVE]
 
             for camera in cameras:
-                reachable = self._ping(camera.host, camera.rtsp_port)
+                reachable, latency_ms, failure_reason = self._ping(camera.host, camera.rtsp_port)
+                now = datetime.utcnow()
+                if health_repo is not None:
+                    from src.domain.entities.camera_health import CameraHealthSample
+
+                    health_repo.add(CameraHealthSample(
+                        id=None,
+                        camera_id=camera.id,
+                        checked_at=now,
+                        reachable=reachable,
+                        status="reachable" if reachable else "unreachable",
+                        latency_ms=latency_ms,
+                        failure_reason=failure_reason,
+                    ))
+                    health_repo.prune_older_than(days=7)
 
                 if reachable:
                     # TCP ping başarılı ama bu RTSP stream'in çalıştığını garanti etmez;
@@ -110,7 +135,6 @@ class CameraHealthChecker:
 
                 # Tekrarlı alarm spamini önle (cooldown)
                 last = self._last_offline_alarm.get(camera.id)
-                now = datetime.utcnow()
                 if last is None or (now - last).total_seconds() >= self._cooldown_seconds:
                     alarm = Alarm(
                         id=None,

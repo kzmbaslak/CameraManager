@@ -464,6 +464,13 @@ export function CamerasPage() {
     enabled: diagnosticResult !== null && diagnosticError === null,
   })
 
+  const { data: healthHistory } = useQuery({
+    queryKey: ['camera-health-history', diagnosticResult?.camera_id],
+    queryFn: () => camerasApi.diagnoseHealthHistory(diagnosticResult!.camera_id),
+    enabled: diagnosticResult !== null && diagnosticError === null,
+    refetchInterval: 15000,
+  })
+
   const columns = [
     { key: 'name', header: 'Ad', render: (c: Camera) => (
       <span className="font-medium">{c.name}</span>
@@ -652,6 +659,35 @@ export function CamerasPage() {
                   <span>Failure Count: <strong className="text-[var(--text-primary)]">{streamDiagnostic.failure_count}</strong></span>
                   <span>Open Timeout: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_timeout_ms} ms</strong></span>
                   <span>Read Timeout: <strong className="text-[var(--text-primary)]">{streamDiagnostic.read_timeout_ms} ms</strong></span>
+                </div>
+              </div>
+            )}
+            {healthHistory && (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-[var(--text-primary)]">Saglik Gecmisi</span>
+                  <Badge variant={healthHistory.unreachable_count === 0 ? 'success' : 'danger'}>
+                    {healthHistory.availability_percent !== null ? `%${healthHistory.availability_percent}` : 'Veri Yok'}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
+                  <span>Olcum: <strong className="text-[var(--text-primary)]">{healthHistory.sample_count}</strong></span>
+                  <span>Kopma: <strong className="text-[var(--text-primary)]">{healthHistory.unreachable_count}</strong></span>
+                  <span>Son Latency: <strong className="text-[var(--text-primary)]">{healthHistory.latest_latency_ms !== null ? `${healthHistory.latest_latency_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                  <span>Son Hata: <strong className="text-[var(--text-primary)]">{healthHistory.latest_failure_reason || 'Yok'}</strong></span>
+                </div>
+                <div className="mt-3 flex h-8 items-end gap-1 overflow-hidden" aria-label="Kamera saglik gecmisi">
+                  {[...healthHistory.samples].reverse().map((sample) => (
+                    <span
+                      key={sample.id}
+                      title={`${new Date(sample.checked_at).toLocaleString()} - ${sample.reachable ? 'Erisilebilir' : sample.failure_reason || 'Erisilemiyor'}`}
+                      className={`min-w-[3px] flex-1 rounded-sm ${sample.reachable ? 'bg-[var(--success)]' : 'bg-[var(--danger)]'}`}
+                      style={{ height: sample.reachable ? '55%' : '100%' }}
+                    />
+                  ))}
+                  {healthHistory.samples.length === 0 && (
+                    <span className="text-xs text-[var(--text-secondary)]">Saglik gecmisi henuz olusmadi.</span>
+                  )}
                 </div>
               </div>
             )}

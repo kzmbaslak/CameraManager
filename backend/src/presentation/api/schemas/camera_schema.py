@@ -232,3 +232,32 @@ class CameraStreamDiagnostics(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CameraHealthSampleResponse(BaseModel):
+    """Tek kamera saglik gecmisi olcumu."""
+
+    id: int
+    camera_id: int
+    checked_at: datetime
+    reachable: bool
+    status: str
+    latency_ms: Optional[float] = None
+    failure_reason: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CameraHealthSummaryResponse(BaseModel):
+    """Kamera saglik gecmisi ozet ve trend yaniti."""
+
+    camera_id: int
+    sample_count: int
+    reachable_count: int
+    unreachable_count: int
+    availability_percent: Optional[float] = None
+    latest_checked_at: Optional[datetime] = None
+    latest_latency_ms: Optional[float] = None
+    latest_failure_reason: Optional[str] = None
+    samples: list[CameraHealthSampleResponse]
