@@ -1,5 +1,5 @@
 // NVR cihazı yönetimi sayfası — listeleme, ekleme, düzenleme, silme, kanal tarama ve seçili içe aktarma
-import { useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Search, Download, Pencil, Power } from 'lucide-react'
 import { nvrsApi, type NVRUpdate } from '../api/nvrs'
@@ -686,6 +686,8 @@ export function NVRPage() {
   const [prefilledDevice, setPrefilledDevice] = useState<{ host: string; port: number; username?: string; password?: string; brand?: string } | null>(null)
   const [editNVR, setEditNVR] = useState<NVR | null>(null)
   const [activeNvrForScan, setActiveNvrForScan] = useState<NVR | null>(null)
+  const [nvrSearch, setNvrSearch] = useState('')
+  const [nvrStatusFilter, setNvrStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
 
@@ -693,6 +695,31 @@ export function NVRPage() {
     queryKey: ['nvrs'],
     queryFn: nvrsApi.list,
   })
+
+  const filteredNvrs = useMemo(() => {
+    const needle = nvrSearch.trim().toLowerCase()
+    return nvrs.filter((nvr) => {
+      const matchesSearch = !needle || [
+        nvr.name,
+        nvr.host,
+        nvr.brand ?? '',
+        nvr.model ?? '',
+        nvr.username ?? '',
+      ].some((value) => value.toLowerCase().includes(needle))
+      const matchesStatus =
+        nvrStatusFilter === 'all' ||
+        (nvrStatusFilter === 'active' && nvr.is_active) ||
+        (nvrStatusFilter === 'inactive' && !nvr.is_active)
+      return matchesSearch && matchesStatus
+    })
+  }, [nvrSearch, nvrStatusFilter, nvrs])
+
+  const hasNvrFilter = nvrSearch.trim() !== '' || nvrStatusFilter !== 'all'
+
+  const resetNvrFilters = () => {
+    setNvrSearch('')
+    setNvrStatusFilter('all')
+  }
 
   /** NVR aktiflik durumunu değiştirir */
   const toggleStatus = useMutation({
@@ -766,7 +793,12 @@ export function NVRPage() {
   return (
     <div className="p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[var(--text-primary)]">NVR Yönetimi</h1>
+        <div>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">NVR Yönetimi</h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-0.5">
+            {filteredNvrs.length} / {nvrs.length} kayıt cihazı
+          </p>
+        </div>
         <div className="flex gap-2">
           {canManageNVRs && (
             <>
@@ -781,10 +813,33 @@ export function NVRPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={nvrSearch}
+          onChange={(e) => setNvrSearch(e.target.value)}
+          placeholder="NVR adi, IP, marka veya model ara"
+          className="w-full sm:w-80"
+        />
+        <select
+          value={nvrStatusFilter}
+          onChange={(e) => setNvrStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="all">Tum Durumlar</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Pasif</option>
+        </select>
+        {hasNvrFilter && (
+          <Button size="sm" variant="secondary" onClick={resetNvrFilters}>
+            Filtreleri Sifirla
+          </Button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={nvrs} keyFn={(n) => n.id} emptyText="Henüz NVR eklenmedi." />
+        <Table columns={columns} data={filteredNvrs} keyFn={(n) => n.id} emptyText={hasNvrFilter ? 'Filtrelerle eslesen NVR bulunamadi.' : 'Henüz NVR eklenmedi.'} />
       )}
 
       <AddNVRModal open={showAdd} onClose={() => { setShowAdd(false); setPrefilledDevice(null); }} initialValues={prefilledDevice} />
