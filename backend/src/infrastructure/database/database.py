@@ -28,6 +28,7 @@ def ensure_camera_ai_settings_columns() -> None:
     """Eski SQLite kurulumlarinda kamera AI ayarlari kolonlarini idempotent ekler."""
     if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
         return
+    import hashlib
     import sqlite3
 
     db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
@@ -63,6 +64,7 @@ def ensure_alarm_operation_columns() -> None:
         "resolution_reason": "TEXT",
         "severity": "TEXT DEFAULT 'medium'",
         "false_positive": "BOOLEAN DEFAULT 0",
+        "snapshot_sha256": "TEXT",
     }
     conn = sqlite3.connect(db_path)
     try:
@@ -70,6 +72,21 @@ def ensure_alarm_operation_columns() -> None:
         for column, definition in columns.items():
             if column not in existing:
                 conn.execute(f"ALTER TABLE alarms ADD COLUMN {column} {definition}")
+        rows = conn.execute(
+            "SELECT id, snapshot_path FROM alarms WHERE snapshot_path IS NOT NULL AND snapshot_sha256 IS NULL"
+        ).fetchall()
+        for alarm_id, snapshot_path in rows:
+            if not snapshot_path:
+                continue
+            absolute_path = os.path.abspath(snapshot_path)
+            if not os.path.isfile(absolute_path):
+                continue
+            with open(absolute_path, "rb") as file:
+                snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
+            conn.execute(
+                "UPDATE alarms SET snapshot_sha256 = ? WHERE id = ?",
+                (snapshot_sha256, alarm_id),
+            )
         conn.commit()
     finally:
         conn.close()

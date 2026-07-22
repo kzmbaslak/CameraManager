@@ -83,6 +83,7 @@ class AlarmModel(Base):
     bbox_height = Column(Integer, nullable=True)
 
     snapshot_path = Column(String, nullable=True)
+    snapshot_sha256 = Column(String, nullable=True)
     message = Column(String, nullable=True)
     severity = Column(String, default="medium")
     false_positive = Column(Boolean, default=False)

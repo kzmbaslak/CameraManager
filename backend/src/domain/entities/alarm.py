@@ -42,6 +42,7 @@ class Alarm:
     confidence: Optional[float] = None
     bounding_box: Optional[BoundingBox] = None
     snapshot_path: Optional[str] = None
+    snapshot_sha256: Optional[str] = None
     message: Optional[str] = None
     severity: AlarmSeverity = AlarmSeverity.MEDIUM
     false_positive: bool = False

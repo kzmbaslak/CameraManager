@@ -56,8 +56,8 @@ export const alarmsApi = {
   },
 
   /** Alarm kanit snapshot dosyasini blob olarak getirir. */
-  snapshot: async (alarmId: number): Promise<Blob> => {
-    const { data } = await client.get<Blob>(`/alarms/${alarmId}/snapshot`, { responseType: 'blob' })
-    return data
+  snapshot: async (alarmId: number): Promise<{ blob: Blob; sha256: string | null }> => {
+    const { data, headers } = await client.get<Blob>(`/alarms/${alarmId}/snapshot`, { responseType: 'blob' })
+    return { blob: data, sha256: headers['x-snapshot-sha256'] ?? null }
   },
 }

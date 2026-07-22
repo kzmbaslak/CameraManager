@@ -2,6 +2,7 @@
 
 import os
 import json
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
@@ -58,8 +59,8 @@ class ProcessFrameUseCase:
                 return True
         return False
 
-    def _save_snapshot(self, frame: object, camera_id: int, bounding_box: Optional[BoundingBox] = None) -> str:
-        """Goruntuyu diske kaydeder ve dosya yolunu dondurur."""
+    def _save_snapshot(self, frame: object, camera_id: int, bounding_box: Optional[BoundingBox] = None) -> tuple[str, str]:
+        """Goruntuyu diske kaydeder; dosya yolu ve SHA-256 ozetini dondurur."""
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         filename = f"cam_{camera_id}_{timestamp}.jpg"
         filepath = os.path.join(self.snapshot_dir, filename)
@@ -71,7 +72,9 @@ class ProcessFrameUseCase:
             cv2.rectangle(save_frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
         cv2.imwrite(filepath, save_frame)
-        return filepath
+        with open(filepath, "rb") as file:
+            snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
+        return filepath, snapshot_sha256
 
     def _is_ai_schedule_active(self, camera) -> bool:
         """Kamera bazli AI aktif saat araligini kontrol eder."""
@@ -181,7 +184,7 @@ class ProcessFrameUseCase:
             in_cooldown = self._is_in_cooldown(camera_id, AlarmType.HUMAN_DETECTED)
             self.cooldown_seconds = original_cooldown
             if not in_cooldown:
-                snapshot_path = self._save_snapshot(frame, camera_id, best_detection.bounding_box)
+                snapshot_path, snapshot_sha256 = self._save_snapshot(frame, camera_id, best_detection.bounding_box)
                 alarm = Alarm(
                     id=None,
                     camera_id=camera_id,
@@ -190,6 +193,7 @@ class ProcessFrameUseCase:
                     confidence=best_detection.confidence,
                     bounding_box=best_detection.bounding_box,
                     snapshot_path=snapshot_path,
+                    snapshot_sha256=snapshot_sha256,
                     severity=AlarmSeverity.HIGH,
                     message=f"Insan tespit edildi! Guven (Confidence): %{int(best_detection.confidence * 100)}",
                     created_at=detected_at,

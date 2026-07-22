@@ -38,7 +38,7 @@ Riskler:
 
 - Kayıt sistemi yok: sürekli/olay bazlı video kaydı, kayıt takvimi, retention, disk kotası ve otomatik silme eklenmeli.
 - Playback yok: kamera bazlı zaman çizelgesi, olaydan önce/sonra izleme, hız kontrolü, snapshot/video dışa aktarma eklenmeli.
-- Kanıt yönetimi kısmen eklendi: alarm snapshot dosyaları detay panelinde görüntülenir ve indirilebilir. Kalan iş snapshot/video export için hash, audit zinciri ve bütünlük doğrulama bilgisini tutmak.
+- Kanıt yönetimi kısmen eklendi: alarm snapshot dosyaları detay panelinde görüntülenir, indirilebilir, SHA-256 bütünlük değeriyle gösterilir ve snapshot erişimi audit log'a yazılır. Kalan iş video export ve daha kapsamlı kanıt zinciri/raporu üretmek.
 - Alarm operasyon akışı büyük ölçüde tamamlandı: yeni/onaylandı/çözüldü, atanan kullanıcı, not, önem seviyesi, olay kapatma nedeni, yanlış alarm işareti ve detay paneli var. Kalan iş bu operasyon verisini raporlama/eğitim seti akışına bağlamak.
 - Audit log yok: kullanıcı girişleri, kamera/NVR değişiklikleri, alarm aksiyonları ve export işlemleri kayıt altına alınmalı.
 - İlk kurulum akışı kısmen var: otomatik varsayılan admin kaldırıldı, env kontrollü ilk admin ve CLI seed scripti var. Kalan iş: `.env` kontrolü, model varlığı, DB migrasyonu ve kamera/NVR ekleme sihirbazını tek akışa bağlamak.

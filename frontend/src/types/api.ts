@@ -71,6 +71,7 @@ export interface Alarm {
   confidence: number | null
   bounding_box: BoundingBox | null
   snapshot_path: string | null
+  snapshot_sha256: string | null
   message: string | null
   severity: AlarmSeverity
   false_positive: boolean

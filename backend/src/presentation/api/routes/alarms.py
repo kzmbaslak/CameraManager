@@ -1,3 +1,4 @@
+import hashlib
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -49,6 +50,7 @@ def list_alarms_by_status(
 @router.get("/{alarm_id}/snapshot")
 def get_alarm_snapshot(
     alarm_id: int,
+    request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
     current_user: dict = Depends(get_current_user),
 ):
@@ -63,7 +65,22 @@ def get_alarm_snapshot(
         raise HTTPException(status_code=403, detail="Snapshot yolu guvenli dizin disinda.")
     if not os.path.isfile(snapshot_path):
         raise HTTPException(status_code=404, detail="Snapshot dosyasi bulunamadi.")
-    return FileResponse(snapshot_path, media_type="image/jpeg")
+    with open(snapshot_path, "rb") as file:
+        snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
+    if alarm.snapshot_sha256 != snapshot_sha256:
+        alarm.snapshot_sha256 = snapshot_sha256
+        repo.update(alarm)
+    write_audit_event(
+        "alarm.snapshot.access",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "snapshot_sha256": snapshot_sha256},
+    )
+    return FileResponse(
+        snapshot_path,
+        media_type="image/jpeg",
+        headers={"X-Snapshot-SHA256": snapshot_sha256},
+    )
 
 @router.post("/{alarm_id}/acknowledge", response_model=AlarmResponse)
 def acknowledge_alarm(

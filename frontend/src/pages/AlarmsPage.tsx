@@ -152,6 +152,7 @@ function AlarmDetailDrawer({
   alarm,
   cameraName,
   snapshotUrl,
+  snapshotSha256,
   snapshotLoading,
   onClose,
   onOpenLive,
@@ -167,6 +168,7 @@ function AlarmDetailDrawer({
   alarm: Alarm
   cameraName?: string
   snapshotUrl: string | null
+  snapshotSha256: string | null
   snapshotLoading: boolean
   onClose: () => void
   onOpenLive: () => void
@@ -226,9 +228,14 @@ function AlarmDetailDrawer({
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="text-xs text-text-secondary">
-              {snapshotUrl ? snapshotFilename : 'Indirilebilir kanit snapshot bulunmuyor.'}
-            </p>
+            <div className="min-w-0 text-xs text-text-secondary">
+              <p>{snapshotUrl ? snapshotFilename : 'Indirilebilir kanit snapshot bulunmuyor.'}</p>
+              {snapshotSha256 && (
+                <p className="mt-0.5 truncate font-mono" title={snapshotSha256}>
+                  SHA-256: {snapshotSha256}
+                </p>
+              )}
+            </div>
             <Button
               size="sm"
               variant="secondary"
@@ -389,15 +396,16 @@ export function AlarmsPage() {
   })
 
   const selectedSnapshotAlarmId = selectedAlarm?.snapshot_path ? selectedAlarm.id : null
-  const { data: snapshotBlob, isFetching: snapshotLoading } = useQuery({
+  const { data: snapshotData, isFetching: snapshotLoading } = useQuery({
     queryKey: ['alarm-snapshot', selectedSnapshotAlarmId],
     queryFn: () => alarmsApi.snapshot(selectedSnapshotAlarmId as number),
     enabled: selectedSnapshotAlarmId !== null,
   })
   const snapshotUrl = useMemo(
-    () => (snapshotBlob ? URL.createObjectURL(snapshotBlob) : null),
-    [snapshotBlob],
+    () => (snapshotData?.blob ? URL.createObjectURL(snapshotData.blob) : null),
+    [snapshotData],
   )
+  const snapshotSha256 = snapshotData?.sha256 ?? selectedAlarm?.snapshot_sha256 ?? null
 
   useEffect(() => {
     return () => {
@@ -567,6 +575,7 @@ export function AlarmsPage() {
           alarm={selectedAlarm}
           cameraName={cameraNameMap[selectedAlarm.camera_id]}
           snapshotUrl={snapshotUrl}
+          snapshotSha256={snapshotSha256}
           snapshotLoading={snapshotLoading}
           onClose={() => setSelectedAlarm(null)}
           onOpenLive={() => {
