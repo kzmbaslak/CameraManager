@@ -350,6 +350,7 @@ export function SettingsPage() {
   const [userSearch, setUserSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'operator' | 'viewer'>('all')
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [userSort, setUserSort] = useState<'username_asc' | 'username_desc' | 'role' | 'status' | 'id_desc'>('username_asc')
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const qc = useQueryClient()
   const { canManageUsers } = usePermissions()
@@ -363,7 +364,7 @@ export function SettingsPage() {
 
   const filteredUsers = useMemo(() => {
     const needle = userSearch.trim().toLowerCase()
-    return users.filter((user) => {
+    const filtered = users.filter((user) => {
       const matchesSearch = !needle || user.username.toLowerCase().includes(needle)
       const matchesRole = roleFilter === 'all' || user.role === roleFilter
       const matchesActive =
@@ -372,14 +373,22 @@ export function SettingsPage() {
         (activeFilter === 'inactive' && !user.is_active)
       return matchesSearch && matchesRole && matchesActive
     })
-  }, [activeFilter, roleFilter, userSearch, users])
+    return [...filtered].sort((left, right) => {
+      if (userSort === 'username_desc') return right.username.localeCompare(left.username, 'tr')
+      if (userSort === 'role') return left.role.localeCompare(right.role, 'tr') || left.username.localeCompare(right.username, 'tr')
+      if (userSort === 'status') return Number(right.is_active) - Number(left.is_active) || left.username.localeCompare(right.username, 'tr')
+      if (userSort === 'id_desc') return right.id - left.id
+      return left.username.localeCompare(right.username, 'tr')
+    })
+  }, [activeFilter, roleFilter, userSearch, userSort, users])
 
-  const hasUserFilter = userSearch.trim() !== '' || roleFilter !== 'all' || activeFilter !== 'all'
+  const hasUserFilter = userSearch.trim() !== '' || roleFilter !== 'all' || activeFilter !== 'all' || userSort !== 'username_asc'
 
   const resetUserFilters = () => {
     setUserSearch('')
     setRoleFilter('all')
     setActiveFilter('all')
+    setUserSort('username_asc')
   }
 
   /** Kullanıcıyı sistemden siler */
@@ -494,6 +503,18 @@ export function SettingsPage() {
               <option value="active">Aktif</option>
               <option value="inactive">Pasif</option>
             </select>
+            <select
+              value={userSort}
+              onChange={(e) => setUserSort(e.target.value as 'username_asc' | 'username_desc' | 'role' | 'status' | 'id_desc')}
+              aria-label="Kullanici listesini sirala"
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              <option value="username_asc">Ad A-Z</option>
+              <option value="username_desc">Ad Z-A</option>
+              <option value="role">Rol</option>
+              <option value="status">Aktiflik</option>
+              <option value="id_desc">En Yeni</option>
+            </select>
             {hasUserFilter && (
               <Button size="sm" variant="secondary" onClick={resetUserFilters}>
                 Filtreleri Sifirla
@@ -504,7 +525,7 @@ export function SettingsPage() {
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : (
-          <Table columns={columns} data={filteredUsers} keyFn={(u) => u.id} emptyText={hasUserFilter ? 'Filtrelerle eslesen kullanici bulunamadi.' : 'Kullanıcı bulunamadı.'} />
+          <Table columns={columns} data={filteredUsers} keyFn={(u) => u.id} emptyText={hasUserFilter ? 'Filtrelerle eslesen kullanici bulunamadi.' : 'Kullanıcı bulunamadı.'} caption="Kullanici listesi" />
         )}
       </div>
 

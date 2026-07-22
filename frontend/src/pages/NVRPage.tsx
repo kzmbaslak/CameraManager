@@ -700,6 +700,7 @@ export function NVRPage() {
   const [activeNvrForScan, setActiveNvrForScan] = useState<NVR | null>(null)
   const [nvrSearch, setNvrSearch] = useState('')
   const [nvrStatusFilter, setNvrStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [nvrSort, setNvrSort] = useState<'name_asc' | 'name_desc' | 'host' | 'status' | 'id_desc'>('name_asc')
   const [deleteTarget, setDeleteTarget] = useState<NVR | null>(null)
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
@@ -712,7 +713,7 @@ export function NVRPage() {
 
   const filteredNvrs = useMemo(() => {
     const needle = nvrSearch.trim().toLowerCase()
-    return nvrs.filter((nvr) => {
+    const filtered = nvrs.filter((nvr) => {
       const matchesSearch = !needle || [
         nvr.name,
         nvr.host,
@@ -726,13 +727,21 @@ export function NVRPage() {
         (nvrStatusFilter === 'inactive' && !nvr.is_active)
       return matchesSearch && matchesStatus
     })
-  }, [nvrSearch, nvrStatusFilter, nvrs])
+    return [...filtered].sort((left, right) => {
+      if (nvrSort === 'name_desc') return right.name.localeCompare(left.name, 'tr')
+      if (nvrSort === 'host') return left.host.localeCompare(right.host, 'tr') || left.name.localeCompare(right.name, 'tr')
+      if (nvrSort === 'status') return Number(right.is_active) - Number(left.is_active) || left.name.localeCompare(right.name, 'tr')
+      if (nvrSort === 'id_desc') return right.id - left.id
+      return left.name.localeCompare(right.name, 'tr')
+    })
+  }, [nvrSearch, nvrSort, nvrStatusFilter, nvrs])
 
-  const hasNvrFilter = nvrSearch.trim() !== '' || nvrStatusFilter !== 'all'
+  const hasNvrFilter = nvrSearch.trim() !== '' || nvrStatusFilter !== 'all' || nvrSort !== 'name_asc'
 
   const resetNvrFilters = () => {
     setNvrSearch('')
     setNvrStatusFilter('all')
+    setNvrSort('name_asc')
   }
 
   /** NVR aktiflik durumunu değiştirir */
@@ -853,6 +862,18 @@ export function NVRPage() {
           <option value="active">Aktif</option>
           <option value="inactive">Pasif</option>
         </select>
+        <select
+          value={nvrSort}
+          onChange={(e) => setNvrSort(e.target.value as 'name_asc' | 'name_desc' | 'host' | 'status' | 'id_desc')}
+          aria-label="Kayit cihazi listesini sirala"
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="name_asc">Ad A-Z</option>
+          <option value="name_desc">Ad Z-A</option>
+          <option value="host">IP / Host</option>
+          <option value="status">Aktiflik</option>
+          <option value="id_desc">En Yeni</option>
+        </select>
         {hasNvrFilter && (
           <Button size="sm" variant="secondary" onClick={resetNvrFilters}>
             Filtreleri Sifirla
@@ -863,7 +884,7 @@ export function NVRPage() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={filteredNvrs} keyFn={(n) => n.id} emptyText={hasNvrFilter ? 'Filtrelerle eslesen NVR bulunamadi.' : 'Henüz NVR eklenmedi.'} />
+        <Table columns={columns} data={filteredNvrs} keyFn={(n) => n.id} emptyText={hasNvrFilter ? 'Filtrelerle eslesen NVR bulunamadi.' : 'Henüz NVR eklenmedi.'} caption="Kayit cihazi listesi" />
       )}
 
       <AddNVRModal open={showAdd} onClose={() => { setShowAdd(false); setPrefilledDevice(null); }} initialValues={prefilledDevice} />

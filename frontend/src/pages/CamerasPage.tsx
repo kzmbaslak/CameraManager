@@ -492,6 +492,7 @@ export function CamerasPage() {
   const [cameraSearch, setCameraSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CameraStatus | 'all'>('all')
   const [aiFilter, setAiFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
+  const [cameraSort, setCameraSort] = useState<'name_asc' | 'name_desc' | 'status' | 'id_desc'>('name_asc')
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
@@ -505,7 +506,7 @@ export function CamerasPage() {
 
   const filteredCameras = useMemo(() => {
     const needle = cameraSearch.trim().toLowerCase()
-    return cameras.filter((camera) => {
+    const filtered = cameras.filter((camera) => {
       const matchesSearch = !needle || [
         camera.name,
         camera.host,
@@ -521,14 +522,21 @@ export function CamerasPage() {
         (aiFilter === 'disabled' && !camera.ai_detection_enabled)
       return matchesSearch && matchesStatus && matchesAi
     })
-  }, [aiFilter, cameraSearch, cameras, statusFilter])
+    return [...filtered].sort((left, right) => {
+      if (cameraSort === 'name_desc') return right.name.localeCompare(left.name, 'tr')
+      if (cameraSort === 'status') return left.status.localeCompare(right.status, 'tr') || left.name.localeCompare(right.name, 'tr')
+      if (cameraSort === 'id_desc') return right.id - left.id
+      return left.name.localeCompare(right.name, 'tr')
+    })
+  }, [aiFilter, cameraSearch, cameraSort, cameras, statusFilter])
 
-  const hasCameraFilter = cameraSearch.trim() !== '' || statusFilter !== 'all' || aiFilter !== 'all'
+  const hasCameraFilter = cameraSearch.trim() !== '' || statusFilter !== 'all' || aiFilter !== 'all' || cameraSort !== 'name_asc'
 
   const resetCameraFilters = () => {
     setCameraSearch('')
     setStatusFilter('all')
     setAiFilter('all')
+    setCameraSort('name_asc')
   }
 
   /** Kamera durumunu değiştirir; ACTIVE ↔ INACTIVE */
@@ -740,6 +748,17 @@ export function CamerasPage() {
           <option value="enabled">AI Acik</option>
           <option value="disabled">AI Kapali</option>
         </select>
+        <select
+          value={cameraSort}
+          onChange={(e) => setCameraSort(e.target.value as 'name_asc' | 'name_desc' | 'status' | 'id_desc')}
+          aria-label="Kamera listesini sirala"
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="name_asc">Ad A-Z</option>
+          <option value="name_desc">Ad Z-A</option>
+          <option value="status">Durum</option>
+          <option value="id_desc">En Yeni</option>
+        </select>
         {hasCameraFilter && (
           <Button size="sm" variant="secondary" onClick={resetCameraFilters}>
             Filtreleri Sifirla
@@ -750,7 +769,7 @@ export function CamerasPage() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={filteredCameras} keyFn={(c) => c.id} emptyText={hasCameraFilter ? 'Filtrelerle eslesen kamera bulunamadi.' : 'Henüz kamera eklenmedi.'} />
+        <Table columns={columns} data={filteredCameras} keyFn={(c) => c.id} emptyText={hasCameraFilter ? 'Filtrelerle eslesen kamera bulunamadi.' : 'Henüz kamera eklenmedi.'} caption="Kamera listesi" />
       )}
 
       <AddCameraModal open={showAdd} onClose={() => setShowAdd(false)} />
