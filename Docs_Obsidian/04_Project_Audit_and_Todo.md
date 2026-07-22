@@ -29,9 +29,8 @@ Güçlü taraflar:
 - Backend kaynakları `python -m compileall src` ile derleniyor.
 
 Riskler:
-- Çalışma ağacında bu incelemeden önce değişmiş dosyalar var: `backend/src/infrastructure/database/repositories/camera_repository.py`, `frontend/src/components/camera/CameraCard.tsx`, `frontend/src/pages/DashboardPage.tsx`.
 - Frontend kaynaklarında Türkçe metinler bazı dosyalarda bozuk karakterlerle görünüyor. Bu gerçek dosya encoding problemiyse kullanıcı arayüzüne de yansır.
-- Frontend build tek büyük JS chunk uyarısı veriyor: `520.99 kB`, code-splitting yok.
+- Script tabanlı SQLite migration sayısı artıyor; Alembic veya eşdeğer sürümlü migration yapısına geçilmezse kurulum/upgrade riski büyür.
 
 ## Kritik Eksikler
 
@@ -56,9 +55,9 @@ Riskler:
 ### P1 - AI ve Olay Tespiti
 
 - AI pipeline ayrıştırıldı: canlı yayın capture hattı artık ayrı çalışıyor, AI tespiti ise arka planda bağımsız görev olarak tetikleniyor. Kalan iş, tam anlamıyla tek capture hattı üzerinde düşük çözünürlüklü AI örnekleme ve daha akıllı frame stride kontrolü kurmak.
-- RTSP açılış optimizasyonu başladı: `OpenCVStreamReader` ilk başarılı frame'i cache'leyerek bir sonraki tüketimde kullanıyor, cihaz bazlı warm-up profili + backoff retry ile çalışıyor ve RTSP test modalında canlı akış telemetrisi gösteriyor. Kalan iyileştirme, kalıcı health history ve trend grafikleri.
+- RTSP açılış optimizasyonu ve kalıcı sağlık geçmişi eklendi: `OpenCVStreamReader` ilk başarılı frame'i cache'ler, cihaz bazlı warm-up/backoff uygular; health checker TCP erişilebilirlik, latency ve hata nedenini kaydeder. Kalan iyileştirme, FPS/reconnect/uptime gibi daha derin akış kalite metriklerini aynı geçmiş grafiğine bağlamak.
 - Vite build kökü açıkça sabitlendi; Windows path çözümleme kaynaklı HTML emit hatası giderildi ve frontend build tekrar kararlı.
-- Detection ayarları sabit: kamera bazlı confidence, IoU, frame stride, cooldown, aktif saatler ve ROI/poligon alanı ayarları eklenmeli.
+- Detection ayarları kısmen kamera bazlı: confidence, IoU, cooldown, aktif saatler ve ROI/poligon eklendi. Kalan iş frame stride ve düşük çözünürlüklü AI örnekleme ayarlarını operatör kontrollü hale getirmek.
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
 - False positive yönetimi yok: alarmı "yanlış alarm" diye kapatma, örnekleri saklama ve threshold iyileştirme akışı olmalı.
@@ -100,7 +99,7 @@ Riskler:
 
 1. P0 operasyon çekirdeği: kayıt, playback, snapshot/export, audit log.
 2. AI pipeline ince ayarları: düşük çözünürlüklü AI örnekleme, ROI ve threshold ayarları.
-3. RTSP telemetry geçmişi: cihaz bazlı açılış süresi, başarısız deneme sayısı ve bağlantı kalitesi trendi.
+3. RTSP telemetry geçmişi: TCP sağlık geçmişi eklendi; cihaz bazlı açılış süresi, başarısız deneme sayısı, FPS ve stream kalite trendi derinleştirilecek.
 3. Alarm detay deneyimi: detay drawer, snapshot preview, not/atanan kişi/çözüm nedeni.
 4. Kamera/NVR ekleme sihirbazı: discovery -> test -> profil seç -> import -> izlemeye al.
 5. Güvenlik sertleştirme: stream token log maskeleme/handshake iyileştirmesi, refresh flow, izin matrisi, backup/restore.
@@ -109,5 +108,5 @@ Riskler:
 
 ## Doğrulama
 
-- `frontend`: `npm run build` başarılı; Vite büyük chunk uyarısı verdi.
+- `frontend`: `npm run build` başarılı.
 - `backend`: `venv\Scripts\python.exe -m compileall src` başarılı.
