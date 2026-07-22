@@ -267,6 +267,9 @@ export interface AuditEvent {
   success: boolean
   source_ip: string | null
   metadata: Record<string, unknown>
+  previous_hash?: string | null
+  event_hash?: string | null
+  hash_algorithm?: string | null
 }
 
 export interface NVRScanRequest {

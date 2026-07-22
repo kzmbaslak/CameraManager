@@ -18,6 +18,9 @@ class AuditEventResponse(BaseModel):
     success: bool = True
     source_ip: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+    previous_hash: str | None = None
+    event_hash: str | None = None
+    hash_algorithm: str | None = None
 
 
 @router.get("/events", response_model=list[AuditEventResponse])

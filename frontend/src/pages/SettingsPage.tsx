@@ -149,6 +149,8 @@ const auditEventMetadataText = (event: AuditEvent) => {
   return metadata === '{}' ? '-' : metadata
 }
 
+const auditEventHashLabel = (event: AuditEvent) => event.event_hash?.slice(0, 12) ?? '-'
+
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
 function GeneralSettingsPanel() {
   const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
@@ -213,6 +215,8 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
         event.action,
         event.actor ?? '',
         event.source_ip ?? '',
+        event.event_hash ?? '',
+        event.previous_hash ?? '',
         auditEventMetadataText(event),
       ].join(' ').toLowerCase()
       const matchesSearch = !needle || haystack.includes(needle)
@@ -224,13 +228,16 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
 
   const exportAuditCsv = () => {
     const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`
-    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Kullanici', 'IP', 'Detay']
+    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Kullanici', 'IP', 'Hash Algoritmasi', 'Onceki Hash', 'Olay Hash', 'Detay']
     const rows = filteredEvents.map((event) => [
       dayjs(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
       event.success ? 'Basarili' : 'Basarisiz',
       event.action,
       event.actor ?? '-',
       event.source_ip ?? '-',
+      event.hash_algorithm ?? '-',
+      event.previous_hash ?? '-',
+      event.event_hash ?? '-',
       auditEventMetadataText(event),
     ])
     const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\r\n')
@@ -306,6 +313,7 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
                 <th className="px-3 py-2 font-medium">Aksiyon</th>
                 <th className="px-3 py-2 font-medium">Kullanici</th>
                 <th className="px-3 py-2 font-medium">IP</th>
+                <th className="px-3 py-2 font-medium">Zincir</th>
                 <th className="px-3 py-2 font-medium">Detay</th>
               </tr>
             </thead>
@@ -320,6 +328,9 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
                   </td>
                   <td className="px-3 py-2 text-[var(--text-primary)]">{event.actor ?? '-'}</td>
                   <td className="px-3 py-2 font-mono text-[var(--text-secondary)]">{event.source_ip ?? '-'}</td>
+                  <td className="px-3 py-2 font-mono text-[var(--text-secondary)]" title={event.event_hash ?? 'Hash yok'}>
+                    {auditEventHashLabel(event)}
+                  </td>
                   <td className="max-w-xs truncate px-3 py-2 font-mono text-[var(--text-secondary)]" title={auditEventMetadataText(event)}>
                     {auditEventMetadataText(event)}
                   </td>
