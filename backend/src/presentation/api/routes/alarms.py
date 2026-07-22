@@ -1,4 +1,7 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from src.presentation.api.dependencies import get_alarm_repository, get_current_user, get_operator_user
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
@@ -40,6 +43,26 @@ def list_alarms_by_status(
 ):
     """Belirli bir duruma (örn: NEW, ACKNOWLEDGED) sahip alarmları listeler."""
     return repo.list_by_status(status, limit)
+
+
+@router.get("/{alarm_id}/snapshot")
+def get_alarm_snapshot(
+    alarm_id: int,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_current_user),
+):
+    """Alarm kanit snapshot dosyasini guvenli dosya siniri icinden dondurur."""
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm or not alarm.snapshot_path:
+        raise HTTPException(status_code=404, detail="Alarm snapshot bulunamadi.")
+
+    base_dir = os.path.abspath("snapshots")
+    snapshot_path = os.path.abspath(alarm.snapshot_path)
+    if os.path.commonpath([base_dir, snapshot_path]) != base_dir:
+        raise HTTPException(status_code=403, detail="Snapshot yolu guvenli dizin disinda.")
+    if not os.path.isfile(snapshot_path):
+        raise HTTPException(status_code=404, detail="Snapshot dosyasi bulunamadi.")
+    return FileResponse(snapshot_path, media_type="image/jpeg")
 
 @router.post("/{alarm_id}/acknowledge", response_model=AlarmResponse)
 def acknowledge_alarm(

@@ -1,13 +1,14 @@
 // Alarm yönetimi sayfası — filtreleme (kamera, tip, durum, tarih), listeleme, onaylama
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Filter, RotateCcw } from 'lucide-react'
+import { CheckCircle, Filter, Play, RotateCcw, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
-import type { AlarmStatus, AlarmType } from '../types/api'
+import { useAlarmStore } from '../stores/alarmStore'
+import type { Alarm, AlarmStatus, AlarmType } from '../types/api'
 import dayjs from 'dayjs'
 
 // ────────────────────────────────────────────
@@ -138,11 +139,105 @@ function FilterBar({
 // ────────────────────────────────────────────
 
 /** Alarm geçmişi sayfası — kamera/tip/durum/tarih filtreli, onaylama destekli */
+function AlarmDetailDrawer({
+  alarm,
+  cameraName,
+  snapshotUrl,
+  snapshotLoading,
+  onClose,
+  onOpenLive,
+  onAcknowledge,
+  acknowledging,
+}: {
+  alarm: Alarm
+  cameraName?: string
+  snapshotUrl: string | null
+  snapshotLoading: boolean
+  onClose: () => void
+  onOpenLive: () => void
+  onAcknowledge: () => void
+  acknowledging: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-[160] flex justify-end bg-black/35">
+      <button className="flex-1" aria-label="Alarm detay panelini kapat" onClick={onClose} />
+      <aside className="flex h-full w-full max-w-md flex-col border-l border-border bg-bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-text-primary">{cameraName ?? `Kamera #${alarm.camera_id}`}</p>
+            <p className="text-xs text-text-secondary">Alarm #{alarm.id}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Alarm detay panelini kapat"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-bg-secondary hover:text-text-primary"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="aspect-video overflow-hidden rounded-md border border-border bg-bg-primary">
+            {snapshotLoading ? (
+              <div className="flex h-full items-center justify-center"><Spinner size="sm" /></div>
+            ) : snapshotUrl ? (
+              <img src={snapshotUrl} alt="Alarm snapshot" className="h-full w-full object-contain" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-text-secondary">Snapshot yok</div>
+            )}
+          </div>
+
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-text-secondary">Tip</dt>
+              <dd className="mt-1 text-text-primary">{TYPE_OPTIONS.find((item) => item.value === alarm.alarm_type)?.label ?? alarm.alarm_type}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-text-secondary">Durum</dt>
+              <dd className="mt-1 text-text-primary">{STATUS_OPTIONS.find((item) => item.value === alarm.status)?.label ?? alarm.status}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-text-secondary">Guven</dt>
+              <dd className="mt-1 text-text-primary">{alarm.confidence != null ? `%${Math.round(alarm.confidence * 100)}` : '-'}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-text-secondary">Zaman</dt>
+              <dd className="mt-1 text-text-primary">{alarm.created_at ? dayjs(alarm.created_at).format('DD.MM.YYYY HH:mm:ss') : '-'}</dd>
+            </div>
+          </dl>
+
+          {alarm.message && (
+            <p className="mt-4 rounded-md border border-border bg-bg-secondary px-3 py-2 text-sm text-text-secondary">
+              {alarm.message}
+            </p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 gap-2 border-t border-border p-4">
+          <Button variant="secondary" icon={<Play size={14} />} onClick={onOpenLive} className="flex-1">
+            Canli Ac
+          </Button>
+          {alarm.status === 'new' && (
+            <Button variant="danger" icon={<CheckCircle size={14} />} loading={acknowledging} onClick={onAcknowledge} className="flex-1">
+              Onayla
+            </Button>
+          )}
+        </div>
+      </aside>
+    </div>
+  )
+}
+
 export function AlarmsPage() {
   const [cameraFilter, setCameraFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
   const [dateRange, setDateRange] = useState<DateRange>('all')
+  const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null)
+  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
+  const [snapshotLoading, setSnapshotLoading] = useState(false)
+  const { setExpandedCamera } = useAlarmStore()
   const qc = useQueryClient()
 
   const { data: cameras = [] } = useQuery({
@@ -193,6 +288,33 @@ export function AlarmsPage() {
     setTypeFilter('all')
     setDateRange('all')
   }
+
+  useEffect(() => {
+    if (!selectedAlarm?.snapshot_path) {
+      setSnapshotUrl(null)
+      setSnapshotLoading(false)
+      return
+    }
+    let objectUrl: string | null = null
+    let cancelled = false
+    setSnapshotLoading(true)
+    alarmsApi.snapshot(selectedAlarm.id)
+      .then((blob) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setSnapshotUrl(objectUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setSnapshotUrl(null)
+      })
+      .finally(() => {
+        if (!cancelled) setSnapshotLoading(false)
+      })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [selectedAlarm])
 
   return (
     <div className="p-6 flex flex-col gap-5">
@@ -246,7 +368,7 @@ export function AlarmsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wide">Durum</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wide">Güven</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wide">Zaman</th>
-                <th className="px-4 py-3 w-28" />
+                <th className="px-4 py-3 w-48" />
               </tr>
             </thead>
             <tbody>
@@ -270,6 +392,7 @@ export function AlarmsPage() {
                     alarm={alarm}
                     cameraName={cameraNameMap[alarm.camera_id]}
                     onAcknowledge={(id) => acknowledge.mutate(id)}
+                    onInspect={setSelectedAlarm}
                     acknowledging={acknowledge.isPending && acknowledge.variables === alarm.id}
                   />
                 ))
@@ -277,6 +400,21 @@ export function AlarmsPage() {
             </tbody>
           </table>
         </div>
+      )}
+      {selectedAlarm && (
+        <AlarmDetailDrawer
+          alarm={selectedAlarm}
+          cameraName={cameraNameMap[selectedAlarm.camera_id]}
+          snapshotUrl={snapshotUrl}
+          snapshotLoading={snapshotLoading}
+          onClose={() => setSelectedAlarm(null)}
+          onOpenLive={() => {
+            setExpandedCamera(selectedAlarm.camera_id, selectedAlarm.id)
+            setSelectedAlarm(null)
+          }}
+          onAcknowledge={() => acknowledge.mutate(selectedAlarm.id)}
+          acknowledging={acknowledge.isPending && acknowledge.variables === selectedAlarm.id}
+        />
       )}
     </div>
   )

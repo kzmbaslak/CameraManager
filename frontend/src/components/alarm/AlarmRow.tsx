@@ -1,7 +1,7 @@
 // Alarm table row with status, confidence, timestamp and quick acknowledgement.
 import dayjs from 'dayjs'
 import 'dayjs/locale/tr'
-import { Activity, CheckCircle, User, Wifi } from 'lucide-react'
+import { Activity, CheckCircle, Eye, User, Wifi } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import type { Alarm } from '../../types/api'
@@ -12,6 +12,7 @@ interface AlarmRowProps {
   alarm: Alarm
   cameraName?: string
   onAcknowledge?: (id: number) => void
+  onInspect?: (alarm: Alarm) => void
   acknowledging?: boolean
 }
 
@@ -45,7 +46,7 @@ const statusVariant = {
 
 const statusLabel = { new: 'Yeni', acknowledged: 'Onaylandı', resolved: 'Çözüldü' }
 
-export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: AlarmRowProps) {
+export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowledging }: AlarmRowProps) {
   const cfg = typeConfig[alarm.alarm_type] ?? {
     label: alarm.alarm_type,
     icon: null,
@@ -90,7 +91,19 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: Al
         {alarm.created_at ? dayjs(alarm.created_at).format('DD.MM.YYYY HH:mm:ss') : '-'}
       </td>
       <td className="px-4 py-3">
-        {alarm.status === 'new' && onAcknowledge && (
+        <div className="flex justify-end gap-2">
+          {onInspect && (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Eye size={13} />}
+              onClick={() => onInspect(alarm)}
+              aria-label={`${cameraName ?? `Kamera ${alarm.camera_id}`} alarmÄ±nÄ± incele`}
+            >
+              Incele
+            </Button>
+          )}
+          {alarm.status === 'new' && onAcknowledge && (
           <Button
             size="sm"
             variant="secondary"
@@ -101,7 +114,8 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, acknowledging }: Al
           >
             Onayla
           </Button>
-        )}
+          )}
+        </div>
       </td>
     </tr>
   )

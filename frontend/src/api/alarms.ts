@@ -31,4 +31,10 @@ export const alarmsApi = {
     const { data } = await client.post<Alarm>(`/alarms/${alarmId}/acknowledge`)
     return data
   },
+
+  /** Alarm kanit snapshot dosyasini blob olarak getirir. */
+  snapshot: async (alarmId: number): Promise<Blob> => {
+    const { data } = await client.get<Blob>(`/alarms/${alarmId}/snapshot`, { responseType: 'blob' })
+    return data
+  },
 }
