@@ -1,6 +1,6 @@
 // Camera grid with selectable density.
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 import { CameraCard } from './CameraCard'
 import type { Alarm, Camera } from '../../types/api'
 
@@ -11,6 +11,7 @@ interface CameraGridProps {
   alarmMap?: Record<number, Alarm>
   cols?: GridCols
   lowBandwidth?: boolean
+  onReorder?: (sourceId: number, targetId: number) => void
 }
 
 const colsClass: Record<GridCols, string> = {
@@ -91,19 +92,54 @@ function SingleView({
   )
 }
 
-export function CameraGrid({ cameras, alarmMap = {}, cols = 2, lowBandwidth = false }: CameraGridProps) {
+export function CameraGrid({ cameras, alarmMap = {}, cols = 2, lowBandwidth = false, onReorder }: CameraGridProps) {
+  const [draggedId, setDraggedId] = useState<number | null>(null)
+
   if (cameras.length === 0) return <EmptyState />
   if (cols === 1) return <SingleView cameras={cameras} alarmMap={alarmMap} lowBandwidth={lowBandwidth} />
 
   return (
     <div className={`grid ${colsClass[cols]} gap-2`}>
       {cameras.map((camera) => (
-        <CameraCard
+        <div
           key={camera.id}
-          camera={camera}
-          latestAlarm={alarmMap[camera.id] ?? null}
-          streamProfile={lowBandwidth ? 'alarm' : 'grid'}
-        />
+          draggable={Boolean(onReorder)}
+          onDragStart={(event) => {
+            setDraggedId(camera.id)
+            event.dataTransfer.effectAllowed = 'move'
+            event.dataTransfer.setData('text/plain', String(camera.id))
+          }}
+          onDragOver={(event) => {
+            if (!onReorder || draggedId === null || draggedId === camera.id) return
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+          }}
+          onDrop={(event) => {
+            if (!onReorder) return
+            event.preventDefault()
+            const sourceId = Number(event.dataTransfer.getData('text/plain') || draggedId)
+            if (Number.isInteger(sourceId)) onReorder(sourceId, camera.id)
+            setDraggedId(null)
+          }}
+          onDragEnd={() => setDraggedId(null)}
+          className={`relative rounded-md transition-opacity ${
+            draggedId === camera.id ? 'opacity-45' : ''
+          } ${draggedId !== null && draggedId !== camera.id ? 'outline outline-1 outline-border-strong' : ''}`}
+        >
+          {onReorder && (
+            <div
+              title="Kamera kartini surukleyerek grid sirasini degistir"
+              className="absolute right-2 top-10 z-30 rounded border border-border bg-bg-secondary/90 p-1 text-text-secondary shadow-lg backdrop-blur transition-colors hover:text-text-primary"
+            >
+              <GripVertical size={14} />
+            </div>
+          )}
+          <CameraCard
+            camera={camera}
+            latestAlarm={alarmMap[camera.id] ?? null}
+            streamProfile={lowBandwidth ? 'alarm' : 'grid'}
+          />
+        </div>
       ))}
     </div>
   )

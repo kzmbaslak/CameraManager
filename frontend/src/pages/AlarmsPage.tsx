@@ -183,13 +183,6 @@ function AlarmDetailDrawer({
   const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
   const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity)
 
-  useEffect(() => {
-    setAssignedTo(alarm.assigned_to ?? '')
-    setOperatorNote(alarm.operator_note ?? '')
-    setResolutionReason(alarm.resolution_reason ?? '')
-    setSeverity(alarm.severity)
-  }, [alarm])
-
   return (
     <div className="fixed inset-0 z-[160] flex justify-end bg-black/35">
       <button className="flex-1" aria-label="Alarm detay panelini kapat" onClick={onClose} />
@@ -345,8 +338,6 @@ export function AlarmsPage() {
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
   const [dateRange, setDateRange] = useState<DateRange>('all')
   const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null)
-  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
-  const [snapshotLoading, setSnapshotLoading] = useState(false)
   const { setExpandedCamera } = useAlarmStore()
   const showToast = useToastStore((state) => state.showToast)
   const qc = useQueryClient()
@@ -369,6 +360,23 @@ export function AlarmsPage() {
     queryFn: () => alarmsApi.listAll(queryParams),
     refetchInterval: 15_000,
   })
+
+  const selectedSnapshotAlarmId = selectedAlarm?.snapshot_path ? selectedAlarm.id : null
+  const { data: snapshotBlob, isFetching: snapshotLoading } = useQuery({
+    queryKey: ['alarm-snapshot', selectedSnapshotAlarmId],
+    queryFn: () => alarmsApi.snapshot(selectedSnapshotAlarmId as number),
+    enabled: selectedSnapshotAlarmId !== null,
+  })
+  const snapshotUrl = useMemo(
+    () => (snapshotBlob ? URL.createObjectURL(snapshotBlob) : null),
+    [snapshotBlob],
+  )
+
+  useEffect(() => {
+    return () => {
+      if (snapshotUrl) URL.revokeObjectURL(snapshotUrl)
+    }
+  }, [snapshotUrl])
 
   // Tarih filtresi client-side
   const filtered = useMemo(() => {
@@ -440,33 +448,6 @@ export function AlarmsPage() {
     setTypeFilter('all')
     setDateRange('all')
   }
-
-  useEffect(() => {
-    if (!selectedAlarm?.snapshot_path) {
-      setSnapshotUrl(null)
-      setSnapshotLoading(false)
-      return
-    }
-    let objectUrl: string | null = null
-    let cancelled = false
-    setSnapshotLoading(true)
-    alarmsApi.snapshot(selectedAlarm.id)
-      .then((blob) => {
-        if (cancelled) return
-        objectUrl = URL.createObjectURL(blob)
-        setSnapshotUrl(objectUrl)
-      })
-      .catch(() => {
-        if (!cancelled) setSnapshotUrl(null)
-      })
-      .finally(() => {
-        if (!cancelled) setSnapshotLoading(false)
-      })
-    return () => {
-      cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [selectedAlarm])
 
   return (
     <div className="p-6 flex flex-col gap-5">
@@ -555,6 +536,7 @@ export function AlarmsPage() {
       )}
       {selectedAlarm && (
         <AlarmDetailDrawer
+          key={selectedAlarm.id}
           alarm={selectedAlarm}
           cameraName={cameraNameMap[selectedAlarm.camera_id]}
           snapshotUrl={snapshotUrl}

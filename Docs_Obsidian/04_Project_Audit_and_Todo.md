@@ -80,8 +80,8 @@ Riskler:
 - `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Global toast standardı eklendi ve kamera/NVR/kullanıcı/alarm operasyonlarına başarı/başarısızlık bildirimleri bağlandı. Kalan iş daha ince alan bazlı validasyon uyarılarını aynı toast/inline hata diline taşımak.
 - Hata mesajları genel: backend `detail` kullanıcıya anlaşılır şekilde gösterilmeli.
 - Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kamera düzenleme formunda kayıtlı RTSP bağlantı testi doğrudan sunuluyor. Kalan iş kaydedilmemiş form değerleriyle bağlantı önizlemesi ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
-- Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş ve toplu onaylama yok.
-- Canlı grid'de kamera arama, layout kalıcılığı ve düşük bant modu eklendi. Kalan iş sürükle-bırak sıralama ve tam ekran çoklu layout.
+- Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş, toplu onaylama, not/atama/çözüm nedeni, önem seviyesi ve yanlış alarm kapatma akışları eklendi. Kalan iş bu verileri raporlama/eğitim seti geri beslemesine bağlamak.
+- Canlı grid'de kamera arama, layout kalıcılığı, düşük bant modu ve sürükle-bırak kamera sıralaması eklendi. Kalan iş tam ekran çoklu layout.
 - Erişilebilirlik eksik: focus ring standardı, klavye navigasyonu, ARIA etiketleri, renk dışı durum göstergeleri, kontrast testi yapılmalı.
 - Tema tek koyu palete yaslanıyor; profesyonel operasyon ekranı için daha nötr ve yüksek kontrastlı durum renkleriyle açık/koyu tema seçimi eklenmeli.
 
@@ -108,5 +108,5 @@ Riskler:
 
 ## Doğrulama
 
-- `frontend`: `npm run build` başarılı.
+- `frontend`: `npm run lint` ve `npm run build` başarılı.
 - `backend`: `venv\Scripts\python.exe -m compileall src` başarılı.

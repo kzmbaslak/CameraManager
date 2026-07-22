@@ -15,6 +15,7 @@ import type { Alarm, Camera, CameraStreamDiagnostics, SecurityPosture } from '..
 
 const DASHBOARD_GRID_KEY = 'dashboard-grid'
 const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
+const DASHBOARD_CAMERA_ORDER_KEY = 'dashboard-camera-order'
 
 function loadGridPref(): GridCols {
   try {
@@ -34,10 +35,37 @@ function loadLowBandwidthPref() {
   }
 }
 
+function loadCameraOrderPref() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DASHBOARD_CAMERA_ORDER_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((item): item is number => Number.isInteger(item)) : []
+  } catch {
+    return []
+  }
+}
+
+function saveCameraOrderPref(order: number[]) {
+  try {
+    localStorage.setItem(DASHBOARD_CAMERA_ORDER_KEY, JSON.stringify(order))
+  } catch {
+    // Keep the in-memory order when storage is unavailable.
+  }
+}
+
 function matchesCameraSearch(camera: Camera, query: string) {
   if (!query) return true
   const haystack = `${camera.name} ${camera.host} ${camera.status}`.toLocaleLowerCase('tr-TR')
   return haystack.includes(query)
+}
+
+function sortCamerasByPreference(cameras: Camera[], order: number[]) {
+  const orderIndex = new Map(order.map((id, index) => [id, index]))
+  return [...cameras].sort((left, right) => {
+    const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
+    const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
+    if (leftIndex !== rightIndex) return leftIndex - rightIndex
+    return left.id - right.id
+  })
 }
 
 function Kbd({ children }: { children: string }) {
@@ -272,6 +300,7 @@ export function DashboardPage() {
   const [cols, setCols] = useState<GridCols>(loadGridPref)
   const [cameraSearch, setCameraSearch] = useState('')
   const [lowBandwidth, setLowBandwidth] = useState(loadLowBandwidthPref)
+  const [cameraOrder, setCameraOrder] = useState<number[]>(loadCameraOrderPref)
   const [panelOpen, setPanelOpen] = useState(false)
   const qc = useQueryClient()
   const { stopSound, muteSoundFor } = useAlarmStore()
@@ -336,9 +365,13 @@ export function DashboardPage() {
   const inactiveCameras = cameras.filter((camera) => camera.status === 'inactive')
   const watchedCameras = cameras.filter((camera) => camera.status !== 'inactive')
   const normalizedCameraSearch = cameraSearch.trim().toLocaleLowerCase('tr-TR')
+  const orderedWatchedCameras = useMemo(
+    () => sortCamerasByPreference(watchedCameras, cameraOrder),
+    [watchedCameras, cameraOrder],
+  )
   const visibleWatchedCameras = useMemo(
-    () => watchedCameras.filter((camera) => matchesCameraSearch(camera, normalizedCameraSearch)),
-    [watchedCameras, normalizedCameraSearch],
+    () => orderedWatchedCameras.filter((camera) => matchesCameraSearch(camera, normalizedCameraSearch)),
+    [orderedWatchedCameras, normalizedCameraSearch],
   )
   const healthQueries = useQueries({
     queries: watchedCameras.slice(0, 8).map((camera) => ({
@@ -355,6 +388,25 @@ export function DashboardPage() {
   function handleToggle(camera: Camera) {
     const isWatched = camera.status !== 'inactive'
     toggleWatch.mutate({ id: camera.id, nextStatus: isWatched ? 'inactive' : 'active' })
+  }
+
+  function handleCameraReorder(sourceId: number, targetId: number) {
+    if (sourceId === targetId) return
+    const watchedIds = watchedCameras.map((camera) => camera.id)
+    setCameraOrder((current) => {
+      const currentSet = new Set(current)
+      const next = [
+        ...current.filter((id) => watchedIds.includes(id)),
+        ...watchedIds.filter((id) => !currentSet.has(id)),
+      ]
+      const sourceIndex = next.indexOf(sourceId)
+      const targetIndex = next.indexOf(targetId)
+      if (sourceIndex < 0 || targetIndex < 0) return current
+      const [moved] = next.splice(sourceIndex, 1)
+      next.splice(next.indexOf(targetId), 0, moved)
+      saveCameraOrderPref(next)
+      return next
+    })
   }
 
   return (
@@ -481,7 +533,13 @@ export function DashboardPage() {
                 <p className="text-sm">Arama ile eşleşen izlenen kamera yok.</p>
               </div>
             ) : (
-              <CameraGrid cameras={visibleWatchedCameras} alarmMap={alarmMap} cols={cols} lowBandwidth={lowBandwidth} />
+              <CameraGrid
+                cameras={visibleWatchedCameras}
+                alarmMap={alarmMap}
+                cols={cols}
+                lowBandwidth={lowBandwidth}
+                onReorder={handleCameraReorder}
+              />
             )}
           </div>
         )}
