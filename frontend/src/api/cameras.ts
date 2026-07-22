@@ -11,6 +11,12 @@ export interface CameraUpdate {
   onvif_port?: number
   username?: string
   password?: string
+  ai_confidence_threshold?: number
+  ai_iou_threshold?: number
+  ai_alarm_cooldown_seconds?: number
+  ai_active_start?: string | null
+  ai_active_end?: string | null
+  ai_roi_polygon?: string | null
 }
 
 export const camerasApi = {

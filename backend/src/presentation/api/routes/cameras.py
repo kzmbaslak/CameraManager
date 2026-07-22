@@ -120,6 +120,12 @@ async def add_camera(
             encrypted_password=password,
             brand=brand,
             model=model,
+            ai_confidence_threshold=camera_data.ai_confidence_threshold,
+            ai_iou_threshold=camera_data.ai_iou_threshold,
+            ai_alarm_cooldown_seconds=camera_data.ai_alarm_cooldown_seconds,
+            ai_active_start=camera_data.ai_active_start,
+            ai_active_end=camera_data.ai_active_end,
+            ai_roi_polygon=camera_data.ai_roi_polygon,
         )
         # RTSP doğrulaması başarılıysa kamerayı hemen aktif et ve akışı başlat
         camera = use_cases.update_camera_status(camera.id, CameraStatus.ACTIVE)
@@ -219,17 +225,38 @@ async def update_camera(
         camera.onvif_port = data.onvif_port
     if data.username is not None:
         camera.username = data.username
+    ai_settings_changed = False
+    if data.ai_confidence_threshold is not None:
+        camera.ai_confidence_threshold = data.ai_confidence_threshold
+        ai_settings_changed = True
+    if data.ai_iou_threshold is not None:
+        camera.ai_iou_threshold = data.ai_iou_threshold
+        ai_settings_changed = True
+    if data.ai_alarm_cooldown_seconds is not None:
+        camera.ai_alarm_cooldown_seconds = data.ai_alarm_cooldown_seconds
+        ai_settings_changed = True
+    if data.ai_active_start is not None:
+        camera.ai_active_start = data.ai_active_start
+        ai_settings_changed = True
+    if data.ai_active_end is not None:
+        camera.ai_active_end = data.ai_active_end
+        ai_settings_changed = True
+    if data.ai_roi_polygon is not None:
+        camera.ai_roi_polygon = data.ai_roi_polygon
+        ai_settings_changed = True
     updated_camera = use_cases.update_camera(camera, plain_password=data.password if data.password is not None else None)
 
     # Bağlantı ayarları değiştiyse yayını sıfırla ve yeniden bağlandır
     if connection_changed:
         await sm.reset_stream(camera_id)
+    elif ai_settings_changed:
+        await sm.ensure_running_state(camera_id)
 
     write_audit_event(
         "camera.update",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
-        metadata={"camera_id": camera_id, "connection_changed": connection_changed},
+        metadata={"camera_id": camera_id, "connection_changed": connection_changed, "ai_settings_changed": ai_settings_changed},
     )
     return updated_camera
 

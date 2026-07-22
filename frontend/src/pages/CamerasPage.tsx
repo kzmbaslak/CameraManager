@@ -347,6 +347,12 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     rtsp_path: camera.rtsp_path,
     onvif_port: camera.onvif_port,
     username: camera.username ?? '',
+    ai_confidence_threshold: camera.ai_confidence_threshold,
+    ai_iou_threshold: camera.ai_iou_threshold,
+    ai_alarm_cooldown_seconds: camera.ai_alarm_cooldown_seconds,
+    ai_active_start: camera.ai_active_start ?? '',
+    ai_active_end: camera.ai_active_end ?? '',
+    ai_roi_polygon: camera.ai_roi_polygon ?? '',
   } : {})
 
   const { mutate, isPending, error } = useMutation({
@@ -371,6 +377,30 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <Input label="Yeni Şifre" type="password" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <Input label="Confidence" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_confidence_threshold ?? 0.5} onChange={(e) => setForm((f) => ({ ...f, ai_confidence_threshold: Number(e.target.value) }))} />
+            <Input label="IoU" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_iou_threshold ?? 0.45} onChange={(e) => setForm((f) => ({ ...f, ai_iou_threshold: Number(e.target.value) }))} />
+            <Input label="Cooldown sn" type="number" min="5" max="3600" value={form.ai_alarm_cooldown_seconds ?? 60} onChange={(e) => setForm((f) => ({ ...f, ai_alarm_cooldown_seconds: Number(e.target.value) }))} />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Input label="Aktif Baslangic" placeholder="00:00" value={form.ai_active_start ?? ''} onChange={(e) => setForm((f) => ({ ...f, ai_active_start: e.target.value || null }))} />
+            <Input label="Aktif Bitis" placeholder="23:59" value={form.ai_active_end ?? ''} onChange={(e) => setForm((f) => ({ ...f, ai_active_end: e.target.value || null }))} />
+          </div>
+          <label className="mt-3 flex flex-col gap-1 text-sm font-medium text-[var(--text-primary)]">
+            ROI Poligon JSON
+            <textarea
+              value={form.ai_roi_polygon ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, ai_roi_polygon: e.target.value || null }))}
+              placeholder='[{"x":0.1,"y":0.1},{"x":0.9,"y":0.1},{"x":0.9,"y":0.9},{"x":0.1,"y":0.9}]'
+              className="min-h-20 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            />
+            <span className="text-[10px] font-normal text-[var(--text-secondary)]">
+              Bos birakilirsa tum goruntu izlenir. Koordinatlar 0-1 araliginda normalize edilmelidir.
+            </span>
+          </label>
+        </div>
         {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'Kamera güncellenemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>

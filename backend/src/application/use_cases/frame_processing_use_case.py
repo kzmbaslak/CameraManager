@@ -1,6 +1,7 @@
 """Kamera kare okuma, AI analizi ve alarm uretme use case'leri."""
 
 import os
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
@@ -72,6 +73,54 @@ class ProcessFrameUseCase:
         cv2.imwrite(filepath, save_frame)
         return filepath
 
+    def _is_ai_schedule_active(self, camera) -> bool:
+        """Kamera bazli AI aktif saat araligini kontrol eder."""
+        if not camera or not camera.ai_active_start or not camera.ai_active_end:
+            return True
+        now_value = datetime.now().strftime("%H:%M")
+        start = camera.ai_active_start
+        end = camera.ai_active_end
+        if start <= end:
+            return start <= now_value <= end
+        return now_value >= start or now_value <= end
+
+    def _is_point_in_polygon(self, x: float, y: float, polygon: list[dict]) -> bool:
+        """Ray casting ile normalize noktanin ROI poligonu icinde olup olmadigini dondurur."""
+        inside = False
+        j = len(polygon) - 1
+        for i, point in enumerate(polygon):
+            xi = float(point["x"])
+            yi = float(point["y"])
+            xj = float(polygon[j]["x"])
+            yj = float(polygon[j]["y"])
+            intersects = ((yi > y) != (yj > y)) and (
+                x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-9) + xi
+            )
+            if intersects:
+                inside = not inside
+            j = i
+        return inside
+
+    def _filter_roi(self, detections: Tuple[Detection, ...], camera, frame_width: Optional[int], frame_height: Optional[int]) -> Tuple[Detection, ...]:
+        """ROI poligonu tanimliysa kutu merkezleri poligon disinda kalan tespitleri eler."""
+        if not camera or not camera.ai_roi_polygon or not frame_width or not frame_height:
+            return detections
+        try:
+            polygon = json.loads(camera.ai_roi_polygon)
+        except (TypeError, ValueError):
+            return detections
+        if not isinstance(polygon, list) or len(polygon) < 3:
+            return detections
+
+        filtered = []
+        for detection in detections:
+            box = detection.bounding_box
+            cx = (box.x + box.width / 2) / frame_width
+            cy = (box.y + box.height / 2) / frame_height
+            if self._is_point_in_polygon(cx, cy, polygon):
+                filtered.append(detection)
+        return tuple(filtered)
+
     def read_frame(self, camera_id: int, camera=None) -> Optional[object]:
         """Kameradan tek kare okur ve kamera durumunu active/error olarak gunceller."""
         if camera is None:
@@ -97,9 +146,8 @@ class ProcessFrameUseCase:
 
         return frame
 
-    def analyze_and_alarm(self, camera_id: int, frame: object) -> DetectionAnalysisResult:
+    def analyze_and_alarm(self, camera_id: int, frame: object, camera=None) -> DetectionAnalysisResult:
         """Verilen karede insanlari tespit eder, gerekirse alarm olusturur."""
-        detections = tuple(self.ai_service.detect_humans(frame))
         frame_height = None
         frame_width = None
         if hasattr(frame, "shape") and len(frame.shape) >= 2:
@@ -108,10 +156,31 @@ class ProcessFrameUseCase:
 
         saved_alarm = None
         detected_at = datetime.utcnow()
+        if not self._is_ai_schedule_active(camera):
+            return DetectionAnalysisResult(
+                alarm=None,
+                detections=(),
+                frame_width=frame_width,
+                frame_height=frame_height,
+                detected_at=detected_at,
+            )
+
+        detections = tuple(self.ai_service.detect_humans(
+            frame,
+            conf_threshold=getattr(camera, "ai_confidence_threshold", None),
+            iou_threshold=getattr(camera, "ai_iou_threshold", None),
+        ))
+        detections = self._filter_roi(detections, camera, frame_width, frame_height)
 
         if detections:
             best_detection = max(detections, key=lambda item: item.confidence)
-            if not self._is_in_cooldown(camera_id, AlarmType.HUMAN_DETECTED):
+            cooldown_seconds = getattr(camera, "ai_alarm_cooldown_seconds", None)
+            original_cooldown = self.cooldown_seconds
+            if cooldown_seconds:
+                self.cooldown_seconds = cooldown_seconds
+            in_cooldown = self._is_in_cooldown(camera_id, AlarmType.HUMAN_DETECTED)
+            self.cooldown_seconds = original_cooldown
+            if not in_cooldown:
                 snapshot_path = self._save_snapshot(frame, camera_id, best_detection.bounding_box)
                 alarm = Alarm(
                     id=None,

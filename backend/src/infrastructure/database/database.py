@@ -24,6 +24,32 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def ensure_camera_ai_settings_columns() -> None:
+    """Eski SQLite kurulumlarinda kamera AI ayarlari kolonlarini idempotent ekler."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    columns = {
+        "ai_confidence_threshold": "REAL DEFAULT 0.5",
+        "ai_iou_threshold": "REAL DEFAULT 0.45",
+        "ai_alarm_cooldown_seconds": "INTEGER DEFAULT 60",
+        "ai_active_start": "TEXT",
+        "ai_active_end": "TEXT",
+        "ai_roi_polygon": "TEXT",
+    }
+    conn = sqlite3.connect(db_path)
+    try:
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(cameras)").fetchall()}
+        for column, definition in columns.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE cameras ADD COLUMN {column} {definition}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_db():
     """FastAPI dependency — request başına bir DB session açar, biter bitmez kapatır."""
     db = SessionLocal()

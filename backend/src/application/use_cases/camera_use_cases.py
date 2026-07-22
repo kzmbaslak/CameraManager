@@ -27,6 +27,12 @@ class CameraUseCases:
         nvr_id: Optional[int] = None,
         brand: Optional[str] = None,
         model: Optional[str] = None,
+        ai_confidence_threshold: float = 0.5,
+        ai_iou_threshold: float = 0.45,
+        ai_alarm_cooldown_seconds: int = 60,
+        ai_active_start: Optional[str] = None,
+        ai_active_end: Optional[str] = None,
+        ai_roi_polygon: Optional[str] = None,
     ) -> Camera:
         if not name or not host:
             raise ValueError("Kamera adı ve sunucu adresi zorunludur.")
@@ -68,6 +74,12 @@ class CameraUseCases:
             existing.rtsp_port = rtsp_port
             existing.onvif_port = onvif_port
             existing.username = username
+            existing.ai_confidence_threshold = ai_confidence_threshold
+            existing.ai_iou_threshold = ai_iou_threshold
+            existing.ai_alarm_cooldown_seconds = ai_alarm_cooldown_seconds
+            existing.ai_active_start = ai_active_start
+            existing.ai_active_end = ai_active_end
+            existing.ai_roi_polygon = ai_roi_polygon
             if encrypted_password is not None:
                 existing.encrypted_password = self._encrypt_password(encrypted_password)
             if brand is not None:
@@ -89,6 +101,12 @@ class CameraUseCases:
             nvr_id=nvr_id,
             brand=brand,
             model=model,
+            ai_confidence_threshold=ai_confidence_threshold,
+            ai_iou_threshold=ai_iou_threshold,
+            ai_alarm_cooldown_seconds=ai_alarm_cooldown_seconds,
+            ai_active_start=ai_active_start,
+            ai_active_end=ai_active_end,
+            ai_roi_polygon=ai_roi_polygon,
         )
         return self.camera_repository.add(camera)
 

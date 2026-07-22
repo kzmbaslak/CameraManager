@@ -14,6 +14,12 @@ export interface Camera {
   status: CameraStatus
   motion_detection_enabled: boolean
   ai_detection_enabled: boolean
+  ai_confidence_threshold: number
+  ai_iou_threshold: number
+  ai_alarm_cooldown_seconds: number
+  ai_active_start: string | null
+  ai_active_end: string | null
+  ai_roi_polygon: string | null
   brand: string | null
   model: string | null
   nvr_id: number | null
@@ -32,6 +38,12 @@ export interface CameraCreate {
   password?: string
   brand?: string
   model?: string
+  ai_confidence_threshold?: number
+  ai_iou_threshold?: number
+  ai_alarm_cooldown_seconds?: number
+  ai_active_start?: string | null
+  ai_active_end?: string | null
+  ai_roi_polygon?: string | null
 }
 
 export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline'

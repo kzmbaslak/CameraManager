@@ -25,6 +25,12 @@ class Camera:
     status: CameraStatus = CameraStatus.INACTIVE
     motion_detection_enabled: bool = False
     ai_detection_enabled: bool = False
+    ai_confidence_threshold: float = 0.5
+    ai_iou_threshold: float = 0.45
+    ai_alarm_cooldown_seconds: int = 60
+    ai_active_start: Optional[str] = None
+    ai_active_end: Optional[str] = None
+    ai_roi_polygon: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     brand: Optional[str] = None      # ONVIF'ten veya kullanıcıdan gelen marka

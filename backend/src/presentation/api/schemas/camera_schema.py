@@ -1,11 +1,48 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+"""Kamera API istek/yanit semalari ve guvenli alan validasyonlari."""
+
+import json
+import re
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
 from src.domain.entities.camera import CameraStatus
 from src.presentation.api.security_validators import validate_host, validate_port, validate_scan_target
 
 
+def _validate_ai_time_value(value: Optional[str]) -> Optional[str]:
+    """AI aktif saat degerini HH:MM formatinda dogrular."""
+    if value is None or value == "":
+        return None
+    if not re.fullmatch(r"[0-2]\d:[0-5]\d", value):
+        raise ValueError("Saat HH:MM formatinda olmalidir.")
+    hour = int(value.split(":")[0])
+    if hour > 23:
+        raise ValueError("Saat 00:00 ile 23:59 arasinda olmalidir.")
+    return value
+
+
+def _validate_roi_polygon_value(value: Optional[str]) -> Optional[str]:
+    """Normalize 0-1 araliginda 3-8 noktali ROI poligon JSON'unu dogrular."""
+    if value is None or value.strip() == "":
+        return None
+    points = json.loads(value)
+    if not isinstance(points, list) or (len(points) != 0 and not 3 <= len(points) <= 8):
+        raise ValueError("ROI poligonu 3-8 nokta iceren JSON liste olmalidir.")
+    for point in points:
+        if not isinstance(point, dict) or "x" not in point or "y" not in point:
+            raise ValueError("ROI noktalari x/y alanlari icermelidir.")
+        x = float(point["x"])
+        y = float(point["y"])
+        if x < 0 or x > 1 or y < 0 or y > 1:
+            raise ValueError("ROI koordinatlari 0-1 araliginda normalize olmalidir.")
+    return json.dumps(points, separators=(",", ":"))
+
+
 class CameraCreate(BaseModel):
+    """Yeni kamera olusturma istegi."""
+
     name: str = Field(min_length=1, max_length=120)
     host: str = Field(min_length=1, max_length=255)
     rtsp_path: Optional[str] = Field(default=None, max_length=512)
@@ -16,6 +53,12 @@ class CameraCreate(BaseModel):
     password: Optional[str] = Field(default=None, max_length=256)
     brand: Optional[str] = Field(default=None, max_length=120)
     model: Optional[str] = Field(default=None, max_length=120)
+    ai_confidence_threshold: float = Field(default=0.5, ge=0.05, le=0.95)
+    ai_iou_threshold: float = Field(default=0.45, ge=0.05, le=0.95)
+    ai_alarm_cooldown_seconds: int = Field(default=60, ge=5, le=3600)
+    ai_active_start: Optional[str] = Field(default=None, max_length=5)
+    ai_active_end: Optional[str] = Field(default=None, max_length=5)
+    ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
 
     @field_validator("host")
     @classmethod
@@ -32,16 +75,33 @@ class CameraCreate(BaseModel):
     def _validate_onvif_port(cls, value: Optional[int]) -> Optional[int]:
         return validate_port(value, 80) if value is not None else value
 
+    @field_validator("ai_active_start", "ai_active_end")
+    @classmethod
+    def _validate_ai_time(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_ai_time_value(value)
+
+    @field_validator("ai_roi_polygon")
+    @classmethod
+    def _validate_ai_roi_polygon(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_roi_polygon_value(value)
+
 
 class CameraUpdate(BaseModel):
-    """Kamera alanlarını kısmi olarak günceller. None gönderilen alanlar değiştirilmez."""
+    """Kamera alanlarini kismi olarak gunceller; None alanlar degistirilmez."""
+
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)
     host: Optional[str] = Field(default=None, max_length=255)
     rtsp_path: Optional[str] = Field(default=None, max_length=512)
     rtsp_port: Optional[int] = None
     onvif_port: Optional[int] = None
     username: Optional[str] = Field(default=None, max_length=128)
-    password: Optional[str] = Field(default=None, max_length=256)  # None → şifre değiştirilmez
+    password: Optional[str] = Field(default=None, max_length=256)
+    ai_confidence_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
+    ai_iou_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
+    ai_alarm_cooldown_seconds: Optional[int] = Field(default=None, ge=5, le=3600)
+    ai_active_start: Optional[str] = Field(default=None, max_length=5)
+    ai_active_end: Optional[str] = Field(default=None, max_length=5)
+    ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
 
     @field_validator("host")
     @classmethod
@@ -58,8 +118,20 @@ class CameraUpdate(BaseModel):
     def _validate_onvif_port(cls, value: Optional[int]) -> Optional[int]:
         return validate_port(value, 80) if value is not None else value
 
+    @field_validator("ai_active_start", "ai_active_end")
+    @classmethod
+    def _validate_ai_time(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_ai_time_value(value)
+
+    @field_validator("ai_roi_polygon")
+    @classmethod
+    def _validate_ai_roi_polygon(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_roi_polygon_value(value)
+
 
 class CameraResponse(BaseModel):
+    """Kamera yaniti."""
+
     id: int
     name: str
     host: str
@@ -70,6 +142,12 @@ class CameraResponse(BaseModel):
     status: CameraStatus
     motion_detection_enabled: bool
     ai_detection_enabled: bool
+    ai_confidence_threshold: float
+    ai_iou_threshold: float
+    ai_alarm_cooldown_seconds: int
+    ai_active_start: Optional[str] = None
+    ai_active_end: Optional[str] = None
+    ai_roi_polygon: Optional[str] = None
     created_at: Optional[datetime] = None
     brand: Optional[str] = None
     model: Optional[str] = None
@@ -80,6 +158,8 @@ class CameraResponse(BaseModel):
 
 
 class CameraScanRequest(BaseModel):
+    """Kamera tarama istegi."""
+
     ip_range: str = Field(min_length=1, max_length=64)
     rtsp_port: Optional[int] = 554
     auto_rtsp_ports: bool = False
@@ -98,6 +178,8 @@ class CameraScanRequest(BaseModel):
 
 
 class CameraScanResult(BaseModel):
+    """Kamera tarama sonucu."""
+
     ip: str
     port: int
     path: str
@@ -107,6 +189,8 @@ class CameraScanResult(BaseModel):
 
 
 class CameraRtspDiagnostics(BaseModel):
+    """RTSP baglanti testi sonucu."""
+
     camera_id: int
     name: str
     host: str
@@ -125,6 +209,8 @@ class CameraRtspDiagnostics(BaseModel):
 
 
 class CameraStreamDiagnostics(BaseModel):
+    """Canli akis uretici ve RTSP saglik metrikleri."""
+
     camera_id: int
     producer_running: bool
     subscriber_count: int

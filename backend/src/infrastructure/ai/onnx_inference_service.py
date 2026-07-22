@@ -76,9 +76,16 @@ class ONNXInferenceService(IAIInferenceService):
         img = np.expand_dims(img, axis=0)
         return img, ratio, (dw, dh)
 
-    def detect_humans(self, frame: object) -> Sequence[Detection]:
+    def detect_humans(
+        self,
+        frame: object,
+        conf_threshold: float | None = None,
+        iou_threshold: float | None = None,
+    ) -> Sequence[Detection]:
         if not self.session or frame is None:
             return []
+        active_conf_threshold = conf_threshold if conf_threshold is not None else self.conf_threshold
+        active_iou_threshold = iou_threshold if iou_threshold is not None else self.iou_threshold
 
         orig_h, orig_w = frame.shape[:2]
         img, ratio, (dw, dh) = self._preprocess(frame)
@@ -97,7 +104,7 @@ class ONNXInferenceService(IAIInferenceService):
         
         person_scores = scores[:, 0]
         
-        valid_indices = np.where(person_scores > self.conf_threshold)[0]
+        valid_indices = np.where(person_scores > active_conf_threshold)[0]
         
         if len(valid_indices) == 0:
             return []
@@ -119,7 +126,7 @@ class ONNXInferenceService(IAIInferenceService):
         # Ancak buradaki x ve y merkez koordinatları değil, sol üst (top-left) köşeyi temsil etmelidir.
         bboxes_for_nms = np.stack((x1, y1, widths, heights), axis=1).tolist()
         
-        indices = cv2.dnn.NMSBoxes(bboxes_for_nms, filtered_scores.tolist(), self.conf_threshold, self.iou_threshold)
+        indices = cv2.dnn.NMSBoxes(bboxes_for_nms, filtered_scores.tolist(), active_conf_threshold, active_iou_threshold)
         
         detections = []
         if len(indices) > 0:

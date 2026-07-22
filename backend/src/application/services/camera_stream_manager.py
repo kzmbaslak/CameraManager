@@ -552,7 +552,7 @@ class CameraStreamManager:
                 cooldown_seconds=self._cooldown_seconds,
             )
             use_case._last_alarms = dict(self._last_alarm_times.get(camera_id, {}))
-            result = use_case.analyze_and_alarm(camera_id, frame)
+            result = use_case.analyze_and_alarm(camera_id, frame, camera=camera)
             self._last_alarm_times[camera_id] = dict(use_case._last_alarms)
             return result
         finally:

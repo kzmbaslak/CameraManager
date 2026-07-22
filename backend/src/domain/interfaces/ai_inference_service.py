@@ -14,5 +14,10 @@ class Detection:
 
 
 class IAIInferenceService(Protocol):
-    def detect_humans(self, frame: object) -> Sequence[Detection]:
+    def detect_humans(
+        self,
+        frame: object,
+        conf_threshold: float | None = None,
+        iou_threshold: float | None = None,
+    ) -> Sequence[Detection]:
         ...
