@@ -413,7 +413,7 @@ export function DashboardPage() {
     <div className="relative flex h-full flex-col gap-3 overflow-hidden bg-bg-primary p-3">
       <div className="flex shrink-0 items-center justify-between border-b border-border pb-3">
         <div>
-          <h1 className="text-lg font-semibold tracking-wide text-text-primary">Dashboard</h1>
+          <h1 className="text-lg font-semibold tracking-wide text-text-primary">Canli Izleme</h1>
           <p className="mt-0.5 text-xs text-text-secondary">{cameras.length} kamera kayıtlı</p>
         </div>
 

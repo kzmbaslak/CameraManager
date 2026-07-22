@@ -819,7 +819,7 @@ export function NVRPage() {
     <div className="p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">NVR Yönetimi</h1>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Kayit Cihazlari</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
             {filteredNvrs.length} / {nvrs.length} kayıt cihazı
           </p>
@@ -831,7 +831,7 @@ export function NVRPage() {
                 Ağdaki Cihazları Tara
               </Button>
               <Button icon={<Plus size={15} />} onClick={() => { setPrefilledDevice(null); setShowAdd(true); }}>
-                NVR Ekle
+                Kayit Cihazi Ekle
               </Button>
             </>
           )}
@@ -842,7 +842,7 @@ export function NVRPage() {
         <Input
           value={nvrSearch}
           onChange={(e) => setNvrSearch(e.target.value)}
-          placeholder="NVR adi, IP, marka veya model ara"
+          placeholder="Kayit cihazi adi, IP, marka veya model ara"
           className="w-full sm:w-80"
         />
         <select

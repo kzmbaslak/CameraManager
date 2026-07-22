@@ -41,9 +41,11 @@ export function AppRouter() {
           >
             <Route index element={<DashboardPage />} />
             <Route path="cameras" element={<CamerasPage />} />
-            <Route path="nvr" element={<NVRPage />} />
+            <Route path="recorders" element={<NVRPage />} />
+            <Route path="nvr" element={<Navigate to="/recorders" replace />} />
             <Route path="alarms" element={<AlarmsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+            <Route path="users" element={<SettingsPage />} />
+            <Route path="settings" element={<Navigate to="/users" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

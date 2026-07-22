@@ -281,7 +281,7 @@ export function SettingsPage() {
     <div className="p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">Genel Ayarlar</h1>
+          <h1 className="text-xl font-bold text-[var(--text-primary)]">Sistem ve Kullanicilar</h1>
           {!canManageUsers && (
             <p className="text-sm text-[var(--text-secondary)] mt-0.5">
               Kullanıcı yönetimi için admin yetkisi gerekli.

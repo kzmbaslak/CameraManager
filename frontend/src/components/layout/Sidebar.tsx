@@ -4,11 +4,11 @@ import { Bell, Camera, LayoutDashboard, LogOut, Server, Users } from 'lucide-rea
 import { useAuthStore } from '../../stores/authStore'
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { to: '/', label: 'Canli Izleme', icon: LayoutDashboard, exact: true },
   { to: '/cameras', label: 'Kameralar', icon: Camera, exact: false },
-  { to: '/nvr', label: 'NVR', icon: Server, exact: false },
+  { to: '/recorders', label: 'Kayit Cihazlari', icon: Server, exact: false },
   { to: '/alarms', label: 'Alarmlar', icon: Bell, exact: false },
-  { to: '/settings', label: 'Kullanıcılar', icon: Users, exact: false },
+  { to: '/users', label: 'Sistem ve Kullanicilar', icon: Users, exact: false },
 ]
 
 export function Sidebar() {

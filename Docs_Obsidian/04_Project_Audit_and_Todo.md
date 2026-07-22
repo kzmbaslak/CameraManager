@@ -74,7 +74,7 @@ Riskler:
 
 ### P2 - Frontend UX
 
-- Navigasyon dili netleşmeli: `Dashboard` yerine `Canlı İzleme` veya `Kontrol Paneli`; `NVR` yerine `Kayıt Cihazları`; `Settings` route'u yerine `Kullanıcılar`.
+- Navigasyon dili netleşti: `Dashboard` yerine `Canli Izleme`, `NVR` yerine `Kayit Cihazlari`, ayarlar/kullanıcı alanı için `Sistem ve Kullanicilar` kullanılıyor. `/recorders` ve `/users` route'ları eklendi; eski `/nvr` ve `/settings` adresleri geriye uyumlu yönlenir.
 - Sidebar sabit genişlikli; küçük ekran/tablet için collapse/drawer davranışı eklenmeli.
 - Kameralar, NVR ve Kullanıcılar listelerinde arama/durum/rol gibi hızlı client-side filtreler eklendi. Kalan iş sıralama, sayfalama ve geniş listeler için server-side pagination.
 - `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Global toast standardı eklendi ve kamera/NVR/kullanıcı/alarm operasyonlarına başarı/başarısızlık bildirimleri bağlandı. Kalan iş daha ince alan bazlı validasyon uyarılarını aynı toast/inline hata diline taşımak.
