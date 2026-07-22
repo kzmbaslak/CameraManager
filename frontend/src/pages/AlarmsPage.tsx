@@ -1,7 +1,7 @@
 // Alarm yönetimi sayfası — filtreleme (kamera, tip, durum, tarih), listeleme, onaylama
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Filter, Play, RotateCcw, X } from 'lucide-react'
+import { CheckCircle, Download, Filter, Play, RotateCcw, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
@@ -183,6 +183,17 @@ function AlarmDetailDrawer({
   const [operatorNote, setOperatorNote] = useState(alarm.operator_note ?? '')
   const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
   const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity)
+  const snapshotFilename = `alarm-${alarm.id}-snapshot.jpg`
+
+  function handleDownloadSnapshot() {
+    if (!snapshotUrl) return
+    const link = document.createElement('a')
+    link.href = snapshotUrl
+    link.download = snapshotFilename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
 
   return (
     <div className="fixed inset-0 z-[160] flex justify-end bg-black/35">
@@ -212,6 +223,21 @@ function AlarmDetailDrawer({
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-text-secondary">Snapshot yok</div>
             )}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-xs text-text-secondary">
+              {snapshotUrl ? snapshotFilename : 'Indirilebilir kanit snapshot bulunmuyor.'}
+            </p>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Download size={14} />}
+              disabled={!snapshotUrl || snapshotLoading}
+              onClick={handleDownloadSnapshot}
+            >
+              Kaniti Indir
+            </Button>
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
