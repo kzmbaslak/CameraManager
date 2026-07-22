@@ -15,20 +15,24 @@ import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
+import { useToastStore } from '../stores/toastStore'
 import type { User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
 function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<UserCreate>({ username: '', password: '', role: 'viewer' })
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: usersApi.add,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] })
+      showToast({ variant: 'success', title: 'Kullanici eklendi', description: form.username })
       onClose()
       setForm({ username: '', password: '', role: 'viewer' })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Kullanici eklenemedi', description: 'Bilgileri kontrol edip tekrar deneyin.' }),
   })
 
   return (
@@ -50,6 +54,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
 /** Kullanıcı düzenleme modal'ı — rol, aktiflik durumu ve şifre güncellenebilir */
 function EditUserModal({ user, onClose }: { user: User | null; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<UserUpdate>({})
   const [lastId, setLastId] = useState<number | null>(null)
   const currentUsername = useAuthStore((s) => s.username)
@@ -63,8 +68,10 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
     mutationFn: (payload: UserUpdate) => usersApi.update(user!.id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] })
+      showToast({ variant: 'success', title: 'Kullanici guncellendi', description: user?.username })
       onClose()
     },
+    onError: () => showToast({ variant: 'danger', title: 'Kullanici guncellenemedi', description: 'Degisiklikler kaydedilemedi.' }),
   })
 
   if (!user) return null
@@ -186,6 +193,7 @@ export function SettingsPage() {
   const qc = useQueryClient()
   const { canManageUsers } = usePermissions()
   const currentUsername = useAuthStore((s) => s.username)
+  const showToast = useToastStore((state) => state.showToast)
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -217,9 +225,11 @@ export function SettingsPage() {
   const deleteUser = useMutation({
     mutationFn: usersApi.delete,
     onSuccess: () => {
+      showToast({ variant: 'success', title: 'Kullanici silindi', description: deleteTarget?.username })
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['users'] })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Kullanici silinemedi', description: 'Silme islemi tamamlanamadi.' }),
   })
 
   const columns = [

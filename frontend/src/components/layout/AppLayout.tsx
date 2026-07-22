@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { AlarmNotificationPanel } from '../alarm/AlarmNotificationPanel'
 import { CameraFullscreenModal } from '../camera/CameraFullscreenModal'
+import { ToastViewport } from '../ui/ToastViewport'
 
 export function AppLayout() {
   return (
@@ -15,6 +16,7 @@ export function AppLayout() {
       <AlarmNotificationPanel />
       {/* Global: tam ekran kamera modal */}
       <CameraFullscreenModal />
+      <ToastViewport />
     </div>
   )
 }

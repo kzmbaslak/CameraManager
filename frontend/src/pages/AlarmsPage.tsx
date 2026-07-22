@@ -8,6 +8,7 @@ import { AlarmRow } from '../components/alarm/AlarmRow'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { useAlarmStore } from '../stores/alarmStore'
+import { useToastStore } from '../stores/toastStore'
 import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
 import dayjs from 'dayjs'
 
@@ -347,6 +348,7 @@ export function AlarmsPage() {
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
   const { setExpandedCamera } = useAlarmStore()
+  const showToast = useToastStore((state) => state.showToast)
   const qc = useQueryClient()
 
   const { data: cameras = [] } = useQuery({
@@ -380,7 +382,9 @@ export function AlarmsPage() {
     onSuccess: (alarm) => {
       setSelectedAlarm((current) => current?.id === alarm.id ? alarm : current)
       qc.invalidateQueries({ queryKey: ['alarms'] })
+      showToast({ variant: 'success', title: 'Alarm onaylandi', description: `Alarm #${alarm.id}` })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Alarm onaylanamadi', description: 'Islem tamamlanamadi.' }),
   })
 
   const updateAlarm = useMutation({
@@ -389,7 +393,9 @@ export function AlarmsPage() {
     onSuccess: (alarm) => {
       setSelectedAlarm(alarm)
       qc.invalidateQueries({ queryKey: ['alarms'] })
+      showToast({ variant: 'success', title: 'Alarm notu kaydedildi', description: `Alarm #${alarm.id}` })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Alarm guncellenemedi', description: 'Not veya atama kaydedilemedi.' }),
   })
 
   const resolveAlarm = useMutation({
@@ -398,7 +404,9 @@ export function AlarmsPage() {
     onSuccess: (alarm) => {
       setSelectedAlarm(alarm)
       qc.invalidateQueries({ queryKey: ['alarms'] })
+      showToast({ variant: 'success', title: 'Alarm kapatildi', description: `Alarm #${alarm.id}` })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Alarm kapatilamadi', description: 'Cozum islemi tamamlanamadi.' }),
   })
 
   const falsePositiveAlarm = useMutation({
@@ -406,12 +414,18 @@ export function AlarmsPage() {
     onSuccess: (alarm) => {
       setSelectedAlarm(alarm)
       qc.invalidateQueries({ queryKey: ['alarms'] })
+      showToast({ variant: 'success', title: 'Yanlis alarm olarak kapatildi', description: `Alarm #${alarm.id}` })
     },
+    onError: () => showToast({ variant: 'danger', title: 'Yanlis alarm isaretlenemedi', description: 'Islem tamamlanamadi.' }),
   })
 
   const acknowledgeFiltered = useMutation({
     mutationFn: async (ids: number[]) => Promise.all(ids.map((id) => alarmsApi.acknowledge(id))),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['alarms'] }),
+    onSuccess: (items) => {
+      qc.invalidateQueries({ queryKey: ['alarms'] })
+      showToast({ variant: 'success', title: 'Alarmlar onaylandi', description: `${items.length} alarm onaylandi.` })
+    },
+    onError: () => showToast({ variant: 'danger', title: 'Alarmlar onaylanamadi', description: 'Toplu onay islemi tamamlanamadi.' }),
   })
 
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))

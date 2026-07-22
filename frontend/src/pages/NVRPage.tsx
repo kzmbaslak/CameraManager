@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
+import { useToastStore } from '../stores/toastStore'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
@@ -36,6 +37,7 @@ function AddNVRModal({
   initialValues?: { host: string; port: number; username?: string; password?: string; brand?: string } | null
 }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<NVRCreate>({ name: '', host: '', onvif_port: 80 })
 
   // initialValues değiştiğinde veya modal açıldığında formu prefill et
@@ -59,9 +61,11 @@ function AddNVRModal({
     mutationFn: nvrsApi.add,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nvrs'] })
+      showToast({ variant: 'success', title: 'NVR eklendi', description: form.name })
       onClose()
       setForm({ name: '', host: '', onvif_port: 80, username: '', password: '' })
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR eklenemedi', description: getErrorMessage(err, 'Kayit cihazi eklenemedi.') }),
   })
 
   const set = (field: keyof NVRCreate, value: string | number) =>
@@ -93,6 +97,7 @@ function AddNVRModal({
 /** Mevcut NVR'ı düzenleme modal'ı */
 function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<NVRUpdate>({})
   const [lastId, setLastId] = useState<number | null>(null)
 
@@ -110,8 +115,10 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
     mutationFn: (payload: NVRUpdate) => nvrsApi.update(nvr!.id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nvrs'] })
+      showToast({ variant: 'success', title: 'NVR guncellendi', description: nvr?.name })
       onClose()
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR guncellenemedi', description: getErrorMessage(err, 'Kayit cihazi bilgileri kaydedilemedi.') }),
   })
 
   if (!nvr) return null
@@ -143,6 +150,7 @@ function ChannelModal({
   onClose: () => void
 }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [channels, setChannels] = useState<NVRChannelInfo[]>([])
   const [diagnostics, setDiagnostics] = useState<NVRProbeDiagnostics | null>(null)
@@ -191,7 +199,9 @@ function ChannelModal({
     onSuccess: (imported) => {
       qc.invalidateQueries({ queryKey: ['cameras'] })
       setImportMessage(`${imported.length} kamera başarıyla eklendi. Kameralar sayfasından izlemeye alabilirsiniz.`)
+      showToast({ variant: 'success', title: 'Kanallar aktarildi', description: `${imported.length} kamera eklendi.` })
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'Kanallar aktarilamadi', description: getErrorMessage(err, 'NVR kanallari kamera olarak eklenemedi.') }),
   })
 
   return (
@@ -368,6 +378,7 @@ function DiscoverModal({
   onClose: () => void
 }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [activeTab, setActiveTab] = useState<'onvif' | 'range'>('range')
   const [results, setResults] = useState<DiscoveredNVRRow[]>([])
 
@@ -434,9 +445,11 @@ function DiscoverModal({
     mutationFn: (payload: NVRBulkAddPayload) => nvrsApi.bulkAdd(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['nvrs'] })
+      showToast({ variant: 'success', title: 'NVR kayitlari eklendi', description: `${results.filter((r) => r.selected).length} kayit cihazi kaydedildi.` })
       onClose()
       setResults([])
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR kayitlari eklenemedi', description: getErrorMessage(err, 'Toplu NVR ekleme sirasinda hata olustu.') }),
   })
 
   // Modal kapandığında state temizle
@@ -691,6 +704,7 @@ export function NVRPage() {
   const [deleteTarget, setDeleteTarget] = useState<NVR | null>(null)
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
+  const showToast = useToastStore((state) => state.showToast)
 
   const { data: nvrs = [], isLoading } = useQuery({
     queryKey: ['nvrs'],
@@ -726,16 +740,22 @@ export function NVRPage() {
   const toggleStatus = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
       nvrsApi.toggleStatus(id, isActive),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['nvrs'] }),
+    onSuccess: (nvr) => {
+      qc.invalidateQueries({ queryKey: ['nvrs'] })
+      showToast({ variant: 'success', title: 'NVR durumu guncellendi', description: nvr.name })
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR durumu guncellenemedi', description: getErrorMessage(err, 'Kayit cihazi durumu degistirilemedi.') }),
   })
 
   /** NVR'ı sistemden siler */
   const deleteNvr = useMutation({
     mutationFn: nvrsApi.delete,
     onSuccess: () => {
+      showToast({ variant: 'success', title: 'NVR silindi', description: deleteTarget?.name })
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['nvrs'] })
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR silinemedi', description: getErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
   })
 
   const columns = [

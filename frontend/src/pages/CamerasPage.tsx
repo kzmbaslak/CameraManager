@@ -14,6 +14,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
+import { useToastStore } from '../stores/toastStore'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
@@ -31,15 +32,18 @@ function getErrorMessage(error: unknown, fallback: string): string {
 /** Yeni kamera ekleme modal'ı */
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: camerasApi.add,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'Kamera eklendi', description: form.name })
       onClose()
       setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
   })
 
   const set = (field: keyof CameraCreate, value: string | number) =>
@@ -96,6 +100,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
 /** Kameraları tara modal'ı */
 function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [ipRange, setIpRange] = useState('192.168.1.0/24')
   const [rtspPort, setRtspPort] = useState(554)
   const [autoRtspPorts, setAutoRtspPorts] = useState(true)
@@ -135,9 +140,11 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
     mutationFn: (payload: CameraCreate[]) => camerasApi.bulkAdd(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'Kameralar eklendi', description: `${results.filter((r) => r.selected).length} kamera kaydedildi.` })
       onClose()
       setResults([])
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'Kameralar eklenemedi', description: getErrorMessage(err, 'Toplu ekleme sirasinda hata olustu.') }),
   })
 
   const toggleSelect = (index: number) => {
@@ -341,6 +348,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
 /** Mevcut kamerayı düzenleme modal'ı — `key={camera.id}` ile her kamera için yeniden mount edilir (bkz. çağıran yer) */
 function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: () => void }) {
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<CameraUpdate>(() => camera ? {
     name: camera.name,
     host: camera.host,
@@ -360,8 +368,10 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     mutationFn: (payload: CameraUpdate) => camerasApi.update(camera!.id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'Kamera guncellendi', description: camera?.name })
       onClose()
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera guncellenemedi', description: getErrorMessage(err, 'Kamera bilgileri kaydedilemedi.') }),
   })
 
   const {
@@ -485,6 +495,7 @@ export function CamerasPage() {
   const [aiFilter, setAiFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
   const qc = useQueryClient()
+  const showToast = useToastStore((state) => state.showToast)
   const { canManageCameras, canEditCameras } = usePermissions()
   const { setExpandedCamera } = useAlarmStore()
 
@@ -525,23 +536,33 @@ export function CamerasPage() {
   const toggleStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: CameraStatus }) =>
       camerasApi.updateStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] }),
+    onSuccess: (camera) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'Izleme durumu guncellendi', description: camera.name })
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'Durum guncellenemedi', description: getErrorMessage(err, 'Kamera izleme durumu degistirilemedi.') }),
   })
 
   /** AI insan tespitini açar veya kapatır */
   const toggleAI = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       camerasApi.toggleAI(id, enabled),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] }),
+    onSuccess: (camera) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'AI tespiti guncellendi', description: camera.name })
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'AI ayari guncellenemedi', description: getErrorMessage(err, 'AI tespiti degistirilemedi.') }),
   })
 
   /** Kamerayı sistemden siler */
   const deleteCam = useMutation({
     mutationFn: camerasApi.delete,
     onSuccess: () => {
+      showToast({ variant: 'success', title: 'Kamera silindi', description: deleteTarget?.name })
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['cameras'] })
     },
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera silinemedi', description: getErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
   })
 
   /** Kayıtlı kameranın RTSP host/port/path erişimini test eder. */
