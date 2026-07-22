@@ -13,18 +13,17 @@ import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
+import { getApiErrorMessage } from '../utils/apiError'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
-function getErrorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { data?: { detail?: string } }; message?: string }
-  if (!err.response && err.message === 'Network Error') {
-    return 'Backend yanıt vermedi veya işlem zaman aşımına uğradı. Backend servisinin açık olduğunu ve NVR/kamera RTSP portlarının erişilebilir olduğunu kontrol edin.'
-  }
-  return err.response?.data?.detail || err.message || fallback
-}
+const nvrNetworkError =
+  'Backend yanit vermedi veya islem zaman asimina ugradi. Backend servisinin acik oldugunu ve NVR/kamera RTSP portlarinin erisilebilir oldugunu kontrol edin.'
+
+const getNvrErrorMessage = (error: unknown, fallback: string) =>
+  getApiErrorMessage(error, fallback, nvrNetworkError)
 
 /** Yeni NVR ekleme modal'ı */
 function AddNVRModal({
@@ -65,7 +64,7 @@ function AddNVRModal({
       onClose()
       setForm({ name: '', host: '', onvif_port: 80, username: '', password: '' })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'NVR eklenemedi', description: getErrorMessage(err, 'Kayit cihazi eklenemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR eklenemedi', description: getNvrErrorMessage(err, 'Kayit cihazi eklenemedi.') }),
   })
 
   const set = (field: keyof NVRCreate, value: string | number) =>
@@ -84,7 +83,7 @@ function AddNVRModal({
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => set('onvif_port', Number(e.target.value))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
-        {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'NVR eklenemedi.')}</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'NVR eklenemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Ekle</Button>
@@ -118,7 +117,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
       showToast({ variant: 'success', title: 'NVR guncellendi', description: nvr?.name })
       onClose()
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'NVR guncellenemedi', description: getErrorMessage(err, 'Kayit cihazi bilgileri kaydedilemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR guncellenemedi', description: getNvrErrorMessage(err, 'Kayit cihazi bilgileri kaydedilemedi.') }),
   })
 
   if (!nvr) return null
@@ -131,7 +130,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
-        {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Kaydet</Button>
@@ -201,7 +200,7 @@ function ChannelModal({
       setImportMessage(`${imported.length} kamera başarıyla eklendi. Kameralar sayfasından izlemeye alabilirsiniz.`)
       showToast({ variant: 'success', title: 'Kanallar aktarildi', description: `${imported.length} kamera eklendi.` })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Kanallar aktarilamadi', description: getErrorMessage(err, 'NVR kanallari kamera olarak eklenemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kanallar aktarilamadi', description: getNvrErrorMessage(err, 'NVR kanallari kamera olarak eklenemedi.') }),
   })
 
   return (
@@ -220,7 +219,7 @@ function ChannelModal({
         {error && (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
             <p className="text-sm text-[var(--danger)] text-center font-medium">
-              {getErrorMessage(error, 'Tarama sırasında hata oluştu.')}
+              {getNvrErrorMessage(error, 'Tarama sırasında hata oluştu.')}
             </p>
             <p className="text-xs text-[var(--text-secondary)] text-center max-w-md">
               Cihazın yerel ağda aktif olduğundan, IP adresinin, portunun ve kullanıcı adı/şifre bilgilerinin doğru olduğundan emin olun.
@@ -329,7 +328,7 @@ function ChannelModal({
                 {importMessage && <span className="text-xs text-[var(--success)]">{importMessage}</span>}
                 {importSelected.error && (
                   <span className="text-xs text-[var(--danger)]">
-                    {getErrorMessage(importSelected.error, 'Kanallar eklenirken hata oluştu.')}
+                    {getNvrErrorMessage(importSelected.error, 'Kanallar eklenirken hata oluştu.')}
                   </span>
                 )}
               </div>
@@ -449,7 +448,7 @@ function DiscoverModal({
       onClose()
       setResults([])
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'NVR kayitlari eklenemedi', description: getErrorMessage(err, 'Toplu NVR ekleme sirasinda hata olustu.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR kayitlari eklenemedi', description: getNvrErrorMessage(err, 'Toplu NVR ekleme sirasinda hata olustu.') }),
   })
 
   // Modal kapandığında state temizle
@@ -655,7 +654,7 @@ function DiscoverModal({
 
             {saveError && (
               <p className="text-xs text-[var(--danger)]">
-                {getErrorMessage(saveError, "NVR'lar eklenirken hata oluştu.")}
+                {getNvrErrorMessage(saveError, "NVR'lar eklenirken hata oluştu.")}
               </p>
             )}
 
@@ -684,7 +683,7 @@ function DiscoverModal({
 
         {rangeError && (
           <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-xs text-[var(--danger)]">
-            {getErrorMessage(rangeError, 'NVR tarama sırasında hata oluştu.')}
+            {getNvrErrorMessage(rangeError, 'NVR tarama sırasında hata oluştu.')}
           </div>
         )}
       </div>
@@ -744,7 +743,7 @@ export function NVRPage() {
       qc.invalidateQueries({ queryKey: ['nvrs'] })
       showToast({ variant: 'success', title: 'NVR durumu guncellendi', description: nvr.name })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'NVR durumu guncellenemedi', description: getErrorMessage(err, 'Kayit cihazi durumu degistirilemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR durumu guncellenemedi', description: getNvrErrorMessage(err, 'Kayit cihazi durumu degistirilemedi.') }),
   })
 
   /** NVR'ı sistemden siler */
@@ -755,7 +754,7 @@ export function NVRPage() {
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['nvrs'] })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'NVR silinemedi', description: getErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'NVR silinemedi', description: getNvrErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
   })
 
   const columns = [

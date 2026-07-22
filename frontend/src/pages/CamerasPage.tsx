@@ -15,19 +15,18 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
+import { getApiErrorMessage } from '../utils/apiError'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
-function getErrorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { data?: { detail?: string } }; message?: string }
-  if (!err.response && err.message === 'Network Error') {
-    return 'Backend yanıt vermedi veya işlem zaman aşımına uğradı. Backend servisinin açık olduğunu kontrol edin; i610 için RTSP portunu 7778 ve path değerini /primarystream girin.'
-  }
-  return err.response?.data?.detail || err.message || fallback
-}
+const cameraNetworkError =
+  'Backend yanit vermedi veya islem zaman asimina ugradi. Backend servisinin acik oldugunu kontrol edin; i610 icin RTSP portunu 7778 ve path degerini /primarystream girin.'
+
+const getCameraErrorMessage = (error: unknown, fallback: string) =>
+  getApiErrorMessage(error, fallback, cameraNetworkError)
 
 /** Yeni kamera ekleme modal'ı */
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -43,7 +42,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       onClose()
       setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
   })
 
   const set = (field: keyof CameraCreate, value: string | number) =>
@@ -84,7 +83,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         {error && (
           <div className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2">
             <p className="text-xs text-[var(--danger)] leading-5">
-              {getErrorMessage(error, 'Kamera eklenemedi. IP, port, RTSP path ve kullanıcı/şifre bilgisini kontrol edin.')}
+              {getCameraErrorMessage(error, 'Kamera eklenemedi. IP, port, RTSP path ve kullanıcı/şifre bilgisini kontrol edin.')}
             </p>
           </div>
         )}
@@ -144,7 +143,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
       onClose()
       setResults([])
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Kameralar eklenemedi', description: getErrorMessage(err, 'Toplu ekleme sirasinda hata olustu.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kameralar eklenemedi', description: getCameraErrorMessage(err, 'Toplu ekleme sirasinda hata olustu.') }),
   })
 
   const toggleSelect = (index: number) => {
@@ -308,7 +307,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
 
             {saveError && (
               <p className="text-xs text-[var(--danger)]">
-                {getErrorMessage(saveError, 'Kameralar eklenirken hata oluştu.')}
+                {getCameraErrorMessage(saveError, 'Kameralar eklenirken hata oluştu.')}
               </p>
             )}
             
@@ -337,7 +336,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
 
         {scanError != null && (
           <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-[var(--danger)]">
-            {getErrorMessage(scanError, 'Tarama sırasında hata oluştu.')}
+            {getCameraErrorMessage(scanError, 'Tarama sırasında hata oluştu.')}
           </div>
         )}
       </div>
@@ -371,7 +370,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
       showToast({ variant: 'success', title: 'Kamera guncellendi', description: camera?.name })
       onClose()
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Kamera guncellenemedi', description: getErrorMessage(err, 'Kamera bilgileri kaydedilemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera guncellenemedi', description: getCameraErrorMessage(err, 'Kamera bilgileri kaydedilemedi.') }),
   })
 
   const {
@@ -430,7 +429,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
           )}
           {testError && (
             <p className="mt-2 text-xs text-[var(--danger)]">
-              {getErrorMessage(testError, 'RTSP baglanti testi calistirilamadi.')}
+              {getCameraErrorMessage(testError, 'RTSP baglanti testi calistirilamadi.')}
             </p>
           )}
           {testResult && (
@@ -473,7 +472,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
             </span>
           </label>
         </div>
-        {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'Kamera güncellenemedi.')}</p>}
+        {error && <p className="text-xs text-[var(--danger)]">{getCameraErrorMessage(error, 'Kamera güncellenemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Kaydet</Button>
@@ -540,7 +539,7 @@ export function CamerasPage() {
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'Izleme durumu guncellendi', description: camera.name })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Durum guncellenemedi', description: getErrorMessage(err, 'Kamera izleme durumu degistirilemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Durum guncellenemedi', description: getCameraErrorMessage(err, 'Kamera izleme durumu degistirilemedi.') }),
   })
 
   /** AI insan tespitini açar veya kapatır */
@@ -551,7 +550,7 @@ export function CamerasPage() {
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'AI tespiti guncellendi', description: camera.name })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'AI ayari guncellenemedi', description: getErrorMessage(err, 'AI tespiti degistirilemedi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'AI ayari guncellenemedi', description: getCameraErrorMessage(err, 'AI tespiti degistirilemedi.') }),
   })
 
   /** Kamerayı sistemden siler */
@@ -562,7 +561,7 @@ export function CamerasPage() {
       setDeleteTarget(null)
       qc.invalidateQueries({ queryKey: ['cameras'] })
     },
-    onError: (err) => showToast({ variant: 'danger', title: 'Kamera silinemedi', description: getErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
+    onError: (err) => showToast({ variant: 'danger', title: 'Kamera silinemedi', description: getCameraErrorMessage(err, 'Silme islemi tamamlanamadi.') }),
   })
 
   /** Kayıtlı kameranın RTSP host/port/path erişimini test eder. */
@@ -573,7 +572,7 @@ export function CamerasPage() {
       setDiagnosticResult(null)
     },
     onSuccess: setDiagnosticResult,
-    onError: (error) => setDiagnosticError(getErrorMessage(error, 'RTSP bağlantı testi çalıştırılamadı.')),
+    onError: (error) => setDiagnosticError(getCameraErrorMessage(error, 'RTSP bağlantı testi çalıştırılamadı.')),
   })
 
   const { data: streamDiagnostic } = useQuery({
