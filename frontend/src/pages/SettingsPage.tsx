@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Download, Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -144,6 +144,11 @@ const roleVariant = (role: string) => {
 
 const roleLabel = { admin: 'Admin', operator: 'Operatör', viewer: 'İzleyici' } as Record<string, string>
 
+const auditEventMetadataText = (event: AuditEvent) => {
+  const metadata = JSON.stringify(event.metadata ?? {})
+  return metadata === '{}' ? '-' : metadata
+}
+
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
 function GeneralSettingsPanel() {
   const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
@@ -187,6 +192,8 @@ function GeneralSettingsPanel() {
 
 /** Kullanıcı yönetimi sayfası */
 function AuditEventsPanel({ enabled }: { enabled: boolean }) {
+  const [auditSearch, setAuditSearch] = useState('')
+  const [auditStatus, setAuditStatus] = useState<'all' | 'success' | 'failure'>('all')
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['audit-events'],
     queryFn: () => systemApi.auditEvents(50),
@@ -194,12 +201,51 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
     refetchInterval: 30_000,
   })
 
-  if (!enabled) return null
+  const filteredEvents = useMemo(() => {
+    const needle = auditSearch.trim().toLowerCase()
+    return events.filter((event) => {
+      const matchesStatus =
+        auditStatus === 'all' ||
+        (auditStatus === 'success' && event.success) ||
+        (auditStatus === 'failure' && !event.success)
+      const haystack = [
+        event.timestamp,
+        event.action,
+        event.actor ?? '',
+        event.source_ip ?? '',
+        auditEventMetadataText(event),
+      ].join(' ').toLowerCase()
+      const matchesSearch = !needle || haystack.includes(needle)
+      return matchesStatus && matchesSearch
+    })
+  }, [auditSearch, auditStatus, events])
 
-  const renderMetadata = (event: AuditEvent) => {
-    const metadata = JSON.stringify(event.metadata ?? {})
-    return metadata === '{}' ? '-' : metadata
+  const hasAuditFilter = auditSearch.trim() !== '' || auditStatus !== 'all'
+
+  const exportAuditCsv = () => {
+    const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`
+    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Kullanici', 'IP', 'Detay']
+    const rows = filteredEvents.map((event) => [
+      dayjs(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
+      event.success ? 'Basarili' : 'Basarisiz',
+      event.action,
+      event.actor ?? '-',
+      event.source_ip ?? '-',
+      auditEventMetadataText(event),
+    ])
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `audit-events-${dayjs().format('YYYYMMDD-HHmmss')}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }
+
+  if (!enabled) return null
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
@@ -215,14 +261,41 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
             </p>
           </div>
         </div>
-        <Badge variant="info">{events.length} olay</Badge>
+        <Badge variant="info">{filteredEvents.length} / {events.length} olay</Badge>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Input
+          value={auditSearch}
+          onChange={(e) => setAuditSearch(e.target.value)}
+          placeholder="Aksiyon, kullanici, IP veya detay ara"
+          className="w-full sm:w-80"
+        />
+        <select
+          value={auditStatus}
+          onChange={(e) => setAuditStatus(e.target.value as 'all' | 'success' | 'failure')}
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="all">Tum Durumlar</option>
+          <option value="success">Basarili</option>
+          <option value="failure">Basarisiz</option>
+        </select>
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<Download size={14} />}
+          disabled={filteredEvents.length === 0}
+          onClick={exportAuditCsv}
+        >
+          CSV Indir
+        </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="sm" /></div>
-      ) : events.length === 0 ? (
+      ) : filteredEvents.length === 0 ? (
         <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-6 text-center text-sm text-[var(--text-secondary)]">
-          Audit kaydi bulunamadi.
+          {hasAuditFilter ? 'Filtrelerle eslesen audit kaydi yok.' : 'Audit kaydi bulunamadi.'}
         </p>
       ) : (
         <div className="max-h-80 overflow-y-auto rounded-md border border-[var(--border)]">
@@ -237,7 +310,7 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
               </tr>
             </thead>
             <tbody>
-              {events.map((event, index) => (
+              {filteredEvents.map((event, index) => (
                 <tr key={`${event.timestamp}-${event.action}-${index}`} className="border-b border-[var(--border)] last:border-b-0">
                   <td className="whitespace-nowrap px-3 py-2 text-[var(--text-secondary)]">
                     {dayjs(event.timestamp).format('DD.MM.YYYY HH:mm:ss')}
@@ -247,8 +320,8 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
                   </td>
                   <td className="px-3 py-2 text-[var(--text-primary)]">{event.actor ?? '-'}</td>
                   <td className="px-3 py-2 font-mono text-[var(--text-secondary)]">{event.source_ip ?? '-'}</td>
-                  <td className="max-w-xs truncate px-3 py-2 font-mono text-[var(--text-secondary)]" title={renderMetadata(event)}>
-                    {renderMetadata(event)}
+                  <td className="max-w-xs truncate px-3 py-2 font-mono text-[var(--text-secondary)]" title={auditEventMetadataText(event)}>
+                    {auditEventMetadataText(event)}
                   </td>
                 </tr>
               ))}
