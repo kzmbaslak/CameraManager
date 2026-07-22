@@ -13,6 +13,7 @@ import { Button } from '../components/ui/Button'
 export function LoginPage() {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
+  const sessionExpired = new URLSearchParams(window.location.search).get('expired') === '1'
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -89,6 +90,12 @@ export function LoginPage() {
               >
                 {error}
               </motion.p>
+            )}
+
+            {!error && sessionExpired && (
+              <p className="rounded-md border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-3 py-2 text-center text-xs text-[var(--warning)]">
+                Oturum suresi doldu. Devam etmek icin tekrar giris yapin.
+              </p>
             )}
 
             <Button type="submit" loading={loading} icon={<Lock size={15} />} className="mt-1">

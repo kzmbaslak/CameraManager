@@ -10,7 +10,14 @@ const client = axios.create({
 
 // Her istekte Authorization header'ına JWT token ekle
 client.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
+  const { token, isExpired, logout } = useAuthStore.getState()
+  if (token && isExpired()) {
+    logout()
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login?expired=1'
+    }
+    return Promise.reject(new Error('Oturum suresi doldu.'))
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -27,7 +34,7 @@ client.interceptors.response.use(
     const isLoginRequest = error.config?.url?.includes('/auth/login')
     if (error.response?.status === 401 && !isLoginRequest) {
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      window.location.href = '/login?expired=1'
     }
     return Promise.reject(error)
   }

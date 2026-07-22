@@ -1,14 +1,47 @@
 // Uygulama ana yerleşimi; sidebar ve içerik alanını düzenler.
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Camera, Menu } from 'lucide-react'
+import { Camera, Clock3, LogOut, Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { AlarmNotificationPanel } from '../alarm/AlarmNotificationPanel'
 import { CameraFullscreenModal } from '../camera/CameraFullscreenModal'
 import { ToastViewport } from '../ui/ToastViewport'
+import { Button } from '../ui/Button'
+import { useAuthStore } from '../../stores/authStore'
+
+const SESSION_WARNING_MS = 5 * 60 * 1000
+const INITIAL_NOW = Date.now()
 
 export function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [now, setNow] = useState(INITIAL_NOW)
+  const expiresAt = useAuthStore((s) => s.expiresAt)
+  const logout = useAuthStore((s) => s.logout)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (expiresAt && now >= expiresAt) {
+      logout()
+      window.location.href = '/login?expired=1'
+    }
+  }, [expiresAt, logout, now])
+
+  const remainingMinutes = useMemo(() => {
+    if (!expiresAt) return null
+    return Math.max(0, Math.ceil((expiresAt - now) / 60_000))
+  }, [expiresAt, now])
+
+  const showSessionWarning =
+    remainingMinutes !== null && expiresAt !== null && expiresAt - now <= SESSION_WARNING_MS && expiresAt > now
+
+  const handleLogout = () => {
+    logout()
+    window.location.href = '/login'
+  }
 
   return (
     <div className="flex h-screen bg-[var(--bg-primary)] overflow-hidden">
@@ -45,6 +78,20 @@ export function AppLayout() {
       )}
 
       <main className="flex-1 overflow-y-auto pt-12 md:pt-0">
+        {showSessionWarning && (
+          <div
+            role="status"
+            className="sticky top-0 z-[90] flex flex-col gap-2 border-b border-[var(--warning)]/25 bg-[var(--warning)]/10 px-4 py-2 text-[var(--warning)] shadow-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Clock3 size={16} />
+              <span>Oturum {remainingMinutes} dakika icinde sona erecek.</span>
+            </div>
+            <Button variant="secondary" size="sm" icon={<LogOut size={14} />} onClick={handleLogout}>
+              Cikis yap
+            </Button>
+          </div>
+        )}
         <Outlet />
       </main>
       {/* Global: hangi sayfada olursa olsun alarm bildirimleri */}
