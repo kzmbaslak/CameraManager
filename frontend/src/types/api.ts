@@ -248,6 +248,13 @@ export interface SecurityPostureFinding {
   message: string
 }
 
+export interface SetupCheck {
+  key: string
+  ok: boolean
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | string
+  message: string
+}
+
 export interface SecurityPosture {
   status: 'hardened' | 'attention' | string
   jwt_secret_configured: boolean
@@ -257,9 +264,15 @@ export interface SecurityPosture {
   secure_cookie_auth: boolean
   audit_chain_secret_configured: boolean
   audit_webhook_configured: boolean
+  setup_checks: SetupCheck[]
   stream_token_transport: string
   stream_token_ttl_seconds: number
   findings: SecurityPostureFinding[]
+}
+
+export interface SetupStatus {
+  ready: boolean
+  checks: SetupCheck[]
 }
 
 export interface AuditEvent {

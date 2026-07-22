@@ -244,6 +244,7 @@ function OperatorAssistPanel({
   const runningCount = health.filter((item) => item.producer_running).length
   const staleCount = health.filter((item) => (item.last_frame_age_seconds ?? 0) > 10).length
   const aiBusyCount = health.filter((item) => item.ai_task_running).length
+  const setupMissingCount = security?.setup_checks.filter((check) => !check.ok).length ?? 0
 
   return (
     <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-3">
@@ -276,7 +277,7 @@ function OperatorAssistPanel({
           <p className="truncate text-sm text-text-primary">
             {security
               ? security.findings.length > 0
-                ? `${security.findings.length} sertlestirme maddesi · audit ${security.audit_chain_secret_configured ? 'HMAC' : 'zayif'} · SIEM ${security.audit_webhook_configured ? 'aktif' : 'yok'}`
+                ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · audit ${security.audit_chain_secret_configured ? 'HMAC' : 'zayif'}`
                 : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn`
               : 'Guvenlik durusu okunuyor'}
           </p>

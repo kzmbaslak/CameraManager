@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 
+from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
 from src.presentation.api.dependencies import get_operator_user
 from src.presentation.api.routes.alarms import router as alarms_router
@@ -74,6 +75,14 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
     else:
         findings.append({"severity": "low", "message": "Kurumsal ortamda AUDIT_WEBHOOK_URL ile merkezi/SIEM audit arsivi tanimlanmali."})
 
+    setup_checks = [
+        {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
+        for check in collect_setup_checks()
+    ]
+    for check in setup_checks:
+        if not check["ok"]:
+            findings.append({"severity": check["severity"], "message": check["message"]})
+
     return {
         "status": "attention" if findings else "hardened",
         "jwt_secret_configured": jwt_ok,
@@ -83,9 +92,23 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
         "secure_cookie_auth": secure_cookie_auth,
         "audit_chain_secret_configured": audit_chain_secret_configured,
         "audit_webhook_configured": audit_webhook_configured,
+        "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",
         "stream_token_ttl_seconds": 60,
         "findings": findings,
+    }
+
+
+@router.get("/setup/status")
+def setup_status(current_user: dict = Depends(get_operator_user)):
+    """Kurulum dosyasi, model, DB semasi ve admin hazirligini raporlar."""
+    checks = [
+        {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
+        for check in collect_setup_checks()
+    ]
+    return {
+        "ready": all(check["ok"] for check in checks),
+        "checks": checks,
     }
 
 

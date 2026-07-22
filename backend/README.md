@@ -68,6 +68,12 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `INITIAL_ADMIN_USERNAME` | İlk kurulumda DB boşsa oluşturulacak admin kullanıcı adı |
 | `INITIAL_ADMIN_PASSWORD` | İlk kurulumda DB boşsa oluşturulacak admin şifresi |
 | `CORS_ALLOWED_ORIGINS` | Virgülle ayrılmış izinli frontend origin listesi |
+| `AUDIT_CHAIN_SECRET` | Audit kayıt zinciri için en az 32 karakterlik HMAC anahtarı |
+| `AUDIT_MAX_BYTES` | `audit.log` arşive döndürülmeden önce izin verilen maksimum boyut |
+| `AUDIT_RETENTION_DAYS` | Audit arşivlerinin saklanacağı gün sayısı |
+| `AUDIT_WEBHOOK_URL` | Opsiyonel merkezi log/SIEM HTTPS endpoint'i |
+| `AUDIT_WEBHOOK_TOKEN` | Opsiyonel audit webhook Bearer token değeri |
+| `AUDIT_WEBHOOK_TIMEOUT_SECONDS` | Audit webhook gönderim zaman aşımı |
 
 ### 4. Veritabanını Hazırla
 
@@ -76,6 +82,15 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 ```bash
 venv\Scripts\python scripts/migrate_add_nvr_and_camera_fields.py
 ```
+
+Kurulum hazır durumunu API üzerinden görmek için oturum açmış operatör/admin kullanıcıyla:
+
+```text
+GET /api/setup/status
+GET /api/security/posture
+```
+
+Bu kontroller `.env` varlığı, `backend/models/yolov8n.onnx`, veritabanı şeması ve aktif admin kullanıcısını raporlar.
 
 ### 5. Sunucuyu Başlat
 
