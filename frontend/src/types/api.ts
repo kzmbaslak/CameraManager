@@ -255,6 +255,8 @@ export interface SecurityPosture {
   cors_origins_configured: boolean
   https_enabled: boolean
   secure_cookie_auth: boolean
+  audit_chain_secret_configured: boolean
+  audit_webhook_configured: boolean
   stream_token_transport: string
   stream_token_ttl_seconds: number
   findings: SecurityPostureFinding[]

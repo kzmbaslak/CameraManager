@@ -1,6 +1,7 @@
 """API ana router'i, saglik ve guvenlik durusu endpoint'leri."""
 
 import os
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 
@@ -59,6 +60,20 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
     if not secure_cookie_auth:
         findings.append({"severity": "medium", "message": "JWT icin HttpOnly/SameSite secure cookie veya refresh flow eklenmeli."})
 
+    audit_chain_secret_configured = len(os.environ.get("AUDIT_CHAIN_SECRET", "").strip()) >= 32
+    if not audit_chain_secret_configured:
+        findings.append({"severity": "medium", "message": "Audit zinciri icin AUDIT_CHAIN_SECRET en az 32 karakter olarak tanimlanmali."})
+
+    audit_webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
+    audit_webhook_configured = False
+    if audit_webhook_url:
+        parsed_webhook = urlparse(audit_webhook_url)
+        audit_webhook_configured = parsed_webhook.scheme == "https" and bool(parsed_webhook.netloc)
+        if not audit_webhook_configured:
+            findings.append({"severity": "medium", "message": "AUDIT_WEBHOOK_URL HTTPS ve geceri bir merkezi log endpoint'i olmali."})
+    else:
+        findings.append({"severity": "low", "message": "Kurumsal ortamda AUDIT_WEBHOOK_URL ile merkezi/SIEM audit arsivi tanimlanmali."})
+
     return {
         "status": "attention" if findings else "hardened",
         "jwt_secret_configured": jwt_ok,
@@ -66,6 +81,8 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
         "cors_origins_configured": bool(cors_origins) and "*" not in cors_origins,
         "https_enabled": https_enabled,
         "secure_cookie_auth": secure_cookie_auth,
+        "audit_chain_secret_configured": audit_chain_secret_configured,
+        "audit_webhook_configured": audit_webhook_configured,
         "stream_token_transport": "websocket_first_message",
         "stream_token_ttl_seconds": 60,
         "findings": findings,

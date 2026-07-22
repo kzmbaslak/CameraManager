@@ -65,7 +65,7 @@ Riskler:
 
 ### P1 - Güvenlik ve Operasyon
 
-- WebSocket artık ana JWT yerine kısa ömürlü kamera bazlı stream token kullanıyor. Kalan risk: token hâlâ query string içinde taşındığı için production loglarında query parametreleri maskelenmeli veya ileride handshake tabanlı aktarım değerlendirilmeli.
+- WebSocket artık ana JWT yerine kısa ömürlü kamera bazlı stream token kullanıyor ve token URL query yerine ilk WebSocket mesajında taşınıyor. Kalan risk: production proxy loglarında `/api/streams/{camera_id}?profile=...` gibi hassas olmayan query parametreleri yine de standart log maskesiyle yönetilmeli.
 - HTTPS/TLS, secure cookie, token refresh/expiry UX ve oturum süresi yönetimi eksik.
 - Kamera/NVR şifre rotasyonu ve parola değiştirme akışı tamamlanmalı.
 - RBAC daha granüler olmalı: canlı izleme, kayıt izleme, export, kullanıcı yönetimi, PTZ, alarm kapatma ayrı izinlere ayrılmalı.

@@ -276,8 +276,8 @@ function OperatorAssistPanel({
           <p className="truncate text-sm text-text-primary">
             {security
               ? security.findings.length > 0
-                ? `${security.findings.length} sertlestirme maddesi bekliyor · token ${security.stream_token_ttl_seconds} sn`
-                : 'Temel kontroller temiz · stream token ilk WS mesajinda'
+                ? `${security.findings.length} sertlestirme maddesi · audit ${security.audit_chain_secret_configured ? 'HMAC' : 'zayif'} · SIEM ${security.audit_webhook_configured ? 'aktif' : 'yok'}`
+                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn`
               : 'Guvenlik durusu okunuyor'}
           </p>
         </div>
