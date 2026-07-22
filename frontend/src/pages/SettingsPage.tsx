@@ -14,6 +14,7 @@ import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import type { User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
@@ -34,7 +35,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
     <Modal open={open} onClose={onClose} title="Kullanıcı Ekle">
       <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
         <Input label="Kullanıcı Adı" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
-        <Input label="Şifre" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+        <PasswordInput label="Şifre" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
         <RoleSelect value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} />
         {error && <p className="text-xs text-[var(--danger)]">Hata oluştu, tekrar deneyin.</p>}
         <div className="flex gap-3 justify-end mt-1">
@@ -88,9 +89,8 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
           />
         </div>
 
-        <Input
+        <PasswordInput
           label="Yeni Şifre"
-          type="password"
           placeholder="Değiştirmek için doldurun"
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))}
         />

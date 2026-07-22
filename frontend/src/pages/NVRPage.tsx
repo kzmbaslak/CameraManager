@@ -11,6 +11,7 @@ import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
@@ -78,7 +79,7 @@ function AddNVRModal({
         <Input label="IP / Host" value={form.host} onChange={(e) => set('host', e.target.value)} required placeholder="192.168.1.200" />
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => set('onvif_port', Number(e.target.value))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
-        <Input label="Şifre" type="password" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
         {error && <p className="text-xs text-[var(--danger)]">{getErrorMessage(error, 'NVR eklenemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
@@ -122,7 +123,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
         <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required />
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-        <Input label="Yeni Şifre" type="password" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
         {error && <p className="text-xs text-[var(--danger)]">Hata oluştu, tekrar deneyin.</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
@@ -551,9 +552,8 @@ function DiscoverModal({
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-                <Input
+                <PasswordInput
                   label="Tarama Şifresi"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -630,9 +630,8 @@ function DiscoverModal({
                       value={row.username ?? ''}
                       onChange={(e) => handleFieldChange(index, 'username', e.target.value)}
                     />
-                    <Input
+                    <PasswordInput
                       placeholder="Şifre"
-                      type="password"
                       value={row.password ?? ''}
                       onChange={(e) => handleFieldChange(index, 'password', e.target.value)}
                     />

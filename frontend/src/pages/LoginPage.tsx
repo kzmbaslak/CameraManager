@@ -7,6 +7,7 @@ import { Camera, Lock } from 'lucide-react'
 import { authApi } from '../api/auth'
 import { useAuthStore } from '../stores/authStore'
 import { Input } from '../components/ui/Input'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import { Button } from '../components/ui/Button'
 
 export function LoginPage() {
@@ -72,9 +73,8 @@ export function LoginPage() {
               autoComplete="username"
               autoFocus
             />
-            <Input
+            <PasswordInput
               label="Şifre"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

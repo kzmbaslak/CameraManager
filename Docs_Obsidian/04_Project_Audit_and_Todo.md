@@ -79,7 +79,7 @@ Riskler:
 - Kameralar, NVR ve Kullanıcılar listelerinde arama/durum/rol gibi hızlı client-side filtreler eklendi. Kalan iş sıralama, sayfalama ve geniş listeler için server-side pagination.
 - `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Kalan iş başarılı/başarısız işlemler için toast bildirim standardı.
 - Hata mesajları genel: backend `detail` kullanıcıya anlaşılır şekilde gösterilmeli.
-- Formlarda test bağlantısı, input doğrulama, örnek RTSP path açıklaması, port sınırı ve password visibility toggle yok.
+- Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kalan iş düzenleme formlarında bağlantı testini doğrudan sunmak ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş ve toplu onaylama yok.
 - Canlı grid'de kamera arama, layout kaydetme, sürükle-bırak sıralama, tam ekran çoklu layout ve düşük bant modu yok.
 - Erişilebilirlik eksik: focus ring standardı, klavye navigasyonu, ARIA etiketleri, renk dışı durum göstergeleri, kontrast testi yapılmalı.

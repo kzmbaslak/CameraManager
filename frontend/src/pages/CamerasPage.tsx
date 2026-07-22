@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraRtspDiagnostics } from '../types/api'
 
@@ -75,7 +76,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         </label>
         <Input label="RTSP Path veya tam RTSP URL" placeholder="/videoStreamId=1 veya rtsp://192.168.1.100:554/stream1" value={form.rtsp_path ?? ''} onChange={(e) => set('rtsp_path', e.target.value)} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
-        <Input label="Şifre" type="password" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
         {error && (
           <div className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2">
             <p className="text-xs text-[var(--danger)] leading-5">
@@ -213,9 +214,8 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
-            <Input
+            <PasswordInput
               label="Şifre"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -377,7 +377,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         </div>
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-        <Input label="Yeni Şifre" type="password" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
           <div className="mt-3 grid grid-cols-3 gap-3">
