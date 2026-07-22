@@ -10,6 +10,7 @@ interface CameraGridProps {
   cameras: Camera[]
   alarmMap?: Record<number, Alarm>
   cols?: GridCols
+  lowBandwidth?: boolean
 }
 
 const colsClass: Record<GridCols, string> = {
@@ -27,7 +28,15 @@ function EmptyState() {
   )
 }
 
-function SingleView({ cameras, alarmMap }: { cameras: Camera[]; alarmMap: Record<number, Alarm> }) {
+function SingleView({
+  cameras,
+  alarmMap,
+  lowBandwidth,
+}: {
+  cameras: Camera[]
+  alarmMap: Record<number, Alarm>
+  lowBandwidth: boolean
+}) {
   const [index, setIndex] = useState(0)
   const camera = cameras[Math.min(index, cameras.length - 1)]
 
@@ -72,7 +81,7 @@ function SingleView({ cameras, alarmMap }: { cameras: Camera[]; alarmMap: Record
       )}
 
       <div className="mx-auto w-full max-w-4xl">
-        <CameraCard camera={camera} latestAlarm={alarmMap[camera.id] ?? null} />
+        <CameraCard camera={camera} latestAlarm={alarmMap[camera.id] ?? null} streamProfile={lowBandwidth ? 'alarm' : 'grid'} />
       </div>
 
       <p className="text-center text-xs text-text-secondary">
@@ -82,14 +91,19 @@ function SingleView({ cameras, alarmMap }: { cameras: Camera[]; alarmMap: Record
   )
 }
 
-export function CameraGrid({ cameras, alarmMap = {}, cols = 2 }: CameraGridProps) {
+export function CameraGrid({ cameras, alarmMap = {}, cols = 2, lowBandwidth = false }: CameraGridProps) {
   if (cameras.length === 0) return <EmptyState />
-  if (cols === 1) return <SingleView cameras={cameras} alarmMap={alarmMap} />
+  if (cols === 1) return <SingleView cameras={cameras} alarmMap={alarmMap} lowBandwidth={lowBandwidth} />
 
   return (
     <div className={`grid ${colsClass[cols]} gap-2`}>
       {cameras.map((camera) => (
-        <CameraCard key={camera.id} camera={camera} latestAlarm={alarmMap[camera.id] ?? null} />
+        <CameraCard
+          key={camera.id}
+          camera={camera}
+          latestAlarm={alarmMap[camera.id] ?? null}
+          streamProfile={lowBandwidth ? 'alarm' : 'grid'}
+        />
       ))}
     </div>
   )

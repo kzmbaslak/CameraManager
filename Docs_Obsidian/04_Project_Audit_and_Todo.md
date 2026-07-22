@@ -81,7 +81,7 @@ Riskler:
 - Hata mesajları genel: backend `detail` kullanıcıya anlaşılır şekilde gösterilmeli.
 - Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kamera düzenleme formunda kayıtlı RTSP bağlantı testi doğrudan sunuluyor. Kalan iş kaydedilmemiş form değerleriyle bağlantı önizlemesi ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş ve toplu onaylama yok.
-- Canlı grid'de kamera arama, layout kaydetme, sürükle-bırak sıralama, tam ekran çoklu layout ve düşük bant modu yok.
+- Canlı grid'de kamera arama, layout kalıcılığı ve düşük bant modu eklendi. Kalan iş sürükle-bırak sıralama ve tam ekran çoklu layout.
 - Erişilebilirlik eksik: focus ring standardı, klavye navigasyonu, ARIA etiketleri, renk dışı durum göstergeleri, kontrast testi yapılmalı.
 - Tema tek koyu palete yaslanıyor; profesyonel operasyon ekranı için daha nötr ve yüksek kontrastlı durum renkleriyle açık/koyu tema seçimi eklenmeli.
 

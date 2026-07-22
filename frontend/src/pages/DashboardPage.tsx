@@ -1,25 +1,43 @@
 // Operator dashboard: live camera grid, alarm status bar and camera watch control.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Activity, Bell, Check, CheckCircle, MapPinned, PanelRight, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { Activity, Bell, Check, CheckCircle, Gauge, MapPinned, PanelRight, Search, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { systemApi } from '../api/system'
 import { CameraGrid, type GridCols } from '../components/camera/CameraGrid'
 import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
+import { Toggle } from '../components/ui/Toggle'
 import { useAlarmStore } from '../stores/alarmStore'
 import type { Alarm, Camera, CameraStreamDiagnostics, SecurityPosture } from '../types/api'
 
+const DASHBOARD_GRID_KEY = 'dashboard-grid'
+const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
+
 function loadGridPref(): GridCols {
   try {
-    const value = localStorage.getItem('dashboard-grid')
+    const value = localStorage.getItem(DASHBOARD_GRID_KEY)
     if (value === '1' || value === '2' || value === '3' || value === '4') return Number(value) as GridCols
   } catch {
     // Fall back to the default grid when storage is unavailable.
   }
   return 2
+}
+
+function loadLowBandwidthPref() {
+  try {
+    return localStorage.getItem(DASHBOARD_LOW_BANDWIDTH_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function matchesCameraSearch(camera: Camera, query: string) {
+  if (!query) return true
+  const haystack = `${camera.name} ${camera.host} ${camera.status}`.toLocaleLowerCase('tr-TR')
+  return haystack.includes(query)
 }
 
 function Kbd({ children }: { children: string }) {
@@ -252,6 +270,8 @@ function OperatorAssistPanel({
 
 export function DashboardPage() {
   const [cols, setCols] = useState<GridCols>(loadGridPref)
+  const [cameraSearch, setCameraSearch] = useState('')
+  const [lowBandwidth, setLowBandwidth] = useState(loadLowBandwidthPref)
   const [panelOpen, setPanelOpen] = useState(false)
   const qc = useQueryClient()
   const { stopSound, muteSoundFor } = useAlarmStore()
@@ -259,7 +279,16 @@ export function DashboardPage() {
   const handleColsChange = (next: GridCols) => {
     setCols(next)
     try {
-      localStorage.setItem('dashboard-grid', String(next))
+      localStorage.setItem(DASHBOARD_GRID_KEY, String(next))
+    } catch {
+      // Keep the in-memory selection when storage is unavailable.
+    }
+  }
+
+  const handleLowBandwidthChange = (next: boolean) => {
+    setLowBandwidth(next)
+    try {
+      localStorage.setItem(DASHBOARD_LOW_BANDWIDTH_KEY, String(next))
     } catch {
       // Keep the in-memory selection when storage is unavailable.
     }
@@ -306,6 +335,11 @@ export function DashboardPage() {
   const offlineCameras = cameras.filter((camera) => camera.status === 'error')
   const inactiveCameras = cameras.filter((camera) => camera.status === 'inactive')
   const watchedCameras = cameras.filter((camera) => camera.status !== 'inactive')
+  const normalizedCameraSearch = cameraSearch.trim().toLocaleLowerCase('tr-TR')
+  const visibleWatchedCameras = useMemo(
+    () => watchedCameras.filter((camera) => matchesCameraSearch(camera, normalizedCameraSearch)),
+    [watchedCameras, normalizedCameraSearch],
+  )
   const healthQueries = useQueries({
     queries: watchedCameras.slice(0, 8).map((camera) => ({
       queryKey: ['camera-stream-diagnostics', camera.id],
@@ -362,6 +396,26 @@ export function DashboardPage() {
             </div>
           )}
 
+          <div className="relative hidden md:block">
+            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+            <input
+              value={cameraSearch}
+              onChange={(event) => setCameraSearch(event.target.value)}
+              placeholder="Kamera ara"
+              aria-label="Canli grid kamera ara"
+              className="h-9 w-44 rounded-md border border-border bg-bg-secondary pl-8 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent"
+            />
+          </div>
+
+          <div
+            title="Grid akisini daha dusuk bant profiliyle al"
+            className="hidden items-center gap-2 rounded-md border border-border bg-bg-secondary px-2.5 py-2 text-xs text-text-secondary lg:flex"
+          >
+            <Gauge size={14} />
+            <span id="dashboard-low-bandwidth-label">Düşük bant</span>
+            <Toggle checked={lowBandwidth} onChange={handleLowBandwidthChange} label="Düşük bant modu" />
+          </div>
+
           <GridSizeSelector value={cols} onChange={handleColsChange} />
 
           <button
@@ -403,7 +457,32 @@ export function DashboardPage() {
           </div>
         ) : (
           <div className="h-full overflow-y-auto pr-1">
-            <CameraGrid cameras={watchedCameras} alarmMap={alarmMap} cols={cols} />
+            <div className="mb-2 flex gap-2 md:hidden">
+              <div className="relative flex-1">
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+                <input
+                  value={cameraSearch}
+                  onChange={(event) => setCameraSearch(event.target.value)}
+                  placeholder="Kamera ara"
+                  aria-label="Canli grid kamera ara"
+                  className="h-9 w-full rounded-md border border-border bg-bg-secondary pl-8 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent"
+                />
+              </div>
+              <div
+                title="Grid akisini daha dusuk bant profiliyle al"
+                className="flex items-center gap-2 rounded-md border border-border bg-bg-secondary px-2.5 py-2 text-xs text-text-secondary"
+              >
+                <Gauge size={14} />
+                <Toggle checked={lowBandwidth} onChange={handleLowBandwidthChange} label="Düşük bant modu" />
+              </div>
+            </div>
+            {visibleWatchedCameras.length === 0 && watchedCameras.length > 0 ? (
+              <div className="flex h-64 flex-col items-center justify-center rounded-md border border-dashed border-border bg-bg-secondary text-text-secondary">
+                <p className="text-sm">Arama ile eşleşen izlenen kamera yok.</p>
+              </div>
+            ) : (
+              <CameraGrid cameras={visibleWatchedCameras} alarmMap={alarmMap} cols={cols} lowBandwidth={lowBandwidth} />
+            )}
           </div>
         )}
 

@@ -6,6 +6,7 @@ import { useCameraStream } from '../../hooks/useCameraStream'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { useAlarmStore } from '../../stores/alarmStore'
 import type { Alarm, Camera } from '../../types/api'
+import type { StreamProfile } from '../../hooks/useCameraStream'
 
 function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
   if (!detectedAt) return false
@@ -16,9 +17,10 @@ function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
 interface CameraCardProps {
   camera: Camera
   latestAlarm?: Alarm | null
+  streamProfile?: StreamProfile
 }
 
-export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
+export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: CameraCardProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 320, h: 180 })
   const [isNearViewport, setIsNearViewport] = useState(false)
@@ -27,6 +29,7 @@ export function CameraCard({ camera, latestAlarm }: CameraCardProps) {
   const { frame, alarmTriggered, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     camera.id,
     camera.status !== 'inactive' && isNearViewport,
+    streamProfile,
   )
 
   useEffect(() => {
