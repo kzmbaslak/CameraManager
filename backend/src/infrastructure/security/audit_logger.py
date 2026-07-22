@@ -10,6 +10,9 @@ import os
 import time
 from datetime import datetime
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,7 @@ AUDIT_ARCHIVE_PREFIX = "audit-"
 AUDIT_ARCHIVE_SUFFIX = ".log"
 DEFAULT_AUDIT_MAX_BYTES = 5 * 1024 * 1024
 DEFAULT_AUDIT_RETENTION_DAYS = 180
+DEFAULT_AUDIT_WEBHOOK_TIMEOUT_SECONDS = 2
 
 
 def _positive_int_env(name: str, default: int) -> int:
@@ -115,6 +119,35 @@ def _event_digest(event: dict[str, Any]) -> tuple[str, str]:
     return hashlib.sha256(payload).hexdigest(), algorithm
 
 
+def _forward_audit_event(event: dict[str, Any]) -> None:
+    webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return
+    parsed = urlparse(webhook_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        logger.warning("AUDIT_WEBHOOK_URL gecersiz; audit olayi merkezi arsive gonderilmedi.")
+        return
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "kamera-yonetimi-audit/1.0",
+    }
+    token = os.environ.get("AUDIT_WEBHOOK_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    event_hash = event.get("event_hash")
+    if isinstance(event_hash, str):
+        headers["X-Audit-Event-Hash"] = event_hash
+    payload = json.dumps(event, ensure_ascii=False).encode("utf-8")
+    timeout = _positive_int_env("AUDIT_WEBHOOK_TIMEOUT_SECONDS", DEFAULT_AUDIT_WEBHOOK_TIMEOUT_SECONDS)
+    request = Request(webhook_url, data=payload, headers=headers, method="POST")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            if response.status >= 400:
+                logger.warning("Audit merkezi arsiv HTTP %s dondu.", response.status)
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        logger.warning("Audit olayi merkezi arsive gonderilemedi: %s", exc)
+
+
 def write_audit_event(
     action: str,
     actor: str | None = None,
@@ -141,6 +174,7 @@ def write_audit_event(
         with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as file:
             file.write(json.dumps(event, ensure_ascii=False) + "\n")
         _purge_expired_archives()
+        _forward_audit_event(event)
     except OSError as exc:
         logger.warning("Audit log yazılamadı: %s", exc)
 
