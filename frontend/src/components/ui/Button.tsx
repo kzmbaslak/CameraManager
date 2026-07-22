@@ -34,10 +34,12 @@ export function Button({
   children,
   disabled,
   className = '',
+  type = 'button',
   ...props
 }: ButtonProps) {
   return (
     <button
+      type={type}
       disabled={disabled || loading}
       className={`
         inline-flex items-center justify-center rounded-md font-medium

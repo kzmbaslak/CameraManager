@@ -13,12 +13,14 @@ interface TableProps<T> {
   data: T[]
   keyFn: (row: T) => string | number
   emptyText?: string
+  caption?: string
 }
 
-export function Table<T>({ columns, data, keyFn, emptyText = 'Kayıt bulunamadı' }: TableProps<T>) {
+export function Table<T>({ columns, data, keyFn, emptyText = 'Kayıt bulunamadı', caption }: TableProps<T>) {
   return (
     <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
       <table className="w-full text-sm">
+        {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
           <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)]">
             {columns.map((col) => (
@@ -37,6 +39,7 @@ export function Table<T>({ columns, data, keyFn, emptyText = 'Kayıt bulunamadı
             <tr>
               <td
                 colSpan={columns.length}
+                aria-live="polite"
                 className="px-4 py-8 text-center text-[var(--text-secondary)]"
               >
                 {emptyText}

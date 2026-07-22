@@ -1,5 +1,5 @@
 // Erişilebilir temel modal penceresi.
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useId } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 
@@ -12,6 +12,8 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, width = 'max-w-md' }: ModalProps) {
+  const titleId = useId()
+
   // ESC tuşuyla kapat
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -35,12 +37,17 @@ export function Modal({ open, onClose, title, children, width = 'max-w-md' }: Mo
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.15 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
             className={`relative w-full ${width} bg-bg-card border border-border rounded-lg shadow-2xl`}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-              <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+              <h2 id={titleId} className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
               <button
+                type="button"
                 onClick={onClose}
+                aria-label="Pencereyi kapat"
                 className="p-1 rounded-md hover:bg-border text-text-secondary transition-colors"
               >
                 <X size={16} />
