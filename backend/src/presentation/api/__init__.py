@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
 from src.presentation.api.dependencies import get_operator_user
 from src.presentation.api.routes.alarms import router as alarms_router
+from src.presentation.api.routes.audit import router as audit_router
 from src.presentation.api.routes.auth import router as auth_router
 from src.presentation.api.routes.cameras import router as cameras_router
 from src.presentation.api.routes.nvrs import router as nvrs_router
@@ -73,6 +74,7 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
 
 router.include_router(cameras_router)
 router.include_router(alarms_router)
+router.include_router(audit_router)
 router.include_router(users_router)
 router.include_router(streams_router)
 router.include_router(nvrs_router)

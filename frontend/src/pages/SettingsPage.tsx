@@ -1,7 +1,9 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
+import dayjs from 'dayjs'
+import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
 import { usePermissions } from '../hooks/usePermissions'
 import { useAuthStore } from '../stores/authStore'
@@ -17,7 +19,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import type { User, UserCreate } from '../types/api'
+import type { AuditEvent, User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
 function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -184,6 +186,80 @@ function GeneralSettingsPanel() {
 }
 
 /** Kullanıcı yönetimi sayfası */
+function AuditEventsPanel({ enabled }: { enabled: boolean }) {
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['audit-events'],
+    queryFn: () => systemApi.auditEvents(50),
+    enabled,
+    refetchInterval: 30_000,
+  })
+
+  if (!enabled) return null
+
+  const renderMetadata = (event: AuditEvent) => {
+    const metadata = JSON.stringify(event.metadata ?? {})
+    return metadata === '{}' ? '-' : metadata
+  }
+
+  return (
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <Activity size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Audit Kayitlari</h2>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              Son 50 guvenlik ve operasyon olayi. Liste 30 saniyede bir yenilenir.
+            </p>
+          </div>
+        </div>
+        <Badge variant="info">{events.length} olay</Badge>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Spinner size="sm" /></div>
+      ) : events.length === 0 ? (
+        <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-6 text-center text-sm text-[var(--text-secondary)]">
+          Audit kaydi bulunamadi.
+        </p>
+      ) : (
+        <div className="max-h-80 overflow-y-auto rounded-md border border-[var(--border)]">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-[var(--bg-secondary)]">
+              <tr className="border-b border-[var(--border)] text-left text-[var(--text-secondary)]">
+                <th className="px-3 py-2 font-medium">Zaman</th>
+                <th className="px-3 py-2 font-medium">Aksiyon</th>
+                <th className="px-3 py-2 font-medium">Kullanici</th>
+                <th className="px-3 py-2 font-medium">IP</th>
+                <th className="px-3 py-2 font-medium">Detay</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((event, index) => (
+                <tr key={`${event.timestamp}-${event.action}-${index}`} className="border-b border-[var(--border)] last:border-b-0">
+                  <td className="whitespace-nowrap px-3 py-2 text-[var(--text-secondary)]">
+                    {dayjs(event.timestamp).format('DD.MM.YYYY HH:mm:ss')}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Badge variant={event.success ? 'success' : 'danger'}>{event.action}</Badge>
+                  </td>
+                  <td className="px-3 py-2 text-[var(--text-primary)]">{event.actor ?? '-'}</td>
+                  <td className="px-3 py-2 font-mono text-[var(--text-secondary)]">{event.source_ip ?? '-'}</td>
+                  <td className="max-w-xs truncate px-3 py-2 font-mono text-[var(--text-secondary)]" title={renderMetadata(event)}>
+                    {renderMetadata(event)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function SettingsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
@@ -297,6 +373,8 @@ export function SettingsPage() {
       </div>
 
       <GeneralSettingsPanel />
+
+      <AuditEventsPanel enabled={canManageUsers} />
 
       <div>
         <div className="mb-3 flex flex-col gap-3">

@@ -260,6 +260,15 @@ export interface SecurityPosture {
   findings: SecurityPostureFinding[]
 }
 
+export interface AuditEvent {
+  timestamp: string
+  action: string
+  actor: string | null
+  success: boolean
+  source_ip: string | null
+  metadata: Record<string, unknown>
+}
+
 export interface NVRScanRequest {
   ip_range: string
   rtsp_port?: number
