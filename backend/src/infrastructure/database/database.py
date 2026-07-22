@@ -61,6 +61,8 @@ def ensure_alarm_operation_columns() -> None:
         "assigned_to": "TEXT",
         "operator_note": "TEXT",
         "resolution_reason": "TEXT",
+        "severity": "TEXT DEFAULT 'medium'",
+        "false_positive": "BOOLEAN DEFAULT 0",
     }
     conn = sqlite3.connect(db_path)
     try:

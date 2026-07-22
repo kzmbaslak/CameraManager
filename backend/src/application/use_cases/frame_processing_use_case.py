@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 
 import cv2
 
-from src.domain.entities.alarm import Alarm, AlarmStatus, AlarmType, BoundingBox
+from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmStatus, AlarmType, BoundingBox
 from src.domain.entities.camera import CameraStatus
 from src.domain.interfaces.ai_inference_service import Detection, IAIInferenceService
 from src.domain.interfaces.alarm_repository import IAlarmRepository
@@ -190,6 +190,7 @@ class ProcessFrameUseCase:
                     confidence=best_detection.confidence,
                     bounding_box=best_detection.bounding_box,
                     snapshot_path=snapshot_path,
+                    severity=AlarmSeverity.HIGH,
                     message=f"Insan tespit edildi! Guven (Confidence): %{int(best_detection.confidence * 100)}",
                     created_at=detected_at,
                 )

@@ -48,6 +48,7 @@ export interface CameraCreate {
 
 export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline'
 export type AlarmStatus = 'new' | 'acknowledged' | 'resolved'
+export type AlarmSeverity = 'low' | 'medium' | 'high' | 'critical'
 
 export interface BoundingBox {
   x: number
@@ -71,6 +72,8 @@ export interface Alarm {
   bounding_box: BoundingBox | null
   snapshot_path: string | null
   message: string | null
+  severity: AlarmSeverity
+  false_positive: boolean
   assigned_to: string | null
   operator_note: string | null
   resolution_reason: string | null

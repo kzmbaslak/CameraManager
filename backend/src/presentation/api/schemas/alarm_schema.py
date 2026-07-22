@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from src.domain.entities.alarm import AlarmStatus, AlarmType
+from src.domain.entities.alarm import AlarmSeverity, AlarmStatus, AlarmType
 
 class BoundingBoxSchema(BaseModel):
     x: int
@@ -18,6 +18,8 @@ class AlarmResponse(BaseModel):
     bounding_box: Optional[BoundingBoxSchema]
     snapshot_path: Optional[str]
     message: Optional[str]
+    severity: AlarmSeverity = AlarmSeverity.MEDIUM
+    false_positive: bool = False
     assigned_to: Optional[str] = None
     operator_note: Optional[str] = None
     resolution_reason: Optional[str] = None
@@ -34,9 +36,12 @@ class AlarmUpdate(BaseModel):
 
     assigned_to: Optional[str] = Field(default=None, max_length=128)
     operator_note: Optional[str] = Field(default=None, max_length=2000)
+    severity: Optional[AlarmSeverity] = None
+    false_positive: Optional[bool] = None
 
 
 class AlarmResolveRequest(BaseModel):
     """Alarm kapatma istegi."""
 
     resolution_reason: Optional[str] = Field(default=None, max_length=500)
+    false_positive: bool = False

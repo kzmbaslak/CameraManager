@@ -8,7 +8,7 @@ import { AlarmRow } from '../components/alarm/AlarmRow'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { useAlarmStore } from '../stores/alarmStore'
-import type { Alarm, AlarmStatus, AlarmType } from '../types/api'
+import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
 import dayjs from 'dayjs'
 
 // ────────────────────────────────────────────
@@ -36,6 +36,13 @@ const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
   { value: '7d', label: 'Son 7 Gün' },
   { value: '30d', label: 'Son 30 Gün' },
   { value: 'all', label: 'Tümü' },
+]
+
+const SEVERITY_OPTIONS: { value: AlarmSeverity; label: string }[] = [
+  { value: 'low', label: 'Dusuk' },
+  { value: 'medium', label: 'Orta' },
+  { value: 'high', label: 'Yuksek' },
+  { value: 'critical', label: 'Kritik' },
 ]
 
 /** Belirli bir tarih aralığı başlangıcını döner */
@@ -149,9 +156,11 @@ function AlarmDetailDrawer({
   onAcknowledge,
   onSave,
   onResolve,
+  onFalsePositive,
   acknowledging,
   saving,
   resolving,
+  falsePositiveSaving,
 }: {
   alarm: Alarm
   cameraName?: string
@@ -160,15 +169,25 @@ function AlarmDetailDrawer({
   onClose: () => void
   onOpenLive: () => void
   onAcknowledge: () => void
-  onSave: (payload: { assigned_to: string | null; operator_note: string | null }) => void
-  onResolve: (payload: { resolution_reason: string | null }) => void
+  onSave: (payload: { assigned_to: string | null; operator_note: string | null; severity: AlarmSeverity }) => void
+  onResolve: (payload: { resolution_reason: string | null; false_positive?: boolean }) => void
+  onFalsePositive: () => void
   acknowledging: boolean
   saving: boolean
   resolving: boolean
+  falsePositiveSaving: boolean
 }) {
   const [assignedTo, setAssignedTo] = useState(alarm.assigned_to ?? '')
   const [operatorNote, setOperatorNote] = useState(alarm.operator_note ?? '')
   const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
+  const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity)
+
+  useEffect(() => {
+    setAssignedTo(alarm.assigned_to ?? '')
+    setOperatorNote(alarm.operator_note ?? '')
+    setResolutionReason(alarm.resolution_reason ?? '')
+    setSeverity(alarm.severity)
+  }, [alarm])
 
   return (
     <div className="fixed inset-0 z-[160] flex justify-end bg-black/35">
@@ -207,7 +226,7 @@ function AlarmDetailDrawer({
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-text-secondary">Durum</dt>
-              <dd className="mt-1 text-text-primary">{STATUS_OPTIONS.find((item) => item.value === alarm.status)?.label ?? alarm.status}</dd>
+              <dd className="mt-1 text-text-primary">{alarm.false_positive ? 'Yanlis Alarm' : STATUS_OPTIONS.find((item) => item.value === alarm.status)?.label ?? alarm.status}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-text-secondary">Guven</dt>
@@ -237,6 +256,18 @@ function AlarmDetailDrawer({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-text-primary">
+              Onem seviyesi
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as AlarmSeverity)}
+                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+              >
+                {SEVERITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-text-primary">
               Operator notu
               <textarea
                 value={operatorNote}
@@ -252,6 +283,7 @@ function AlarmDetailDrawer({
               onClick={() => onSave({
                 assigned_to: assignedTo.trim() || null,
                 operator_note: operatorNote.trim() || null,
+                severity,
               })}
             >
               Notu Kaydet
@@ -269,14 +301,24 @@ function AlarmDetailDrawer({
               />
             </label>
             {alarm.status !== 'resolved' && (
-              <Button
-                size="sm"
-                variant="secondary"
-                loading={resolving}
-                onClick={() => onResolve({ resolution_reason: resolutionReason.trim() || null })}
-              >
-                Cozuldu Olarak Kapat
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={resolving}
+                  onClick={() => onResolve({ resolution_reason: resolutionReason.trim() || null })}
+                >
+                  Kapat
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  loading={falsePositiveSaving}
+                  onClick={onFalsePositive}
+                >
+                  Yanlis Alarm
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -342,7 +384,7 @@ export function AlarmsPage() {
   })
 
   const updateAlarm = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { assigned_to: string | null; operator_note: string | null } }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: { assigned_to: string | null; operator_note: string | null; severity: AlarmSeverity } }) =>
       alarmsApi.update(id, payload),
     onSuccess: (alarm) => {
       setSelectedAlarm(alarm)
@@ -351,8 +393,16 @@ export function AlarmsPage() {
   })
 
   const resolveAlarm = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { resolution_reason: string | null } }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: { resolution_reason: string | null; false_positive?: boolean } }) =>
       alarmsApi.resolve(id, payload),
+    onSuccess: (alarm) => {
+      setSelectedAlarm(alarm)
+      qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const falsePositiveAlarm = useMutation({
+    mutationFn: alarmsApi.markFalsePositive,
     onSuccess: (alarm) => {
       setSelectedAlarm(alarm)
       qc.invalidateQueries({ queryKey: ['alarms'] })
@@ -503,9 +553,11 @@ export function AlarmsPage() {
           onAcknowledge={() => acknowledge.mutate(selectedAlarm.id)}
           onSave={(payload) => updateAlarm.mutate({ id: selectedAlarm.id, payload })}
           onResolve={(payload) => resolveAlarm.mutate({ id: selectedAlarm.id, payload })}
+          onFalsePositive={() => falsePositiveAlarm.mutate(selectedAlarm.id)}
           acknowledging={acknowledge.isPending && acknowledge.variables === selectedAlarm.id}
           saving={updateAlarm.isPending && updateAlarm.variables?.id === selectedAlarm.id}
           resolving={resolveAlarm.isPending && resolveAlarm.variables?.id === selectedAlarm.id}
+          falsePositiveSaving={falsePositiveAlarm.isPending && falsePositiveAlarm.variables === selectedAlarm.id}
         />
       )}
     </div>

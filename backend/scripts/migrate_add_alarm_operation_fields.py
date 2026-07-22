@@ -11,6 +11,8 @@ COLUMNS = {
     "assigned_to": "TEXT",
     "operator_note": "TEXT",
     "resolution_reason": "TEXT",
+    "severity": "TEXT DEFAULT 'medium'",
+    "false_positive": "BOOLEAN DEFAULT 0",
 }
 
 

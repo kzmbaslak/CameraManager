@@ -1,12 +1,21 @@
 from typing import Optional, Sequence
 from sqlalchemy.orm import Session
-from src.domain.entities.alarm import Alarm, AlarmStatus, AlarmType, BoundingBox
+from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmStatus, AlarmType, BoundingBox
 from src.domain.interfaces.alarm_repository import IAlarmRepository
 from src.infrastructure.database.models import AlarmModel
 
 class SqlAlchemyAlarmRepository(IAlarmRepository):
     def __init__(self, db: Session):
         self._db = db
+
+    def _severity_to_entity(self, value) -> AlarmSeverity:
+        """DB'deki string/enum severity degerini domain enum'a guvenli cevirir."""
+        if isinstance(value, AlarmSeverity):
+            return value
+        try:
+            return AlarmSeverity(value or AlarmSeverity.MEDIUM.value)
+        except ValueError:
+            return AlarmSeverity.MEDIUM
 
     def _to_entity(self, model: AlarmModel) -> Alarm:
         bbox = None
@@ -22,6 +31,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             bounding_box=bbox,
             snapshot_path=model.snapshot_path,
             message=model.message,
+            severity=self._severity_to_entity(model.severity),
+            false_positive=bool(model.false_positive),
             assigned_to=model.assigned_to,
             operator_note=model.operator_note,
             resolution_reason=model.resolution_reason,
@@ -39,6 +50,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             confidence=entity.confidence,
             snapshot_path=entity.snapshot_path,
             message=entity.message,
+            severity=entity.severity.value,
+            false_positive=entity.false_positive,
             assigned_to=entity.assigned_to,
             operator_note=entity.operator_note,
             resolution_reason=entity.resolution_reason,
@@ -99,6 +112,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             model.confidence = alarm.confidence
             model.snapshot_path = alarm.snapshot_path
             model.message = alarm.message
+            model.severity = alarm.severity.value
+            model.false_positive = alarm.false_positive
             model.assigned_to = alarm.assigned_to
             model.operator_note = alarm.operator_note
             model.resolution_reason = alarm.resolution_reason

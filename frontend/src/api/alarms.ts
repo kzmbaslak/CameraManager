@@ -1,6 +1,6 @@
 // Alarm API çağrıları — listeleme (tümü, kameraya göre, duruma göre) ve onaylama
 import client from './client'
-import type { Alarm, AlarmStatus, AlarmType } from '../types/api'
+import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
 
 export const alarmsApi = {
   /** Alarmları opsiyonel filtrelerle listeler (kamera, tip, durum). */
@@ -33,14 +33,25 @@ export const alarmsApi = {
   },
 
   /** Alarm atama ve operator notu alanlarini gunceller. */
-  update: async (alarmId: number, payload: { assigned_to?: string | null; operator_note?: string | null }): Promise<Alarm> => {
+  update: async (alarmId: number, payload: {
+    assigned_to?: string | null
+    operator_note?: string | null
+    severity?: AlarmSeverity
+    false_positive?: boolean
+  }): Promise<Alarm> => {
     const { data } = await client.patch<Alarm>(`/alarms/${alarmId}`, payload)
     return data
   },
 
   /** Alarmi cozum nedeni ile kapatir. */
-  resolve: async (alarmId: number, payload: { resolution_reason?: string | null }): Promise<Alarm> => {
+  resolve: async (alarmId: number, payload: { resolution_reason?: string | null; false_positive?: boolean }): Promise<Alarm> => {
     const { data } = await client.post<Alarm>(`/alarms/${alarmId}/resolve`, payload)
+    return data
+  },
+
+  /** Alarmi tek aksiyonla yanlis alarm olarak kapatir. */
+  markFalsePositive: async (alarmId: number): Promise<Alarm> => {
+    const { data } = await client.post<Alarm>(`/alarms/${alarmId}/false-positive`)
     return data
   },
 

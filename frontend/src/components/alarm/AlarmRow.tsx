@@ -45,6 +45,8 @@ const statusVariant = {
 } as const
 
 const statusLabel = { new: 'Yeni', acknowledged: 'Onaylandı', resolved: 'Çözüldü' }
+const severityLabel = { low: 'Dusuk', medium: 'Orta', high: 'Yuksek', critical: 'Kritik' }
+const severityVariant = { low: 'neutral', medium: 'warning', high: 'danger', critical: 'danger' } as const
 
 export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowledging }: AlarmRowProps) {
   const cfg = typeConfig[alarm.alarm_type] ?? {
@@ -78,9 +80,14 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
         </div>
       </td>
       <td className="px-4 py-3">
-        <Badge variant={statusVariant[alarm.status]} dot>
-          {statusLabel[alarm.status]}
-        </Badge>
+        <div className="flex flex-col items-start gap-1">
+          <Badge variant={statusVariant[alarm.status]} dot>
+            {alarm.false_positive ? 'Yanlis Alarm' : statusLabel[alarm.status]}
+          </Badge>
+          <Badge variant={severityVariant[alarm.severity]}>
+            {severityLabel[alarm.severity]}
+          </Badge>
+        </div>
       </td>
       <td className="px-4 py-3 text-sm tabular-nums text-text-secondary">
         {alarm.alarm_type !== 'camera_offline' && alarm.confidence != null

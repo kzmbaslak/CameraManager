@@ -39,7 +39,7 @@ Riskler:
 - Kayıt sistemi yok: sürekli/olay bazlı video kaydı, kayıt takvimi, retention, disk kotası ve otomatik silme eklenmeli.
 - Playback yok: kamera bazlı zaman çizelgesi, olaydan önce/sonra izleme, hız kontrolü, snapshot/video dışa aktarma eklenmeli.
 - Kanıt yönetimi yok: alarm snapshot dosyaları UI'da görüntülenmeli, indirilmeli, hash/audit bilgisi tutulmalı.
-- Alarm operasyon akışı eksik: yeni/onaylandı/çözüldü yanında atanan kullanıcı, not, önem seviyesi, olay kapatma nedeni ve alarm detay paneli eklenmeli.
+- Alarm operasyon akışı büyük ölçüde tamamlandı: yeni/onaylandı/çözüldü, atanan kullanıcı, not, önem seviyesi, olay kapatma nedeni, yanlış alarm işareti ve detay paneli var. Kalan iş bu operasyon verisini raporlama/eğitim seti akışına bağlamak.
 - Audit log yok: kullanıcı girişleri, kamera/NVR değişiklikleri, alarm aksiyonları ve export işlemleri kayıt altına alınmalı.
 - İlk kurulum akışı kısmen var: otomatik varsayılan admin kaldırıldı, env kontrollü ilk admin ve CLI seed scripti var. Kalan iş: `.env` kontrolü, model varlığı, DB migrasyonu ve kamera/NVR ekleme sihirbazını tek akışa bağlamak.
 
@@ -60,7 +60,7 @@ Riskler:
 - Detection ayarları kısmen kamera bazlı: confidence, IoU, cooldown, aktif saatler ve ROI/poligon eklendi. Kalan iş frame stride ve düşük çözünürlüklü AI örnekleme ayarlarını operatör kontrollü hale getirmek.
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
-- False positive yönetimi yok: alarmı "yanlış alarm" diye kapatma, örnekleri saklama ve threshold iyileştirme akışı olmalı.
+- False positive yönetimi başladı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor ve DB/audit kaydı oluşuyor. Kalan iş örnekleri eğitim/threshold iyileştirme havuzuna bağlamak.
 - AI performans ekranı yok: inference süresi, provider, CPU/GPU kullanımı ve stream başına FPS izlenmeli.
 
 ### P1 - Güvenlik ve Operasyon
@@ -100,7 +100,7 @@ Riskler:
 1. P0 operasyon çekirdeği: kayıt, playback, snapshot/export, audit log.
 2. AI pipeline ince ayarları: düşük çözünürlüklü AI örnekleme, ROI ve threshold ayarları.
 3. RTSP telemetry geçmişi: TCP sağlık geçmişi eklendi; cihaz bazlı açılış süresi, başarısız deneme sayısı, FPS ve stream kalite trendi derinleştirilecek.
-3. Alarm detay deneyimi: detay drawer, snapshot preview, not/atanan kişi/çözüm nedeni.
+3. Alarm detay deneyimi: detay drawer, snapshot preview, not/atanan kişi/çözüm nedeni, önem seviyesi ve yanlış alarm işareti eklendi; sıradaki iyileştirme raporlama/eğitim seti geri beslemesi.
 4. Kamera/NVR ekleme sihirbazı: discovery -> test -> profil seç -> import -> izlemeye al.
 5. Güvenlik sertleştirme: stream token log maskeleme/handshake iyileştirmesi, refresh flow, izin matrisi, backup/restore.
 6. UX temizlik: encoding düzeltme, navigasyon isimleri, responsive sidebar, toast/modal standardı.

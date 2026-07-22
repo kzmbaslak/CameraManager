@@ -18,6 +18,13 @@ class AlarmType(str, Enum):
     MOTION_DETECTED = "motion_detected"
 
 
+class AlarmSeverity(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
 @dataclass(frozen=True)
 class BoundingBox:
     x: int
@@ -36,6 +43,8 @@ class Alarm:
     bounding_box: Optional[BoundingBox] = None
     snapshot_path: Optional[str] = None
     message: Optional[str] = None
+    severity: AlarmSeverity = AlarmSeverity.MEDIUM
+    false_positive: bool = False
     assigned_to: Optional[str] = None
     operator_note: Optional[str] = None
     resolution_reason: Optional[str] = None

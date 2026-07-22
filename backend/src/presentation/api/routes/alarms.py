@@ -101,14 +101,28 @@ def update_alarm(
     alarm = repo.get_by_id(alarm_id)
     if not alarm:
         raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
-    alarm.assigned_to = data.assigned_to
-    alarm.operator_note = data.operator_note
+    fields = data.model_fields_set
+    if "assigned_to" in fields:
+        alarm.assigned_to = data.assigned_to
+    if "operator_note" in fields:
+        alarm.operator_note = data.operator_note
+    if "severity" in fields and data.severity is not None:
+        alarm.severity = data.severity
+    if "false_positive" in fields and data.false_positive is not None:
+        alarm.false_positive = data.false_positive
     updated = repo.update(alarm)
     write_audit_event(
         "alarm.update",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
-        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "assigned_to": data.assigned_to},
+        metadata={
+            "alarm_id": alarm_id,
+            "camera_id": alarm.camera_id,
+            "changed_fields": sorted(fields),
+            "assigned_to": alarm.assigned_to,
+            "severity": alarm.severity.value,
+            "false_positive": alarm.false_positive,
+        },
     )
     return updated
 
@@ -128,12 +142,44 @@ def resolve_alarm(
     if not alarm:
         raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
     alarm.resolution_reason = data.resolution_reason
+    alarm.false_positive = data.false_positive
     alarm.resolve(datetime.utcnow())
     updated = repo.update(alarm)
     write_audit_event(
         "alarm.resolve",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
-        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "resolution_reason": data.resolution_reason},
+        metadata={
+            "alarm_id": alarm_id,
+            "camera_id": alarm.camera_id,
+            "resolution_reason": data.resolution_reason,
+            "false_positive": data.false_positive,
+        },
+    )
+    return updated
+
+
+@router.post("/{alarm_id}/false-positive", response_model=AlarmResponse)
+def mark_alarm_false_positive(
+    alarm_id: int,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Alarmi tek aksiyonla yanlis alarm olarak kapatir."""
+    from datetime import datetime
+
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm:
+        raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
+    alarm.false_positive = True
+    alarm.resolution_reason = alarm.resolution_reason or "Yanlis alarm"
+    alarm.resolve(datetime.utcnow())
+    updated = repo.update(alarm)
+    write_audit_event(
+        "alarm.false_positive",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id},
     )
     return updated

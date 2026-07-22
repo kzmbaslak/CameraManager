@@ -84,6 +84,8 @@ class AlarmModel(Base):
 
     snapshot_path = Column(String, nullable=True)
     message = Column(String, nullable=True)
+    severity = Column(String, default="medium")
+    false_positive = Column(Boolean, default=False)
     assigned_to = Column(String, nullable=True)
     operator_note = Column(String, nullable=True)
     resolution_reason = Column(String, nullable=True)

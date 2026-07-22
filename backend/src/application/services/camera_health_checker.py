@@ -94,7 +94,7 @@ class CameraHealthChecker:
 
     def _check_all_sync(self) -> None:
         from src.domain.entities.camera import CameraStatus
-        from src.domain.entities.alarm import Alarm, AlarmType, AlarmStatus
+        from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmType, AlarmStatus
 
         db = self._open_db()
         try:
@@ -144,6 +144,7 @@ class CameraHealthChecker:
                         confidence=1.0,
                         bounding_box=None,
                         snapshot_path=None,
+                        severity=AlarmSeverity.HIGH,
                         message="Kamera erişilemiyor (bağlantı testi başarısız)!",
                         created_at=now,
                     )
