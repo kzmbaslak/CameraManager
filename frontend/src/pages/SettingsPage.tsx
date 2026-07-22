@@ -13,6 +13,7 @@ import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import type { User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
@@ -181,6 +182,7 @@ export function SettingsPage() {
   const [userSearch, setUserSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'operator' | 'viewer'>('all')
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const qc = useQueryClient()
   const { canManageUsers } = usePermissions()
   const currentUsername = useAuthStore((s) => s.username)
@@ -214,7 +216,10 @@ export function SettingsPage() {
   /** Kullanıcıyı sistemden siler */
   const deleteUser = useMutation({
     mutationFn: usersApi.delete,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: () => {
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['users'] })
+    },
   })
 
   const columns = [
@@ -252,7 +257,7 @@ export function SettingsPage() {
               variant="danger"
               icon={<Trash2 size={12} />}
               loading={deleteUser.isPending && deleteUser.variables === u.id}
-              onClick={() => confirm(`"${u.username}" silinsin mi?`) && deleteUser.mutate(u.id)}
+              onClick={() => setDeleteTarget(u)}
             >
               Sil
             </Button>
@@ -366,6 +371,15 @@ export function SettingsPage() {
 
       <AddUserModal open={showAdd} onClose={() => setShowAdd(false)} />
       <EditUserModal user={editUser} onClose={() => setEditUser(null)} />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Kullanici Sil"
+        description={deleteTarget ? `"${deleteTarget.username}" kullanicisi silinecek. Bu kullanici artik sisteme erisemeyecek.` : ''}
+        confirmLabel="Sil"
+        loading={deleteUser.isPending}
+        onClose={() => !deleteUser.isPending && setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteUser.mutate(deleteTarget.id)}
+      />
     </div>
   )
 }

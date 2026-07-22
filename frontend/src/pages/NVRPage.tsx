@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/Badge'
 import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
@@ -688,6 +689,7 @@ export function NVRPage() {
   const [activeNvrForScan, setActiveNvrForScan] = useState<NVR | null>(null)
   const [nvrSearch, setNvrSearch] = useState('')
   const [nvrStatusFilter, setNvrStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [deleteTarget, setDeleteTarget] = useState<NVR | null>(null)
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
 
@@ -731,7 +733,10 @@ export function NVRPage() {
   /** NVR'ı sistemden siler */
   const deleteNvr = useMutation({
     mutationFn: nvrsApi.delete,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['nvrs'] }),
+    onSuccess: () => {
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['nvrs'] })
+    },
   })
 
   const columns = [
@@ -780,7 +785,8 @@ export function NVRPage() {
               size="sm"
               variant="danger"
               icon={<Trash2 size={12} />}
-              onClick={() => confirm(`"${n.name}" silinsin mi?`) && deleteNvr.mutate(n.id)}
+              loading={deleteNvr.isPending && deleteNvr.variables === n.id}
+              onClick={() => setDeleteTarget(n)}
             >
               Sil
             </Button>
@@ -844,6 +850,15 @@ export function NVRPage() {
 
       <AddNVRModal open={showAdd} onClose={() => { setShowAdd(false); setPrefilledDevice(null); }} initialValues={prefilledDevice} />
       <EditNVRModal nvr={editNVR} onClose={() => setEditNVR(null)} />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="NVR Sil"
+        description={deleteTarget ? `"${deleteTarget.name}" kayit cihazi silinecek. Bagli kameralar NVR baglantisini kaybedebilir.` : ''}
+        confirmLabel="Sil"
+        loading={deleteNvr.isPending}
+        onClose={() => !deleteNvr.isPending && setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteNvr.mutate(deleteTarget.id)}
+      />
       <DiscoverModal
         open={showDiscover}
         onClose={() => setShowDiscover(false)}

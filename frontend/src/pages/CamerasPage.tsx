@@ -11,6 +11,7 @@ import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAlarmStore } from '../stores/alarmStore'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraRtspDiagnostics } from '../types/api'
 
@@ -421,6 +422,7 @@ export function CamerasPage() {
   const [cameraSearch, setCameraSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CameraStatus | 'all'>('all')
   const [aiFilter, setAiFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
+  const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
   const qc = useQueryClient()
   const { canManageCameras, canEditCameras } = usePermissions()
   const { setExpandedCamera } = useAlarmStore()
@@ -475,7 +477,10 @@ export function CamerasPage() {
   /** Kamerayı sistemden siler */
   const deleteCam = useMutation({
     mutationFn: camerasApi.delete,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cameras'] }),
+    onSuccess: () => {
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+    },
   })
 
   /** Kayıtlı kameranın RTSP host/port/path erişimini test eder. */
@@ -597,7 +602,7 @@ export function CamerasPage() {
               variant="danger"
               icon={<Trash2 size={12} />}
               loading={deleteCam.isPending && deleteCam.variables === c.id}
-              onClick={() => confirm(`"${c.name}" silinsin mi?`) && deleteCam.mutate(c.id)}
+              onClick={() => setDeleteTarget(c)}
             >
               Sil
             </Button>
@@ -670,6 +675,15 @@ export function CamerasPage() {
       <AddCameraModal open={showAdd} onClose={() => setShowAdd(false)} />
       <ScanCamerasModal open={showScan} onClose={() => setShowScan(false)} />
       <EditCameraModal key={editCamera?.id ?? 'none'} camera={editCamera} onClose={() => setEditCamera(null)} />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Kamera Sil"
+        description={deleteTarget ? `"${deleteTarget.name}" kamerasi silinecek. Bu islem kamera kaydini sistemden kaldirir.` : ''}
+        confirmLabel="Sil"
+        loading={deleteCam.isPending}
+        onClose={() => !deleteCam.isPending && setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteCam.mutate(deleteTarget.id)}
+      />
       <Modal open={diagnosticResult !== null || diagnosticError !== null} onClose={() => { setDiagnosticResult(null); setDiagnosticError(null) }} title="RTSP Bağlantı Testi">
         {diagnosticError && (
           <div className="flex flex-col gap-3 text-sm">

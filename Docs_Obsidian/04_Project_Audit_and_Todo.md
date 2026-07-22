@@ -77,7 +77,7 @@ Riskler:
 - Navigasyon dili netleşmeli: `Dashboard` yerine `Canlı İzleme` veya `Kontrol Paneli`; `NVR` yerine `Kayıt Cihazları`; `Settings` route'u yerine `Kullanıcılar`.
 - Sidebar sabit genişlikli; küçük ekran/tablet için collapse/drawer davranışı eklenmeli.
 - Kameralar, NVR ve Kullanıcılar listelerinde arama/durum/rol gibi hızlı client-side filtreler eklendi. Kalan iş sıralama, sayfalama ve geniş listeler için server-side pagination.
-- `confirm()` ve `alert()` yerine erişilebilir onay modalı/toast sistemi kullanılmalı.
+- `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Kalan iş başarılı/başarısız işlemler için toast bildirim standardı.
 - Hata mesajları genel: backend `detail` kullanıcıya anlaşılır şekilde gösterilmeli.
 - Formlarda test bağlantısı, input doğrulama, örnek RTSP path açıklaması, port sınırı ve password visibility toggle yok.
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş ve toplu onaylama yok.
