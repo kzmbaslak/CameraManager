@@ -364,7 +364,23 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     },
   })
 
+  const {
+    mutate: testConnection,
+    data: testResult,
+    isPending: isTestingConnection,
+    error: testError,
+  } = useMutation({
+    mutationFn: () => camerasApi.diagnoseRtsp(camera!.id),
+  })
+
   if (!camera) return null
+
+  const connectionChanged =
+    form.host !== camera.host ||
+    form.rtsp_port !== camera.rtsp_port ||
+    form.rtsp_path !== camera.rtsp_path ||
+    form.username !== (camera.username ?? '') ||
+    Boolean(form.password)
 
   return (
     <Modal open onClose={onClose} title={`Düzenle — ${camera.name}`}>
@@ -378,6 +394,51 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Baglanti Testi</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Kayitli RTSP baglantisi sifre gosterilmeden test edilir.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              icon={<Activity size={13} />}
+              loading={isTestingConnection}
+              onClick={() => testConnection()}
+            >
+              Test Et
+            </Button>
+          </div>
+          {connectionChanged && (
+            <p className="mt-2 text-xs text-[var(--warning)]">
+              Kaydedilmemis degisiklikler var; test mevcut kayitli baglanti degerleriyle calisir.
+            </p>
+          )}
+          {testError && (
+            <p className="mt-2 text-xs text-[var(--danger)]">
+              {getErrorMessage(testError, 'RTSP baglanti testi calistirilamadi.')}
+            </p>
+          )}
+          {testResult && (
+            <div className="mt-3 flex flex-col gap-2">
+              <p className={testResult.frame_ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
+                {testResult.message}
+              </p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <Badge variant={testResult.tcp_open ? 'success' : 'danger'}>TCP {testResult.tcp_open ? 'Acik' : 'Kapali'}</Badge>
+                <Badge variant={testResult.describe_ok ? 'success' : 'danger'}>DESCRIBE {testResult.describe_ok ? 'OK' : 'Hata'}</Badge>
+                <Badge variant={testResult.frame_ok ? 'success' : 'danger'}>Frame {testResult.frame_ok ? 'OK' : 'Yok'}</Badge>
+              </div>
+              <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
+                {testResult.authenticated_url_masked}
+              </p>
+            </div>
+          )}
+        </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
           <div className="mt-3 grid grid-cols-3 gap-3">

@@ -49,7 +49,7 @@ Riskler:
 - PTZ desteği yok: pan/tilt/zoom, preset, patrol ve yetkiye bağlı PTZ kontrolü eklenmeli.
 - Kamera sağlık metrikleri yetersiz: son frame zamanı, reconnect sayısı, FPS, latency, hata nedeni ve uptime gösterilmeli.
 - NVR import deneyimi geliştirilmeli: daha önce eklenen kanallar işaretlenmeli, kanal ismi düzenlenebilmeli, toplu profil seçimi ve duplicate raporu sunulmalı.
-- Kamera bağlantı testi yok: ekleme/düzenleme formunda RTSP/ONVIF test butonu ve açıklayıcı hata çıktısı olmalı.
+- Kamera bağlantı testi kısmen tamamlandı: kamera listesinde ve kamera düzenleme modalında kayıtlı RTSP bağlantısı TCP/DESCRIBE/frame sonucu ve açıklayıcı hata mesajıyla test edilebiliyor. Kalan iş kaydedilmemiş form değerlerini test eden önizleme endpoint'i ve ONVIF testini aynı akışa eklemek.
 - Çoklu saha/konum modeli yok: site, bina, kat, bölge gibi hiyerarşi ve ileride harita/floorplan görünümü için domain alanları eklenmeli.
 
 ### P1 - AI ve Olay Tespiti
@@ -79,7 +79,7 @@ Riskler:
 - Kameralar, NVR ve Kullanıcılar listelerinde arama/durum/rol gibi hızlı client-side filtreler eklendi. Kalan iş sıralama, sayfalama ve geniş listeler için server-side pagination.
 - `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Kalan iş başarılı/başarısız işlemler için toast bildirim standardı.
 - Hata mesajları genel: backend `detail` kullanıcıya anlaşılır şekilde gösterilmeli.
-- Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kalan iş düzenleme formlarında bağlantı testini doğrudan sunmak ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
+- Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kamera düzenleme formunda kayıtlı RTSP bağlantı testi doğrudan sunuluyor. Kalan iş kaydedilmemiş form değerleriyle bağlantı önizlemesi ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş ve toplu onaylama yok.
 - Canlı grid'de kamera arama, layout kaydetme, sürükle-bırak sıralama, tam ekran çoklu layout ve düşük bant modu yok.
 - Erişilebilirlik eksik: focus ring standardı, klavye navigasyonu, ARIA etiketleri, renk dışı durum göstergeleri, kontrast testi yapılmalı.
