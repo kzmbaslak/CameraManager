@@ -1,5 +1,5 @@
 // Kamera listesi, ekleme, düzenleme, silme ve AI tespiti yönetimi sayfası
-import { useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Activity, Plus, Trash2, Power, Pencil, Play, Search } from 'lucide-react'
 import { camerasApi, type CameraUpdate } from '../api/cameras'
@@ -418,6 +418,9 @@ export function CamerasPage() {
   const [editCamera, setEditCamera] = useState<Camera | null>(null)
   const [diagnosticResult, setDiagnosticResult] = useState<CameraRtspDiagnostics | null>(null)
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
+  const [cameraSearch, setCameraSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<CameraStatus | 'all'>('all')
+  const [aiFilter, setAiFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const qc = useQueryClient()
   const { canManageCameras, canEditCameras } = usePermissions()
   const { setExpandedCamera } = useAlarmStore()
@@ -426,6 +429,34 @@ export function CamerasPage() {
     queryKey: ['cameras'],
     queryFn: camerasApi.list,
   })
+
+  const filteredCameras = useMemo(() => {
+    const needle = cameraSearch.trim().toLowerCase()
+    return cameras.filter((camera) => {
+      const matchesSearch = !needle || [
+        camera.name,
+        camera.host,
+        camera.rtsp_path,
+        camera.brand ?? '',
+        camera.model ?? '',
+        camera.nvr_id ? `nvr ${camera.nvr_id}` : '',
+      ].some((value) => value.toLowerCase().includes(needle))
+      const matchesStatus = statusFilter === 'all' || camera.status === statusFilter
+      const matchesAi =
+        aiFilter === 'all' ||
+        (aiFilter === 'enabled' && camera.ai_detection_enabled) ||
+        (aiFilter === 'disabled' && !camera.ai_detection_enabled)
+      return matchesSearch && matchesStatus && matchesAi
+    })
+  }, [aiFilter, cameraSearch, cameras, statusFilter])
+
+  const hasCameraFilter = cameraSearch.trim() !== '' || statusFilter !== 'all' || aiFilter !== 'all'
+
+  const resetCameraFilters = () => {
+    setCameraSearch('')
+    setStatusFilter('all')
+    setAiFilter('all')
+  }
 
   /** Kamera durumunu değiştirir; ACTIVE ↔ INACTIVE */
   const toggleStatus = useMutation({
@@ -582,7 +613,7 @@ export function CamerasPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Kameralar</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
-            {cameras.length} kamera — {cameras.filter((c) => c.ai_detection_enabled).length} AI aktif
+            {filteredCameras.length} / {cameras.length} kamera — {cameras.filter((c) => c.ai_detection_enabled).length} AI aktif
           </p>
         </div>
         {canManageCameras && (
@@ -597,10 +628,43 @@ export function CamerasPage() {
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={cameraSearch}
+          onChange={(e) => setCameraSearch(e.target.value)}
+          placeholder="Kamera adi, IP, marka veya NVR ara"
+          className="w-full sm:w-80"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as CameraStatus | 'all')}
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="all">Tum Durumlar</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Pasif</option>
+          <option value="error">Hata</option>
+        </select>
+        <select
+          value={aiFilter}
+          onChange={(e) => setAiFilter(e.target.value as 'all' | 'enabled' | 'disabled')}
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          <option value="all">Tum AI</option>
+          <option value="enabled">AI Acik</option>
+          <option value="disabled">AI Kapali</option>
+        </select>
+        {hasCameraFilter && (
+          <Button size="sm" variant="secondary" onClick={resetCameraFilters}>
+            Filtreleri Sifirla
+          </Button>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={cameras} keyFn={(c) => c.id} emptyText="Henüz kamera eklenmedi." />
+        <Table columns={columns} data={filteredCameras} keyFn={(c) => c.id} emptyText={hasCameraFilter ? 'Filtrelerle eslesen kamera bulunamadi.' : 'Henüz kamera eklenmedi.'} />
       )}
 
       <AddCameraModal open={showAdd} onClose={() => setShowAdd(false)} />
