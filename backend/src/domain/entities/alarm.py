@@ -15,6 +15,7 @@ class AlarmStatus(str, Enum):
 class AlarmType(str, Enum):
     HUMAN_DETECTED = "human_detected"
     CAMERA_OFFLINE = "camera_offline"
+    CAMERA_HEALTH_DEGRADED = "camera_health_degraded"
     MOTION_DETECTED = "motion_detected"
 
 

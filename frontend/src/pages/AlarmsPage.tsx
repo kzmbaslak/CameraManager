@@ -29,6 +29,7 @@ const TYPE_OPTIONS: { value: AlarmType | 'all'; label: string }[] = [
   { value: 'all', label: 'Tüm Tipler' },
   { value: 'human_detected', label: 'İnsan Tespiti' },
   { value: 'motion_detected', label: 'Hareket Tespiti' },
+  { value: 'camera_health_degraded', label: 'Kamera Saglik Uyarisi' },
   { value: 'camera_offline', label: 'Kamera Çevrimdışı' },
 ]
 

@@ -88,7 +88,7 @@ export function useAlarmNotifications() {
 
       // Kamera çevrimdışı alarmı için canlı görüntülü popup açma —
       // kamera erişilemez, boş önizleme kafa karıştırır; alarm listesinden takip edilebilir
-      if (alarm.alarm_type === 'camera_offline') return
+      if (alarm.alarm_type === 'camera_offline' || alarm.alarm_type === 'camera_health_degraded') return
 
       addNotification(alarm)
       const soundMuted = soundMutedUntil !== null && soundMutedUntil > Date.now()

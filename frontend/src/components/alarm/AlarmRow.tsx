@@ -36,6 +36,11 @@ const typeConfig: Record<string, {
     icon: <Wifi size={13} className="opacity-50" />,
     badgeVariant: 'neutral',
   },
+  camera_health_degraded: {
+    label: 'Kamera Saglik Uyarisi',
+    icon: <Activity size={13} />,
+    badgeVariant: 'warning',
+  },
 }
 
 const statusVariant = {
@@ -66,7 +71,7 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
         <div className="flex items-start gap-2">
           <span className={`mt-0.5 shrink-0 ${
             alarm.alarm_type === 'human_detected' ? 'text-danger' :
-            alarm.alarm_type === 'motion_detected' ? 'text-warning' :
+            alarm.alarm_type === 'motion_detected' || alarm.alarm_type === 'camera_health_degraded' ? 'text-warning' :
             'text-text-secondary'
           }`}>
             {cfg.icon}
@@ -90,7 +95,7 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
         </div>
       </td>
       <td className="px-4 py-3 text-sm tabular-nums text-text-secondary">
-        {alarm.alarm_type !== 'camera_offline' && alarm.confidence != null
+        {alarm.alarm_type !== 'camera_offline' && alarm.alarm_type !== 'camera_health_degraded' && alarm.confidence != null
           ? `%${Math.round(alarm.confidence * 100)}`
           : '-'}
       </td>

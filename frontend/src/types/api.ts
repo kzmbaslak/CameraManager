@@ -58,7 +58,7 @@ export interface CameraCreate {
   ai_roi_polygon?: string | null
 }
 
-export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline'
+export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline' | 'camera_health_degraded'
 export type AlarmStatus = 'new' | 'acknowledged' | 'resolved'
 export type AlarmSeverity = 'low' | 'medium' | 'high' | 'critical'
 

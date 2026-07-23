@@ -35,6 +35,7 @@ function ShortcutLegend() {
 const typeLabel: Record<string, string> = {
   human_detected: 'İnsan Tespiti',
   motion_detected: 'Hareket',
+  camera_health_degraded: 'Kamera Saglik Uyarisi',
   camera_offline: 'Kamera Çevrimdışı',
 }
 
@@ -52,7 +53,7 @@ function NotificationCard({
   busy: boolean
 }) {
   const { dismiss, setExpandedCamera } = useAlarmStore()
-  const streamEnabled = alarm.alarm_type !== 'camera_offline'
+  const streamEnabled = alarm.alarm_type !== 'camera_offline' && alarm.alarm_type !== 'camera_health_degraded'
   const { frame, connected } = useCameraStream(alarm.camera_id, streamEnabled, 'alarm')
 
   return (

@@ -38,6 +38,7 @@ class CameraHealthChecker:
         self._health_repository_factory = health_repository_factory
         self._task: asyncio.Task | None = None
         self._last_offline_alarm: Dict[int, datetime] = {}
+        self._last_degraded_alarm: Dict[int, datetime] = {}
 
     def _open_db(self):
         if self._db_session_factory is None:
@@ -92,6 +93,37 @@ class CameraHealthChecker:
         except OSError as exc:
             return False, None, exc.__class__.__name__
 
+    def _health_degradation(self, samples) -> tuple[bool, str, object]:
+        from src.domain.entities.alarm import AlarmSeverity
+
+        if not samples:
+            return False, "", AlarmSeverity.LOW
+        latest = samples[0]
+        if not latest.reachable:
+            return False, "", AlarmSeverity.LOW
+
+        sample_count = len(samples)
+        reachable_count = sum(1 for sample in samples if sample.reachable)
+        availability = (reachable_count / sample_count) * 100 if sample_count else 100.0
+        if availability < 90:
+            return True, f"Kamera saglik uyarisi: erisilebilirlik %{availability:.1f}.", AlarmSeverity.HIGH
+        if availability < 98:
+            return True, f"Kamera saglik uyarisi: erisilebilirlik %{availability:.1f}.", AlarmSeverity.MEDIUM
+        if latest.latency_ms is not None and latest.latency_ms > 1000:
+            return True, f"Kamera saglik uyarisi: yuksek latency {latest.latency_ms:.0f} ms.", AlarmSeverity.MEDIUM
+        return False, "", AlarmSeverity.LOW
+
+    def _resolve_open_health_degraded(self, alarm_repo, camera_id: int, now: datetime, reason: str) -> None:
+        from src.domain.entities.alarm import AlarmStatus, AlarmType
+
+        alarms = alarm_repo.list_all(camera_id=camera_id, alarm_type=AlarmType.CAMERA_HEALTH_DEGRADED, limit=20)
+        for alarm in alarms:
+            if alarm.status == AlarmStatus.RESOLVED:
+                continue
+            alarm.resolution_reason = reason
+            alarm.resolve(now)
+            alarm_repo.update(alarm)
+
     def _check_all_sync(self) -> None:
         from src.domain.entities.camera import CameraStatus
         from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmType, AlarmStatus
@@ -122,6 +154,43 @@ class CameraHealthChecker:
                     health_repo.prune_older_than(days=7)
 
                 if reachable:
+                    if health_repo is not None:
+                        samples = list(health_repo.list_recent(camera.id, 120))
+                        degraded, message, severity = self._health_degradation(samples)
+                        if degraded:
+                            has_open_degraded = any(
+                                alarm.status != AlarmStatus.RESOLVED
+                                for alarm in alarm_repo.list_all(
+                                    camera_id=camera.id,
+                                    alarm_type=AlarmType.CAMERA_HEALTH_DEGRADED,
+                                    limit=20,
+                                )
+                            )
+                            last_degraded = self._last_degraded_alarm.get(camera.id)
+                            if (
+                                not has_open_degraded
+                                and (last_degraded is None or (now - last_degraded).total_seconds() >= self._cooldown_seconds)
+                            ):
+                                alarm_repo.add(Alarm(
+                                    id=None,
+                                    camera_id=camera.id,
+                                    alarm_type=AlarmType.CAMERA_HEALTH_DEGRADED,
+                                    status=AlarmStatus.NEW,
+                                    confidence=None,
+                                    bounding_box=None,
+                                    snapshot_path=None,
+                                    severity=severity,
+                                    message=message,
+                                    created_at=now,
+                                ))
+                                self._last_degraded_alarm[camera.id] = now
+                        else:
+                            self._resolve_open_health_degraded(
+                                alarm_repo,
+                                camera.id,
+                                now,
+                                "Kamera saglik metrikleri normale dondu.",
+                            )
                     # TCP ping başarılı ama bu RTSP stream'in çalıştığını garanti etmez;
                     # özellikle NVR kanalları için NVR'ın portu her zaman açık kalır.
                     # ERROR→ACTIVE geçişi producer döngüsüne bırakılıyor: gerçek frame
@@ -132,6 +201,12 @@ class CameraHealthChecker:
                 if camera.status != CameraStatus.ERROR:
                     camera.mark_error()
                     camera_repo.update(camera)
+                self._resolve_open_health_degraded(
+                    alarm_repo,
+                    camera.id,
+                    now,
+                    "Kamera cevrimdisi alarmi saglik uyarisi yerine gecti.",
+                )
 
                 # Tekrarlı alarm spamini önle (cooldown)
                 last = self._last_offline_alarm.get(camera.id)
