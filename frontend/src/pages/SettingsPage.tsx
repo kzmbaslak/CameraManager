@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Download, Plus, Pencil, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Download, Moon, Plus, Pencil, Sun, Trash2, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -182,6 +182,8 @@ const auditEventHashLabel = (event: AuditEvent) => event.event_hash?.slice(0, 12
 
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
 function GeneralSettingsPanel() {
+  const themeMode = useSystemSettingsStore((s) => s.themeMode)
+  const setThemeMode = useSystemSettingsStore((s) => s.setThemeMode)
   const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
   const soundDuration = useSystemSettingsStore((s) => s.humanDetectionSoundDurationSeconds)
   const setSoundEnabled = useSystemSettingsStore((s) => s.setHumanDetectionSoundEnabled)
@@ -189,6 +191,44 @@ function GeneralSettingsPanel() {
 
   return (
     <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            {themeMode === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Arayuz Temasi</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Operator konsolu icin karanlik veya aydinlik yuksek kontrast gorunumunu secin.
+            </p>
+          </div>
+        </div>
+        <div className="flex rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] p-1">
+          <button
+            type="button"
+            aria-pressed={themeMode === 'dark'}
+            onClick={() => setThemeMode('dark')}
+            className={`inline-flex h-8 items-center gap-1.5 rounded px-3 text-xs font-medium transition-colors ${
+              themeMode === 'dark' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <Moon size={13} />
+            Koyu
+          </button>
+          <button
+            type="button"
+            aria-pressed={themeMode === 'light'}
+            onClick={() => setThemeMode('light')}
+            className={`inline-flex h-8 items-center gap-1.5 rounded px-3 text-xs font-medium transition-colors ${
+              themeMode === 'light' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <Sun size={13} />
+            Acik
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
