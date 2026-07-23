@@ -242,6 +242,11 @@ export interface CameraOnvifPreviewResponse {
   firmware_version: string | null
   profile_count: number
   stream_uri_count: number
+  media_supported: boolean
+  events_supported: boolean
+  ptz_supported: boolean
+  imaging_supported: boolean
+  analytics_supported: boolean
   first_stream_uri_masked: string | null
   message: string
 }

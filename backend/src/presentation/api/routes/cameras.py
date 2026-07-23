@@ -380,6 +380,18 @@ async def preview_camera_onvif(
             "message": f"ONVIF baglantisi kurulamadi: {exc}",
         }
 
+    capability_summary = {
+        "media_supported": False,
+        "events_supported": False,
+        "ptz_supported": False,
+        "imaging_supported": False,
+        "analytics_supported": False,
+    }
+    try:
+        capability_summary.update(probe_svc.get_capability_summary(host, onvif_port, username, password or ""))
+    except Exception:
+        pass
+
     stream_error = None
     try:
         streams = list(probe_svc.get_stream_uris(host, onvif_port, username, password or ""))
@@ -398,6 +410,7 @@ async def preview_camera_onvif(
         "firmware_version": device.firmware_version,
         "profile_count": len(streams),
         "stream_uri_count": sum(1 for stream in streams if stream.rtsp_url),
+        **capability_summary,
         "first_stream_uri_masked": _mask_rtsp_url(streams[0].rtsp_url) if streams else None,
         "message": (
             "ONVIF cihaz bilgisi ve stream profilleri okundu."

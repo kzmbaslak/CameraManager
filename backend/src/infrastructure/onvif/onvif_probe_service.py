@@ -31,6 +31,29 @@ class ONVIFProbeService(ICameraProbeService):
             firmware_version=d.get("FirmwareVersion", ""),
         )
 
+    def get_capability_summary(self, host: str, onvif_port: int, username: str, password: str) -> dict:
+        """ONVIF GetCapabilities sonucunu operator arayuzu icin kisa ozete cevirir."""
+        cam = self._connect(host, onvif_port, username, password)
+        raw = cam.devicemgmt.GetCapabilities({"Category": "All"})
+        data = self._to_dict(cam, raw)
+        capabilities = data.get("Capabilities", data)
+        if not isinstance(capabilities, dict):
+            capabilities = {}
+
+        def has_service(name: str) -> bool:
+            value = capabilities.get(name)
+            if isinstance(value, dict):
+                return bool(value.get("XAddr") or value)
+            return bool(value)
+
+        return {
+            "media_supported": has_service("Media"),
+            "events_supported": has_service("Events"),
+            "ptz_supported": has_service("PTZ"),
+            "imaging_supported": has_service("Imaging"),
+            "analytics_supported": has_service("Analytics"),
+        }
+
     def get_stream_uris(
         self, host: str, onvif_port: int, username: str, password: str
     ) -> Sequence[CameraProbeResult]:

@@ -247,6 +247,11 @@ class CameraOnvifPreviewResponse(BaseModel):
     firmware_version: Optional[str] = None
     profile_count: int = 0
     stream_uri_count: int = 0
+    media_supported: bool = False
+    events_supported: bool = False
+    ptz_supported: bool = False
+    imaging_supported: bool = False
+    analytics_supported: bool = False
     first_stream_uri_masked: Optional[str] = None
     message: str
 

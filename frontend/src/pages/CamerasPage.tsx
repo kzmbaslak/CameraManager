@@ -99,6 +99,13 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
         <Badge variant={result.profile_count > 0 ? 'success' : 'warning'}>Profil {result.profile_count}</Badge>
         <Badge variant={result.stream_uri_count > 0 ? 'success' : 'warning'}>Stream {result.stream_uri_count}</Badge>
       </div>
+      <div className="grid grid-cols-5 gap-1 text-[10px]">
+        <Badge variant={result.media_supported ? 'success' : 'neutral'}>Media</Badge>
+        <Badge variant={result.events_supported ? 'success' : 'neutral'}>Event</Badge>
+        <Badge variant={result.ptz_supported ? 'success' : 'neutral'}>PTZ</Badge>
+        <Badge variant={result.imaging_supported ? 'success' : 'neutral'}>Imaging</Badge>
+        <Badge variant={result.analytics_supported ? 'success' : 'neutral'}>Analytics</Badge>
+      </div>
       {(result.manufacturer || result.model) && (
         <p className="text-xs text-[var(--text-secondary)]">
           {[result.manufacturer, result.model, result.firmware_version].filter(Boolean).join(' / ')}

@@ -45,11 +45,11 @@ Riskler:
 
 ### P1 - Kamera/NVR Yönetimi
 
-- ONVIF yetenek keşfi kısmen var: NVR kanal keşfi ve kamera formunda kaydetmeden GetDeviceInformation/stream URI profil testi çalışıyor. Kalan iş Profile S/T/G/M uyumluluk bilgisi, çözünürlük/FPS/codec, snapshot URI, event subscriptions ve PTZ capability alanlarını ayrıntılı okumak.
+- ONVIF yetenek keşfi kısmen var: NVR kanal keşfi ve kamera formunda kaydetmeden GetDeviceInformation/stream URI profil testi çalışıyor. Kamera ONVIF önizleme paneli GetCapabilities üzerinden Media, Events, PTZ, Imaging ve Analytics servis desteklerini gösterir. Kalan iş Profile S/T/G/M uyumluluk bilgisi, çözünürlük/FPS/codec, snapshot URI ve event subscription detaylarını ayrıntılı okumak.
 - PTZ desteği yok: pan/tilt/zoom, preset, patrol ve yetkiye bağlı PTZ kontrolü eklenmeli.
 - Kamera sağlık metrikleri yetersiz: son frame zamanı, reconnect sayısı, FPS, latency, hata nedeni ve uptime gösterilmeli.
 - NVR import deneyimi geliştirilmeli: daha önce eklenen kanallar işaretlenmeli, kanal ismi düzenlenebilmeli, toplu profil seçimi ve duplicate raporu sunulmalı.
-- Kamera bağlantı testi büyük ölçüde tamamlandı: kamera listesinde kayıtlı RTSP bağlantısı; kamera ekleme ve düzenleme modallarında kaydetmeden RTSP TCP/DESCRIBE/frame ve ONVIF cihaz/profil testi açıklayıcı sonuçlarla çalışıyor. Düzenleme formunda yeni şifre boşsa backend kayıtlı şifreyi güvenli şekilde kullanıyor. Kalan iş ONVIF capability detaylarını aynı sonuç paneline genişletmek.
+- Kamera bağlantı testi büyük ölçüde tamamlandı: kamera listesinde kayıtlı RTSP bağlantısı; kamera ekleme ve düzenleme modallarında kaydetmeden RTSP TCP/DESCRIBE/frame ve ONVIF cihaz/profil/capability testi açıklayıcı sonuçlarla çalışıyor. Düzenleme formunda yeni şifre boşsa backend kayıtlı şifreyi güvenli şekilde kullanıyor. Kalan iş ONVIF profil codec/çözünürlük ve event subscription ayrıntılarını aynı sonuca eklemek.
 - Çoklu saha/konum modeli yok: site, bina, kat, bölge gibi hiyerarşi ve ileride harita/floorplan görünümü için domain alanları eklenmeli.
 
 ### P1 - AI ve Olay Tespiti
