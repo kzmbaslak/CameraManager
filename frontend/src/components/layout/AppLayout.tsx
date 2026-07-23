@@ -11,9 +11,19 @@ import { useAuthStore } from '../../stores/authStore'
 
 const SESSION_WARNING_MS = 5 * 60 * 1000
 const INITIAL_NOW = Date.now()
+const SIDEBAR_COLLAPSED_KEY = 'kamera-sidebar-collapsed'
+
+function readSidebarCollapsedPreference() {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 export function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsedPreference)
   const [now, setNow] = useState(INITIAL_NOW)
   const expiresAt = useAuthStore((s) => s.expiresAt)
   const logout = useAuthStore((s) => s.logout)
@@ -43,9 +53,25 @@ export function AppLayout() {
     window.location.href = '/login'
   }
 
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next))
+      } catch {
+        // Keep the in-memory preference when storage is unavailable.
+      }
+      return next
+    })
+  }
+
   return (
     <div className="flex h-screen bg-[var(--bg-primary)] overflow-hidden">
-      <Sidebar className="hidden md:flex" />
+      <Sidebar
+        className="hidden md:flex"
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
+      />
 
       <header className="fixed left-0 right-0 top-0 z-[120] flex h-12 items-center justify-between border-b border-border bg-bg-secondary px-3 md:hidden">
         <button

@@ -1,6 +1,6 @@
 // Left navigation shell for the operator console.
 import { NavLink } from 'react-router-dom'
-import { Bell, Camera, LayoutDashboard, LogOut, Server, Users } from 'lucide-react'
+import { Bell, Camera, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Users } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 
 const navItems = [
@@ -14,18 +14,20 @@ const navItems = [
 interface SidebarProps {
   className?: string
   onNavigate?: () => void
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }
 
-export function Sidebar({ className = '', onNavigate }: SidebarProps) {
+export function Sidebar({ className = '', onNavigate, collapsed = false, onToggleCollapsed }: SidebarProps) {
   const { username, logout } = useAuthStore()
 
   return (
-    <aside className={`flex h-screen w-56 shrink-0 flex-col border-r border-border bg-bg-secondary ${className}`}>
-      <div className="flex h-14 items-center gap-3 border-b border-border px-4">
+    <aside className={`flex h-screen shrink-0 flex-col border-r border-border bg-bg-secondary transition-[width] duration-150 ${collapsed ? 'w-16' : 'w-56'} ${className}`}>
+      <div className={`flex h-14 items-center border-b border-border ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'}`}>
         <div className="flex h-7 w-7 items-center justify-center rounded bg-accent">
           <Camera size={15} className="text-white" />
         </div>
-        <span className="text-sm font-semibold tracking-wide text-text-primary">Kamera Yönetimi</span>
+        {!collapsed && <span className="text-sm font-semibold tracking-wide text-text-primary">Kamera Yonetimi</span>}
       </div>
 
       <nav className="flex-1 space-y-0.5 px-2 py-3">
@@ -35,8 +37,9 @@ export function Sidebar({ className = '', onNavigate }: SidebarProps) {
             to={to}
             end={exact}
             onClick={onNavigate}
+            title={collapsed ? label : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+              `flex items-center rounded-md border py-2 text-sm font-medium transition-colors duration-150 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${
                 isActive
                   ? 'border-accent/20 bg-accent/15 text-accent'
                   : 'border-transparent text-text-secondary hover:bg-bg-card hover:text-text-primary'
@@ -44,18 +47,29 @@ export function Sidebar({ className = '', onNavigate }: SidebarProps) {
             }
           >
             <Icon size={17} />
-            {label}
+            {!collapsed && label}
           </NavLink>
         ))}
       </nav>
 
       <div className="border-t border-border px-3 py-3">
-        <div className="flex items-center justify-between rounded-md px-2 py-2">
-          <span className="truncate text-sm font-medium text-text-primary">{username}</span>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            title={collapsed ? 'Menuyu genislet' : 'Menuyu daralt'}
+            aria-label={collapsed ? 'Menuyu genislet' : 'Menuyu daralt'}
+            onClick={onToggleCollapsed}
+            className="mb-2 flex w-full items-center justify-center rounded-md p-1.5 text-text-secondary transition-colors hover:bg-bg-card hover:text-text-primary"
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        )}
+        <div className={`flex items-center rounded-md py-2 ${collapsed ? 'justify-center px-0' : 'justify-between px-2'}`}>
+          {!collapsed && <span className="truncate text-sm font-medium text-text-primary">{username}</span>}
           <button
             onClick={logout}
-            title="Çıkış yap"
-            aria-label="Çıkış yap"
+            title="Cikis yap"
+            aria-label="Cikis yap"
             className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-bg-card hover:text-danger"
           >
             <LogOut size={16} />

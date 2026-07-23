@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Desktop sidebar daraltma tercihi eklendi. Operator genis ekranlarda sol navigasyonu ikon moduna alabilir; tercih `localStorage` icinde `kamera-sidebar-collapsed` anahtariyla kalici saklanir. Mobil drawer davranisi ayni kalir.
 - 2026-07-23: Frontend yetki matrisi backend RBAC ile hizalandi. `viewer` rolu artik alarm onaylama/kapatma/yanlis alarm isaretleme, operasyon notu, kanit indirme ve CSV rapor export aksiyonlarini arayuzde gormez; bu aksiyonlar `operator` ve `admin` ile sinirlidir. Kullanici rol aciklamasi da izleyiciyi yalnizca goruntuleme/inceleme olarak tanimlar.
 - 2026-07-23: Tarama/import satir validasyonlari eklendi. Kamera tarama sonucunda secili satirlarda bos veya tekrarlanan kamera adi kaydetmeden engellenir ve hata ilgili satir input'unda gosterilir. NVR kesif/toplu ekleme sonucunda secili satirlar icin bos/tekrarlanan NVR adi, bos host ve gecersiz ONVIF port satir seviyesinde gosterilir.
 - 2026-07-23: Alarm operasyon raporu arayuze eklendi. Alarmlar sayfasi mevcut filtrelere gore acik alarm, yuksek oncelik, yanlis alarm orani ve ortalama cozum suresi metriklerini gosterir; filtrelenmis alarm listesi kamera, durum, onem, operator notu, cozum nedeni, cozum suresi ve snapshot hash alanlariyla CSV olarak indirilebilir.
