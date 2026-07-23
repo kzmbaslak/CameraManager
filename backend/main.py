@@ -18,6 +18,9 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
+from src.infrastructure.logging_config import configure_application_logging
+configure_application_logging()
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

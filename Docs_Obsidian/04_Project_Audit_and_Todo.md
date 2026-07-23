@@ -93,7 +93,7 @@ Riskler:
 - Test kapsamı yok: domain/use case unit testleri, repository integration testleri, API auth testleri, frontend component testleri eklenmeli.
 - API sözleşmesi için OpenAPI export ve frontend tiplerinin otomatik üretimi değerlendirilmeli.
 - Frontend code-splitting yapılmalı; route bazlı lazy loading ile build chunk uyarısı düşürülmeli.
-- Loglama yapılandırması kısmen sertleştirildi: RTSP URL parolaları operasyon loglarında maskelenir ve `backend/check_real_passwords.py` düz metin parola/RTSP dökmek yerine sadece parola varlığı, rotasyon zamanı ve maskeli URL raporlar. Kalan iş structured logs, merkezi log seviyesi politikası ve dosya rotasyonunu servis paketlemesine bağlamaktır.
+- Loglama yapılandırması kısmen sertleştirildi: RTSP URL parolaları operasyon loglarında maskelenir ve `backend/check_real_passwords.py` düz metin parola/RTSP dökmek yerine sadece parola varlığı, rotasyon zamanı ve maskeli URL raporlar. Root logger konsol ve `APP_LOG_DIR/application.log` için rotate edilen dosya handler'ı ile yapılandırılır; `APP_LOG_LEVEL`, `APP_LOG_MAX_BYTES` ve `APP_LOG_BACKUP_COUNT` env ayarları vardır. Kalan iş structured JSON log formatı ve servis/daemon paketleme entegrasyonudur.
 
 ## Önerilen Yol Haritası
 

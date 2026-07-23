@@ -69,6 +69,10 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `INITIAL_ADMIN_PASSWORD` | İlk kurulumda DB boşsa oluşturulacak admin şifresi |
 | `CORS_ALLOWED_ORIGINS` | Virgülle ayrılmış izinli frontend origin listesi |
 | `TRUSTED_HOSTS` | Virgülle ayrılmış izinli HTTP Host/DNS/IP listesi |
+| `APP_LOG_LEVEL` | Uygulama log seviyesi (`INFO`, `WARNING`, `ERROR` vb.) |
+| `APP_LOG_DIR` | `application.log` dosyasının yazılacağı klasör; göreli değerler backend köküne göre çözülür |
+| `APP_LOG_MAX_BYTES` | Uygulama log dosyası rotate edilmeden önce izin verilen maksimum boyut |
+| `APP_LOG_BACKUP_COUNT` | Saklanacak dönen uygulama log dosyası sayısı |
 | `AUDIT_CHAIN_SECRET` | Audit kayıt zinciri için en az 32 karakterlik HMAC anahtarı |
 | `AUDIT_MAX_BYTES` | `audit.log` arşive döndürülmeden önce izin verilen maksimum boyut |
 | `AUDIT_RETENTION_DAYS` | Audit arşivlerinin saklanacağı gün sayısı |

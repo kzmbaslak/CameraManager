@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Merkezi uygulama log rotasyonu eklendi. `configure_application_logging()` root logger'i konsol ve `APP_LOG_DIR/application.log` icin `RotatingFileHandler` ile kurar; `APP_LOG_LEVEL`, `APP_LOG_MAX_BYTES` ve `APP_LOG_BACKUP_COUNT` env ayarlari `.env.example` ve README'ye eklendi.
 - 2026-07-23: Hassas kimlik bilgisi debug script'i guvenli hale getirildi. `backend/check_real_passwords.py` artik kamera/NVR parolalarini decrypt edip yazdirmaz; yalnizca parola var/yok durumu, rotasyon zamani, maskeli kullanici ve maskeli RTSP URL raporlar.
 - 2026-07-23: HTTP Host header allowlist destegi eklendi. `TRUSTED_HOSTS` env degeriyle FastAPI `TrustedHostMiddleware` sinirlandirmasi yapilir; varsayilan gelistirme uyumlulugu icin acik kalir, `/api/security/posture` ve Dashboard uretimde host allowlist eksigini raporlar.
 - 2026-07-23: Backend HTTP guvenlik basliklari merkezi middleware ile eklendi. API ve production SPA yanitlari `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`, COOP/CORP ve HTTPS aktifken HSTS basliklarini dondurur; `/api/security/posture` ve Dashboard guvenlik karti baslik/CSP durumunu raporlar.
