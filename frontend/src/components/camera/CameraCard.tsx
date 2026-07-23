@@ -1,10 +1,13 @@
 // Live camera tile for the operator grid.
-import { useEffect, useRef, useState } from 'react'
+import { type MouseEvent, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, Play, Wifi, WifiOff } from 'lucide-react'
+import { AlertCircle, CheckCircle, Play, VolumeX, Wifi, WifiOff } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { useAlarmStore } from '../../stores/alarmStore'
+import { Button } from '../ui/Button'
 import type { Alarm, Camera } from '../../types/api'
 import type { StreamProfile } from '../../hooks/useCameraStream'
 
@@ -24,7 +27,8 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
   const containerRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 320, h: 180 })
   const [isNearViewport, setIsNearViewport] = useState(false)
-  const { setExpandedCamera } = useAlarmStore()
+  const qc = useQueryClient()
+  const { setExpandedCamera, stopSound, dismiss } = useAlarmStore()
 
   const { frame, alarmTriggered, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     camera.id,
@@ -56,6 +60,22 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
   const activeDetections = hasFreshDetection ? detections : []
   const fallbackBox = latestAlarm?.bounding_box ?? null
   const isAlarmActive = alarmTriggered || hasFreshDetection || Boolean(latestAlarm?.bounding_box)
+  const actionableAlarmId = latestAlarm?.status === 'new' || latestAlarm?.status === 'acknowledged'
+    ? latestAlarm.id
+    : null
+
+  const acknowledge = useMutation({
+    mutationFn: alarmsApi.acknowledge,
+    onSuccess: (alarm) => {
+      stopSound()
+      dismiss(alarm.id)
+      void qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
+  const stopAlarmPropagation = (event: MouseEvent) => {
+    event.stopPropagation()
+  }
 
   return (
     <div className={`flex flex-col overflow-hidden rounded-md border bg-bg-card ${
@@ -127,6 +147,37 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
           >
             İnsan Tespit Edildi
           </motion.div>
+        )}
+
+        {isAlarmActive && (
+          <div
+            className="absolute inset-x-2 bottom-2 z-20 flex flex-wrap items-center justify-end gap-1.5"
+            onClick={stopAlarmPropagation}
+          >
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<VolumeX size={13} />}
+              title="Sadece alarm sesini durdurur; alarm kaydi acik kalir."
+              onClick={stopSound}
+              className="border-white/25 bg-black/70 px-2 py-1 text-xs text-white hover:bg-black/85"
+            >
+              Sustur
+            </Button>
+            {actionableAlarmId && (
+              <Button
+                size="sm"
+                variant="danger"
+                icon={<CheckCircle size={13} />}
+                title="Alarm sesini durdurur ve bu alarmi onaylandi olarak isaretler."
+                loading={acknowledge.isPending}
+                onClick={() => acknowledge.mutate(actionableAlarmId)}
+                className="px-2 py-1 text-xs"
+              >
+                Onayla
+              </Button>
+            )}
+          </div>
         )}
       </div>
 

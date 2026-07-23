@@ -163,8 +163,17 @@ export function AlarmNotificationPanel() {
     },
   })
 
+  const falseAlarm = useMutation({
+    mutationFn: alarmsApi.markFalsePositive,
+    onSuccess: (alarm) => {
+      stopSound()
+      dismiss(alarm.id)
+      void qc.invalidateQueries({ queryKey: ['alarms'] })
+    },
+  })
+
   const handleAcknowledge = (alarm: Alarm) => acknowledge.mutate(alarm.id)
-  const handleFalseAlarm = (alarm: Alarm) => acknowledge.mutate(alarm.id)
+  const handleFalseAlarm = (alarm: Alarm) => falseAlarm.mutate(alarm.id)
   const handleMute = () => muteSoundFor(5 * 60 * 1000)
 
   useEffect(() => {
@@ -238,7 +247,10 @@ export function AlarmNotificationPanel() {
               key={alarm.id}
               alarm={alarm}
               receivedAt={receivedAt}
-              busy={acknowledge.isPending && acknowledge.variables === alarm.id}
+              busy={
+                (acknowledge.isPending && acknowledge.variables === alarm.id) ||
+                (falseAlarm.isPending && falseAlarm.variables === alarm.id)
+              }
               onAcknowledge={handleAcknowledge}
               onFalseAlarm={handleFalseAlarm}
             />

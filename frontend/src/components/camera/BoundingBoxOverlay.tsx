@@ -22,8 +22,23 @@ function transformBox(
   sourceHeight: number | null | undefined,
   fit: ObjectFitMode,
 ) {
+  const isNormalized = box.x <= 1 && box.y <= 1 && box.width <= 1 && box.height <= 1
+  const sourceBox = isNormalized && sourceWidth && sourceHeight
+    ? {
+        x: box.x * sourceWidth,
+        y: box.y * sourceHeight,
+        width: box.width * sourceWidth,
+        height: box.height * sourceHeight,
+      }
+    : box
+
   if (!sourceWidth || !sourceHeight) {
-    return box
+    return {
+      x: isNormalized ? sourceBox.x * containerWidth : sourceBox.x,
+      y: isNormalized ? sourceBox.y * containerHeight : sourceBox.y,
+      width: isNormalized ? sourceBox.width * containerWidth : sourceBox.width,
+      height: isNormalized ? sourceBox.height * containerHeight : sourceBox.height,
+    }
   }
 
   const scale = fit === 'contain'
@@ -35,10 +50,24 @@ function transformBox(
   const offsetY = (containerHeight - renderedHeight) / 2
 
   return {
-    x: box.x * scale + offsetX,
-    y: box.y * scale + offsetY,
-    width: box.width * scale,
-    height: box.height * scale,
+    x: sourceBox.x * scale + offsetX,
+    y: sourceBox.y * scale + offsetY,
+    width: sourceBox.width * scale,
+    height: sourceBox.height * scale,
+  }
+}
+
+function clampBox(box: BoundingBox, containerWidth: number, containerHeight: number) {
+  const x = Math.min(Math.max(box.x, 0), containerWidth)
+  const y = Math.min(Math.max(box.y, 0), containerHeight)
+  const right = Math.min(Math.max(box.x + box.width, 0), containerWidth)
+  const bottom = Math.min(Math.max(box.y + box.height, 0), containerHeight)
+
+  return {
+    x,
+    y,
+    width: Math.max(0, right - x),
+    height: Math.max(0, bottom - y),
   }
 }
 
@@ -73,19 +102,22 @@ export function BoundingBoxOverlay({
     ctx.font = 'bold 11px Inter, sans-serif'
 
     for (const detection of items) {
-      const scaled = transformBox(
+      const scaled = clampBox(transformBox(
         detection.bounding_box,
         containerWidth,
         containerHeight,
         sourceWidth,
         sourceHeight,
         fit,
-      )
+      ), containerWidth, containerHeight)
+      if (scaled.width < 2 || scaled.height < 2) continue
+
       const confidence = detection.confidence ? ` ${Math.round(detection.confidence * 100)}%` : ''
       const label = `Insan${confidence}`
       const labelW = ctx.measureText(label).width + 10
       const labelH = 18
       const labelY = Math.max(0, scaled.y - labelH)
+      const labelX = Math.min(scaled.x, Math.max(0, containerWidth - labelW))
 
       ctx.save()
       ctx.strokeStyle = '#f97316'
@@ -95,9 +127,9 @@ export function BoundingBoxOverlay({
       ctx.restore()
 
       ctx.fillStyle = 'rgba(249, 115, 22, 0.96)'
-      ctx.fillRect(scaled.x, labelY, labelW, labelH)
+      ctx.fillRect(labelX, labelY, labelW, labelH)
       ctx.fillStyle = '#111827'
-      ctx.fillText(label, scaled.x + 5, labelY + 13)
+      ctx.fillText(label, labelX + 5, labelY + 13)
     }
   }, [box, detections, containerWidth, containerHeight, sourceWidth, sourceHeight, fit])
 
