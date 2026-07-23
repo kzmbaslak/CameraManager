@@ -336,6 +336,8 @@ export interface CameraHealthSummary {
 
 export interface CameraHealthListItem {
   camera_id: number
+  health_level: 'ok' | 'warning' | 'critical' | 'unknown' | string
+  health_message: string
   sample_count: number
   reachable_count: number
   availability_percent: number | null

@@ -10,6 +10,7 @@ PATCH  /cameras/{id}/status       — ACTIVE/INACTIVE değiştirir, akış yöne
 PATCH  /cameras/{id}/ai           — AI insan tespitini açar/kapatır, akış yöneticisi buna göre güncellenir
 """
 import asyncio
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Request
 from typing import List
 from urllib.parse import unquote, urlparse
@@ -89,6 +90,41 @@ def _mask_rtsp_url(rtsp_url: str) -> str:
     netloc = f"{parsed.username}{password_part}@{host}{port}"
     suffix = f"?{parsed.query}" if parsed.query else ""
     return f"{parsed.scheme}://{netloc}{parsed.path}{suffix}"
+
+
+def _camera_health_level(
+    *,
+    latest_reachable: bool | None,
+    latest_checked_at,
+    availability_percent: float | None,
+    latest_latency_ms: float | None,
+    latest_failure_reason: str | None,
+) -> tuple[str, str]:
+    """Kamera saglik ozetinden operator icin karar seviyesi uretir."""
+    if latest_reachable is None or latest_checked_at is None:
+        return "unknown", "Saglik olcumu bekleniyor."
+
+    age_seconds = (datetime.utcnow() - latest_checked_at).total_seconds()
+    if age_seconds > 120:
+        return "warning", f"Son saglik olcumu {int(age_seconds)} saniye once."
+
+    if latest_reachable is False:
+        return "critical", latest_failure_reason or "Kamera son olcumde erisilemedi."
+
+    if availability_percent is not None and availability_percent < 90:
+        return "critical", f"Son olcumlerde erisilebilirlik %{availability_percent}."
+
+    if availability_percent is not None and availability_percent < 98:
+        return "warning", f"Son olcumlerde erisilebilirlik %{availability_percent}."
+
+    if latest_latency_ms is not None and latest_latency_ms > 1000:
+        return "warning", f"Yuksek latency: {latest_latency_ms:.0f} ms."
+
+    return "ok", (
+        f"Latency {latest_latency_ms:.0f} ms."
+        if latest_latency_ms is not None
+        else "Son olcum erisilebilir."
+    )
 
 
 async def _build_rtsp_diagnostics(
@@ -690,11 +726,21 @@ async def diagnose_camera_health_summary(
     for camera_id in safe_ids:
         latest = latest_by_camera.get(camera_id)
         sample_count, reachable_count = counts_by_camera.get(camera_id, (0, 0))
+        availability_percent = round((reachable_count / sample_count) * 100, 1) if sample_count else None
+        health_level, health_message = _camera_health_level(
+            latest_reachable=latest.reachable if latest else None,
+            latest_checked_at=latest.checked_at if latest else None,
+            availability_percent=availability_percent,
+            latest_latency_ms=latest.latency_ms if latest else None,
+            latest_failure_reason=latest.failure_reason if latest else None,
+        )
         result.append({
             "camera_id": camera_id,
+            "health_level": health_level,
+            "health_message": health_message,
             "sample_count": sample_count,
             "reachable_count": reachable_count,
-            "availability_percent": round((reachable_count / sample_count) * 100, 1) if sample_count else None,
+            "availability_percent": availability_percent,
             "latest_checked_at": latest.checked_at if latest else None,
             "latest_reachable": latest.reachable if latest else None,
             "latest_status": latest.status if latest else None,

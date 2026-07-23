@@ -35,17 +35,19 @@ const passwordRotationState = (value: string | null, policyDays: number) => {
   return { variant: 'success' as const, label: 'Guncel', detail: `${elapsedDays} gun once` }
 }
 const cameraHealthState = (summary: CameraHealthListItem | undefined) => {
-  if (!summary || summary.sample_count === 0 || summary.latest_reachable === null) {
+  if (!summary) {
     return { variant: 'neutral' as const, label: 'Veri yok', detail: 'Saglik olcumu bekleniyor' }
   }
-  const availability = summary.availability_percent !== null ? `%${summary.availability_percent}` : 'Oran yok'
-  if (!summary.latest_reachable) {
-    return { variant: 'danger' as const, label: 'Erisilemiyor', detail: summary.latest_failure_reason || availability }
+  if (summary.health_level === 'critical') {
+    return { variant: 'danger' as const, label: 'Kritik', detail: summary.health_message }
   }
-  if ((summary.availability_percent ?? 100) < 95) {
-    return { variant: 'warning' as const, label: 'Kararsiz', detail: availability }
+  if (summary.health_level === 'warning') {
+    return { variant: 'warning' as const, label: 'Uyari', detail: summary.health_message }
   }
-  return { variant: 'success' as const, label: 'Saglikli', detail: summary.latest_latency_ms !== null ? `${Math.round(summary.latest_latency_ms)} ms` : availability }
+  if (summary.health_level === 'ok') {
+    return { variant: 'success' as const, label: 'Saglikli', detail: summary.health_message }
+  }
+  return { variant: 'neutral' as const, label: 'Veri yok', detail: summary.health_message }
 }
 const AI_PRESETS = [
   {

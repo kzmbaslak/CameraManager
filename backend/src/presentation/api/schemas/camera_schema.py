@@ -372,6 +372,8 @@ class CameraHealthListItemResponse(BaseModel):
     """Kamera listesi icin kompakt saglik ozeti."""
 
     camera_id: int
+    health_level: str
+    health_message: str
     sample_count: int
     reachable_count: int
     availability_percent: Optional[float] = None
