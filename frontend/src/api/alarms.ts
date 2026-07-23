@@ -1,6 +1,6 @@
 // Alarm API çağrıları — listeleme (tümü, kameraya göre, duruma göre) ve onaylama
 import client from './client'
-import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
+import type { Alarm, AlarmSeverity, AlarmStatus, AlarmTrainingFeedbackItem, AlarmType } from '../types/api'
 
 export const alarmsApi = {
   /** Alarmları opsiyonel filtrelerle listeler (kamera, tip, durum). */
@@ -52,6 +52,15 @@ export const alarmsApi = {
   /** Alarmi tek aksiyonla yanlis alarm olarak kapatir. */
   markFalsePositive: async (alarmId: number): Promise<Alarm> => {
     const { data } = await client.post<Alarm>(`/alarms/${alarmId}/false-positive`)
+    return data
+  },
+
+  /** AI egitim/threshold iyilestirmesi icin sinirli alarm geri bildirimi alir. */
+  trainingFeedback: async (params?: {
+    limit?: number
+    false_positive_only?: boolean
+  }): Promise<AlarmTrainingFeedbackItem[]> => {
+    const { data } = await client.get<AlarmTrainingFeedbackItem[]>('/alarms/training-feedback', { params })
     return data
   },
 

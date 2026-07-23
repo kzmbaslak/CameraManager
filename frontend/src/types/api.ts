@@ -96,6 +96,20 @@ export interface Alarm {
   resolved_at: string | null
 }
 
+export interface AlarmTrainingFeedbackItem {
+  alarm_id: number
+  camera_id: number
+  created_at: string | null
+  confidence: number | null
+  bounding_box: BoundingBox | null
+  false_positive: boolean
+  severity: AlarmSeverity
+  operator_note: string | null
+  resolution_reason: string | null
+  snapshot_sha256: string | null
+  snapshot_annotated_sha256: string | null
+}
+
 export interface NVR {
   id: number
   name: string

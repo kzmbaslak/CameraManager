@@ -7,7 +7,7 @@ from typing import List, Optional
 from src.presentation.api.dependencies import get_alarm_repository, get_current_user, get_operator_user
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.security.audit_logger import write_audit_event
-from src.presentation.api.schemas.alarm_schema import AlarmResolveRequest, AlarmResponse, AlarmUpdate
+from src.presentation.api.schemas.alarm_schema import AlarmResolveRequest, AlarmResponse, AlarmTrainingFeedbackItem, AlarmUpdate
 from src.domain.entities.alarm import AlarmStatus, AlarmType
 
 router = APIRouter(prefix="/alarms", tags=["Alarms"])
@@ -98,6 +98,48 @@ def list_alarms_by_status(
 ):
     """Belirli bir duruma (örn: NEW, ACKNOWLEDGED) sahip alarmları listeler."""
     return repo.list_by_status(status, limit)
+
+
+@router.get("/training-feedback", response_model=List[AlarmTrainingFeedbackItem])
+def export_training_feedback(
+    request: Request,
+    limit: int = 500,
+    false_positive_only: bool = True,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_operator_user),
+):
+    """AI threshold/model iyilestirmesi icin sinirli alarm geri bildirimi dondurur."""
+    safe_limit = max(1, min(limit, 5000))
+    alarms = repo.list_all(alarm_type=AlarmType.HUMAN_DETECTED, limit=safe_limit)
+    if false_positive_only:
+        alarms = [alarm for alarm in alarms if alarm.false_positive]
+    items = [
+        AlarmTrainingFeedbackItem(
+            alarm_id=alarm.id,
+            camera_id=alarm.camera_id,
+            created_at=alarm.created_at,
+            confidence=alarm.confidence,
+            bounding_box=alarm.bounding_box,
+            false_positive=alarm.false_positive,
+            severity=alarm.severity,
+            operator_note=alarm.operator_note,
+            resolution_reason=alarm.resolution_reason,
+            snapshot_sha256=alarm.snapshot_sha256,
+            snapshot_annotated_sha256=alarm.snapshot_annotated_sha256,
+        )
+        for alarm in alarms
+    ]
+    write_audit_event(
+        "alarm.training_feedback.export",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "count": len(items),
+            "limit": safe_limit,
+            "false_positive_only": false_positive_only,
+        },
+    )
+    return items
 
 
 @router.get("/{alarm_id}/snapshot")

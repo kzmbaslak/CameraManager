@@ -34,6 +34,22 @@ class AlarmResponse(BaseModel):
         from_attributes = True
 
 
+class AlarmTrainingFeedbackItem(BaseModel):
+    """AI iyilestirme havuzuna aktarilacak sinirli alarm ozeti."""
+
+    alarm_id: int
+    camera_id: int
+    created_at: Optional[datetime]
+    confidence: Optional[float]
+    bounding_box: Optional[BoundingBoxSchema]
+    false_positive: bool
+    severity: AlarmSeverity
+    operator_note: Optional[str] = None
+    resolution_reason: Optional[str] = None
+    snapshot_sha256: Optional[str] = None
+    snapshot_annotated_sha256: Optional[str] = None
+
+
 class AlarmUpdate(BaseModel):
     """Alarm operasyon alanlarini kismi olarak gunceller."""
 

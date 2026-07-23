@@ -11,7 +11,7 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import type { Alarm, AlarmSeverity, AlarmStatus, AlarmType } from '../types/api'
+import type { Alarm, AlarmSeverity, AlarmStatus, AlarmTrainingFeedbackItem, AlarmType } from '../types/api'
 import dayjs from 'dayjs'
 
 // ────────────────────────────────────────────
@@ -109,6 +109,42 @@ function buildAlarmCsv(alarms: Alarm[], cameraNames: Record<number, string>) {
     resolutionMinutes(alarm) ?? '',
     alarm.snapshot_sha256 ?? '',
     alarm.snapshot_annotated_sha256 ?? '',
+  ])
+  return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
+}
+
+function bboxText(item: AlarmTrainingFeedbackItem) {
+  if (!item.bounding_box) return ''
+  const { x, y, width, height } = item.bounding_box
+  return `${x}:${y}:${width}:${height}`
+}
+
+function buildTrainingFeedbackCsv(items: AlarmTrainingFeedbackItem[], cameraNames: Record<number, string>) {
+  const headers = [
+    'Alarm ID',
+    'Kamera',
+    'Olusturma',
+    'Guven',
+    'Bounding Box',
+    'Yanlis Alarm',
+    'Onem',
+    'Operator Notu',
+    'Cozum Nedeni',
+    'Snapshot SHA-256',
+    'Kutulu Snapshot SHA-256',
+  ]
+  const rows = items.map((item) => [
+    item.alarm_id,
+    cameraNames[item.camera_id] ?? `Kamera #${item.camera_id}`,
+    item.created_at ? dayjs(item.created_at).format('YYYY-MM-DD HH:mm:ss') : '',
+    item.confidence == null ? '' : `${Math.round(item.confidence * 100)}%`,
+    bboxText(item),
+    item.false_positive ? 'Evet' : 'Hayir',
+    severityLabel(item.severity),
+    item.operator_note ?? '',
+    item.resolution_reason ?? '',
+    item.snapshot_sha256 ?? '',
+    item.snapshot_annotated_sha256 ?? '',
   ])
   return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
 }
@@ -594,6 +630,10 @@ export function AlarmsPage() {
     onError: (err) => showToast({ variant: 'danger', title: 'Alarmlar onaylanamadi', description: getApiErrorMessage(err, 'Toplu onay islemi tamamlanamadi.') }),
   })
 
+  const trainingFeedbackExport = useMutation({
+    mutationFn: () => alarmsApi.trainingFeedback({ limit: 5000, false_positive_only: true }),
+  })
+
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))
 
   const hasActiveFilter =
@@ -632,6 +672,29 @@ export function AlarmsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleExportTrainingFeedback = async () => {
+    try {
+      const items = await trainingFeedbackExport.mutateAsync()
+      if (items.length === 0) {
+        showToast({ variant: 'info', title: 'Geri bildirim verisi yok', description: 'Yanlis alarm olarak kapatilmis insan tespiti bulunamadi.' })
+        return
+      }
+      const csv = buildTrainingFeedbackCsv(items, cameraNameMap)
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `ai-geri-bildirim-${dayjs().format('YYYYMMDD-HHmmss')}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      showToast({ variant: 'success', title: 'AI geri bildirimi indirildi', description: `${items.length} yanlis alarm ornegi CSV olarak hazirlandi.` })
+    } catch (err) {
+      showToast({ variant: 'danger', title: 'AI geri bildirimi alinamadi', description: getApiErrorMessage(err, 'Geri bildirim verisi indirilemedi.') })
+    }
+  }
+
   return (
     <div className="p-6 flex flex-col gap-5">
       {/* Başlık */}
@@ -653,6 +716,17 @@ export function AlarmsPage() {
               onClick={handleExportCsv}
             >
               CSV Rapor
+            </Button>
+          )}
+          {canExportEvidence && (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Download size={14} />}
+              loading={trainingFeedbackExport.isPending}
+              onClick={handleExportTrainingFeedback}
+            >
+              AI Geri Bildirim
             </Button>
           )}
           {canAcknowledgeAlarms && filteredNewAlarmIds.length > 0 && (
