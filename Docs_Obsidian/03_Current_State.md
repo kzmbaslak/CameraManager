@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Zamanlanmis sistem yedegi ve retention politikasi eklendi. `backend/scripts/backup_system.py` artik `BACKUP_RETENTION_DAYS` / `BACKUP_KEEP_LATEST` varsayilanlariyla eski otomatik arsivleri temizler; `scripts\run-backup.ps1`, `install-backup-task.ps1` ve `uninstall-backup-task.ps1` Windows Task Scheduler uzerinden gunluk yedek calistirmayi destekler.
 - 2026-07-23: AI/stream performans gorunurlugu host kaynak metrikleriyle genisletildi. Stream diagnostics artik best-effort `host_cpu_load_percent`, `host_memory_used_percent` ve `host_memory_available_mb` alanlarini dondurur; Dashboard Canli Saglik ozeti ve Kamera RTSP/stream detay paneli CPU/RAM bilgisini gosterir.
 - 2026-07-23: Frontend build code-splitting sertlestirildi. Route bazli lazy loading zaten aktifti; Vite manualChunks ile React/Router, data client, UI/motion/icon ve dayjs bagimliliklari ayri vendor chunk'lara ayrildi.
 - 2026-07-23: Merkezi uygulama log maskelemesi eklendi. Root logger handler'lari token/access_token/password/secret/key/authorization query parametrelerini, Bearer token'lari ve RTSP URL parolalarini yazmadan once maskeler; `/api/security/posture` ve Dashboard bu maskelemenin aktif oldugunu raporlar.

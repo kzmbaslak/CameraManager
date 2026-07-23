@@ -80,6 +80,8 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `AUDIT_WEBHOOK_URL` | Opsiyonel merkezi log/SIEM HTTPS endpoint'i |
 | `AUDIT_WEBHOOK_TOKEN` | Opsiyonel audit webhook Bearer token değeri |
 | `AUDIT_WEBHOOK_TIMEOUT_SECONDS` | Audit webhook gönderim zaman aşımı |
+| `BACKUP_RETENTION_DAYS` | Otomatik yedek arşivlerinin saklanacağı gün sayısı |
+| `BACKUP_KEEP_LATEST` | Retention süresi dolsa bile tutulacak en yeni otomatik yedek sayısı |
 
 ### 4. Veritabanını Hazırla
 
@@ -105,6 +107,19 @@ SQLite veritabanı, `.env`, `backend/data`, YOLO modeli ve snapshot dosyaların�
 
 ```bash
 venv\Scripts\python scripts\backup_system.py
+```
+
+Eski otomatik arşivleri temizleme politikası varsayılan olarak `BACKUP_RETENTION_DAYS=30` ve `BACKUP_KEEP_LATEST=7` ile uygulanır. Tek seferlik komutta değiştirmek için:
+
+```bash
+venv\Scripts\python scripts\backup_system.py --retention-days 60 --keep-latest 14
+```
+
+Windows Görev Zamanlayıcı ile her gün otomatik yedek almak için repo kökünden:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-backup-task.ps1 -At 03:00 -RetentionDays 30 -KeepLatest 7
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-backup-task.ps1
 ```
 
 Arşivi yazmadan doğrulamak için:

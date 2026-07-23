@@ -7,12 +7,13 @@ import json
 import sqlite3
 import tempfile
 import zipfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_DIR = BACKEND_DIR / "backups"
+BACKUP_FILE_PATTERN = "kamera-backup-*.zip"
 DB_PATH = BACKEND_DIR / "data" / "nvr_system.db"
 INCLUDE_PATHS = [
     BACKEND_DIR / ".env",
@@ -91,3 +92,33 @@ def create_backup(output: Path | None = None) -> Path:
                 })
             archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
     return output_path
+
+
+def cleanup_old_backups(
+    output_dir: Path = DEFAULT_OUTPUT_DIR,
+    retention_days: int = 30,
+    keep_latest: int = 7,
+) -> list[Path]:
+    """Delete old generated backup archives and return removed paths."""
+    if retention_days < 1:
+        raise ValueError("retention_days must be at least 1")
+    if keep_latest < 1:
+        raise ValueError("keep_latest must be at least 1")
+    if not output_dir.exists():
+        return []
+
+    cutoff = datetime.now(UTC) - timedelta(days=retention_days)
+    backups = sorted(
+        (path for path in output_dir.glob(BACKUP_FILE_PATTERN) if path.is_file()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    removable = backups[keep_latest:]
+    removed: list[Path] = []
+    for backup_path in removable:
+        modified_at = datetime.fromtimestamp(backup_path.stat().st_mtime, UTC)
+        if modified_at >= cutoff:
+            continue
+        backup_path.unlink()
+        removed.append(backup_path)
+    return removed
