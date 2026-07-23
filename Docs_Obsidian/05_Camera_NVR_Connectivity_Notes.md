@@ -21,6 +21,7 @@
 - Kamera ekleme ve kamera tarama ekranlarına isteğe bağlı alternatif RTSP port denemesi eklendi. Kullanıcı açarsa seçili porttan sonra 554, 8554, 10554, 7070, 7777 ve 7778 denenir; bulunan gerçek port kamera kaydına yazılır.
 - Kamera taramada eski cihazların port ön kontrolünde elenmemesi için RTSP path denemeleri doğrudan yapılır.
 - Kamera ekleme ve kamera tarama RTSP doğrulamaları zaman sınırıyla çalışacak şekilde düzenlendi; OpenCV/FFmpeg fallback artık sınırsız bekleyip frontend'de belirsiz "Network Error" üretmez.
+- NVR kanal keşfi artık mevcut kamera listesini aynı import upsert anahtarıyla karşılaştırır; daha önce eklenen kanallar probe/diagnostics cevabında işaretlenir, duplicate sayıları döndürülür ve frontend import modalında varsayılan seçim dışında tutulur.
 - NVR kanal import'u kaydetmeden önce erişilebilen RTSP endpoint'i seçiyor: önce ONVIF'in döndürdüğü host, sonra aynı path ile NVR host'u deneniyor. Hiçbiri çalışmazsa kanal bozuk kaydedilmiyor ve kullanıcıya doğrulama hatası dönüyor.
 - NVR kanal import'u artık sadece RTSP DESCRIBE cevabıyla yetinmez; gerçek frame okunabilen endpoint'i kaydeder.
 - NVR kanal import'u ONVIF'in verdiği URL çalışmazsa kanal numarasını path/profil bilgisinden tahmin ederek NVR host'u üzerinde VideoEdge, Hikvision, Dahua ve genel kanal şablonlarını 554, 8554, 10554 ve 7778 portlarında gerçek frame okuyarak dener. Hata durumunda denenen adayları DESCRIBE/Auth Frame/Anon Frame sonucuyla döndürür.

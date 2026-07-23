@@ -46,6 +46,77 @@ from src.infrastructure.security.audit_logger import write_audit_event
 logger = logging.getLogger(__name__)
 
 
+def _channel_match_keys(probe_svc, rtsp_url: str, nvr_host: str) -> set[tuple[str, int, str]]:
+    """Return import-upsert compatible keys that may identify the same NVR channel."""
+    keys: set[tuple[str, int, str]] = set()
+    try:
+        endpoint = probe_svc.parse_rtsp_endpoint(rtsp_url, nvr_host)
+    except Exception:
+        return keys
+
+    host = (endpoint.get("host") or nvr_host or "").strip().lower()
+    port = int(endpoint.get("port") or 554)
+    path = endpoint.get("path") or ""
+    if host:
+        keys.add((host, port, path))
+    if nvr_host:
+        keys.add((nvr_host.strip().lower(), port, path))
+        keys.add((nvr_host.strip().lower(), 554, path))
+    return keys
+
+
+def enrich_existing_channel_flags(
+    channels: List[NVRChannelInfo],
+    nvr,
+    probe_svc,
+    cam_use_cases: CameraUseCases | None = None,
+) -> List[NVRChannelInfo]:
+    if not cam_use_cases or not channels:
+        return channels
+
+    existing_by_key: dict[tuple[str, int, str], int] = {}
+    for cam in cam_use_cases.list_cameras():
+        if cam.nvr_id != nvr.id or not cam.host:
+            continue
+        existing_by_key[
+            (cam.host.strip().lower(), cam.rtsp_port, cam.rtsp_path or "")
+        ] = cam.id
+
+    if not existing_by_key:
+        return channels
+
+    enriched: list[NVRChannelInfo] = []
+    for channel in channels:
+        existing_camera_id = next(
+            (
+                existing_by_key[key]
+                for key in _channel_match_keys(probe_svc, channel.rtsp_url, nvr.host)
+                if key in existing_by_key
+            ),
+            None,
+        )
+        if existing_camera_id is None:
+            enriched.append(channel)
+            continue
+        enriched.append(
+            channel.model_copy(
+                update={
+                    "already_imported": True,
+                    "existing_camera_id": existing_camera_id,
+                    "duplicate_reason": "Bu kanal ayni NVR ve RTSP yolu ile zaten kamera listesinde var.",
+                }
+            )
+        )
+    return enriched
+
+
+def _build_probe_diagnostics(**kwargs) -> NVRProbeDiagnostics:
+    channels = kwargs.get("channels") or []
+    kwargs["existing_channel_count"] = sum(1 for ch in channels if ch.already_imported)
+    kwargs["new_channel_count"] = sum(1 for ch in channels if not ch.already_imported)
+    return NVRProbeDiagnostics(**kwargs)
+
+
 def mask_rtsp_url(rtsp_url: str) -> str:
     """RTSP URL içindeki şifreyi log için maskeler."""
     try:
@@ -240,55 +311,22 @@ async def resolve_reachable_rtsp_endpoint(
         f"NVR kanalından gerçek frame okunamadı. Kanal={channel or 'bilinmiyor'}. Denenen adaylar: {tested_text}"
     )
 
-
-async def get_nvr_channels_hybrid(nvr, plain_pass, probe_svc) -> List[NVRChannelInfo]:
-    # 1. ONVIF üzerinden dene
-    try:
-        channels = probe_svc.get_stream_uris(
-            host=nvr.host,
-            onvif_port=nvr.onvif_port,
-            username=nvr.username or "",
-            password=plain_pass,
-        )
-        if channels:
-            return [
-                NVRChannelInfo(
-                    profile_token=ch.profile_token,
-                    profile_name=ch.profile_name,
-                    manufacturer=ch.manufacturer,
-                    model=ch.model,
-                    rtsp_url=ch.rtsp_url,
-                )
-                for ch in channels
-            ]
-    except Exception as exc:
-        logger.warning(f"NVR ONVIF probe failed for {nvr.host}, falling back to RTSP scan: {exc}")
-
-    # 2. RTSP Tarama Fallback'i
-    from src.infrastructure.camera.camera_scanner import scan_nvr_channels_async
-    rtsp_channels = await scan_nvr_channels_async(
-        host=nvr.host,
-        rtsp_port=554,
-        username=nvr.username or "",
-        password=plain_pass,
-    )
-    return [
-        NVRChannelInfo(
-            profile_token=ch["profile_token"],
-            profile_name=ch["profile_name"],
-            manufacturer=ch["manufacturer"],
-            model=ch["model"],
-            rtsp_url=ch["rtsp_url"],
-        )
-        for ch in rtsp_channels
-    ]
-
-async def get_nvr_channels_hybrid(nvr, plain_pass, probe_svc) -> List[NVRChannelInfo]:
-    diagnostics = await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc)
+async def get_nvr_channels_hybrid(
+    nvr,
+    plain_pass,
+    probe_svc,
+    cam_use_cases: CameraUseCases | None = None,
+) -> List[NVRChannelInfo]:
+    diagnostics = await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc, cam_use_cases)
     return diagnostics.channels
 
 
-async def get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc) -> NVRProbeDiagnostics:
+async def get_nvr_probe_diagnostics(
+    nvr,
+    plain_pass,
+    probe_svc,
+    cam_use_cases: CameraUseCases | None = None,
+) -> NVRProbeDiagnostics:
     onvif_error = None
     fallback_error = None
 
@@ -312,7 +350,8 @@ async def get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc) -> NVRProbeDiagn
                 )
                 for ch in channels
             ]
-            return NVRProbeDiagnostics(
+            channel_infos = enrich_existing_channel_flags(channel_infos, nvr, probe_svc, cam_use_cases)
+            return _build_probe_diagnostics(
                 source="onvif",
                 onvif_ok=True,
                 fallback_used=False,
@@ -351,7 +390,8 @@ async def get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc) -> NVRProbeDiagn
         fallback_error = str(exc)
         channel_infos = []
 
-    return NVRProbeDiagnostics(
+    channel_infos = enrich_existing_channel_flags(channel_infos, nvr, probe_svc, cam_use_cases)
+    return _build_probe_diagnostics(
         source="rtsp_fallback" if channel_infos else "none",
         onvif_ok=False,
         fallback_used=True,
@@ -517,6 +557,7 @@ def delete_nvr(
 async def probe_nvr_channels(
     nvr_id: int,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
+    cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
     current_user: dict = Depends(get_nvr_manage_user),
 ):
@@ -537,7 +578,7 @@ async def probe_nvr_channels(
             plain_pass = nvr.encrypted_password
 
     try:
-        channels = await get_nvr_channels_hybrid(nvr, plain_pass, probe_svc)
+        channels = await get_nvr_channels_hybrid(nvr, plain_pass, probe_svc, cam_use_cases)
         return channels
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
@@ -547,6 +588,7 @@ async def probe_nvr_channels(
 async def probe_nvr_channels_diagnostics(
     nvr_id: int,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
+    cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
     current_user: dict = Depends(get_nvr_manage_user),
 ):
@@ -563,7 +605,7 @@ async def probe_nvr_channels_diagnostics(
         except Exception:
             plain_pass = nvr.encrypted_password
 
-    return await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc)
+    return await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc, cam_use_cases)
 
 
 @router.post("/{nvr_id}/import", response_model=List[CameraResponse], status_code=201)

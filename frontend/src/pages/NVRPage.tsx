@@ -215,7 +215,7 @@ function ChannelModal({
       setImportMessage(null)
       setDiagnostics(data)
       setChannels(data.channels)
-      setSelected(new Set(data.channels.map((c) => c.profile_token)))
+      setSelected(new Set(data.channels.filter((c) => !c.already_imported).map((c) => c.profile_token)))
     },
   })
 
@@ -245,6 +245,7 @@ function ChannelModal({
   const allSelected = channels.length > 0 && selected.size === channels.length
   const toggleAll = () =>
     setSelected(allSelected ? new Set() : new Set(channels.map((c) => c.profile_token)))
+  const selectedExistingCount = channels.filter((ch) => ch.already_imported && selected.has(ch.profile_token)).length
 
   const importSelected = useMutation({
     mutationFn: (selectedChannels: NVRChannelInfo[]) =>
@@ -303,6 +304,14 @@ function ChannelModal({
                       ? `ONVIF başarısız oldu, ${diagnostics.channels.length} kanal RTSP fallback ile bulundu.`
                       : 'ONVIF ve RTSP fallback kanal döndürmedi.'}
                   </span>
+                  {diagnostics.channels.length > 0 && (
+                    <>
+                      <Badge variant="success">{diagnostics.new_channel_count} Yeni</Badge>
+                      <Badge variant={diagnostics.existing_channel_count > 0 ? 'warning' : 'neutral'}>
+                        {diagnostics.existing_channel_count} Zaten Ekli
+                      </Badge>
+                    </>
+                  )}
                 </div>
                 {!diagnostics.onvif_ok && diagnostics.onvif_error && (
                   <p className="mt-1 text-[11px] text-[var(--text-secondary)]">ONVIF hata: {diagnostics.onvif_error}</p>
@@ -322,6 +331,7 @@ function ChannelModal({
                 <p className="text-xs text-[var(--text-secondary)]">
                   Sisteme eklemek istediğiniz kanalları seçin. Import sırasında bu listedeki gerçek RTSP URL,
                   host, port ve path bilgisi doğrulanır; ONVIF'in döndürdüğü kamera adresine ulaşılamazsa aynı path NVR host'u üzerinden denenir.
+                  Zaten ekli kanallar varsayılan olarak seçilmez; seçerseniz mevcut kamera kaydı eşitlenir.
                 </p>
                 <div className="overflow-x-auto rounded-lg border border-[var(--border)] max-h-[300px] overflow-y-auto">
                   <table className="w-full text-sm">
@@ -338,6 +348,7 @@ function ChannelModal({
                         </th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Profil / Ad</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Marka / Model</th>
+                        <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Durum</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Kaynak</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">RTSP URL</th>
                       </tr>
@@ -359,8 +370,26 @@ function ChannelModal({
                               className="rounded bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
                             />
                           </td>
-                          <td className="px-3 py-2 text-[var(--text-primary)] font-medium">{ch.profile_name}</td>
+                          <td className="px-3 py-2 text-[var(--text-primary)] font-medium">
+                            <div className="flex flex-col gap-1">
+                              <span>{ch.profile_name}</span>
+                              {ch.duplicate_reason && (
+                                <span className="text-[11px] font-normal text-[var(--text-secondary)]">
+                                  {ch.duplicate_reason}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-3 py-2 text-[var(--text-secondary)]">{ch.manufacturer ?? '—'} / {ch.model ?? '—'}</td>
+                          <td className="px-3 py-2">
+                            {ch.already_imported ? (
+                              <Badge variant="warning">
+                                Zaten Ekli{ch.existing_camera_id ? ` #${ch.existing_camera_id}` : ''}
+                              </Badge>
+                            ) : (
+                              <Badge variant="success">Yeni</Badge>
+                            )}
+                          </td>
                           <td className="px-3 py-2">
                             <Badge variant={ch.source === 'onvif' ? 'success' : 'warning'}>
                               {ch.source === 'onvif' ? 'ONVIF' : 'RTSP'}
@@ -379,6 +408,11 @@ function ChannelModal({
                 <span className="text-xs text-[var(--text-secondary)]">
                   {selected.size} / {channels.length} kanal seçili
                 </span>
+                {selectedExistingCount > 0 && (
+                  <span className="text-xs text-[var(--warning)]">
+                    {selectedExistingCount} zaten ekli kanal yeniden eşitlenecek.
+                  </span>
+                )}
                 {importMessage && <span className="text-xs text-[var(--success)]">{importMessage}</span>}
                 {importSelected.error && (
                   <span className="text-xs text-[var(--danger)]">

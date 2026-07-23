@@ -94,6 +94,9 @@ class NVRChannelInfo(BaseModel):
     rtsp_url: str = Field(min_length=1, max_length=2048)
     source: str = Field(default="onvif", max_length=32)
     diagnostic: Optional[str] = Field(default=None, max_length=1024)
+    already_imported: bool = False
+    existing_camera_id: Optional[int] = None
+    duplicate_reason: Optional[str] = Field(default=None, max_length=256)
 
 
 class NVRProbeDiagnostics(BaseModel):
@@ -104,6 +107,8 @@ class NVRProbeDiagnostics(BaseModel):
     device_model: Optional[str] = None
     profile_count: int = 0
     stream_uri_count: int = 0
+    existing_channel_count: int = 0
+    new_channel_count: int = 0
     onvif_error: Optional[str] = None
     fallback_error: Optional[str] = None
     channels: List[NVRChannelInfo] = Field(default_factory=list)

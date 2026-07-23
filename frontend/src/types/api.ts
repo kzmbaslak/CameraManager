@@ -143,6 +143,9 @@ export interface NVRChannelInfo {
   rtsp_url: string
   source: 'onvif' | 'rtsp_fallback' | string
   diagnostic: string | null
+  already_imported: boolean
+  existing_camera_id: number | null
+  duplicate_reason: string | null
 }
 
 export interface NVRProbeDiagnostics {
@@ -153,6 +156,8 @@ export interface NVRProbeDiagnostics {
   device_model: string | null
   profile_count: number
   stream_uri_count: number
+  existing_channel_count: number
+  new_channel_count: number
   onvif_error: string | null
   fallback_error: string | null
   channels: NVRChannelInfo[]
