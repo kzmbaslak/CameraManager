@@ -82,7 +82,7 @@ Riskler:
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş, toplu onaylama, not/atama/çözüm nedeni, önem seviyesi, yanlış alarm kapatma, filtreye bağlı rapor metrikleri, CSV rapor ve AI geri bildirim CSV dışa aktarım akışları eklendi. Kalan iş zamanlanmış rapor üretimi.
 - Canlı grid'de kamera arama, layout kalıcılığı, düşük bant modu, sürükle-bırak kamera sıralaması ve tam ekran 1/2x2/3x3 çoklu layout eklendi. Kalan iş daha ileri seviye layout preset paylaşımı ve rol bazlı layout şablonları.
 - Erişilebilirlik kısmen iyileştirildi: global focus ring var; ortak Input hata metnini ARIA ile input'a bağlar, Modal dialog semantiği taşır, Button varsayılan submit riskini azaltır ve Table ekran okuyucu caption/bos durum desteği alır. Kalan iş sayfa bazlı klavye gezinme denetimi, kontrast testi ve tüm özel kontrol gruplarında ARIA etiketlerini tamamlamak.
-- Tema seçimi kısmen tamamlandı: profesyonel operasyon ekranı için koyu ve açık yüksek kontrastlı nötr tema token'ları eklendi; kullanıcı tercihi Genel Ayarlar'da seçilir ve tarayıcıda kalıcı saklanır. Kalan iş kontrastı otomatik testlerle doğrulamak ve tema seçimini workspace/rol şablonlarına bağlamak.
+- Tema seçimi büyük ölçüde tamamlandı: profesyonel operasyon ekranı için koyu ve açık yüksek kontrastlı nötr tema token'ları eklendi; kullanıcı tercihi Genel Ayarlar'da seçilir ve tarayıcıda kalıcı saklanır. `npm run test:contrast` koyu/açık tema token'ları için kritik metin ve durum renklerinin kontrastını doğrular. Kalan iş tema seçimini workspace/rol şablonlarına bağlamak.
 
 ### P2 - Teknik Kalite
 

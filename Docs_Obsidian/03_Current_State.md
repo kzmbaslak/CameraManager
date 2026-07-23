@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Tema kontrast kontrolu eklendi. `frontend/scripts/check-theme-contrast.mjs` koyu/acik tema CSS token'larini okuyup kritik metin ve durum renkleri icin WCAG kontrast oranlarini dogrular; `npm run test:contrast` ile calisir.
 - 2026-07-23: Arayuz tema secimi eklendi. Genel Ayarlar icinde koyu/acik yuksek kontrast tema secilebilir; tercih `kamera-system-settings` store'unda kalici saklanir ve CSS token'lari uygulama genelinde aninda guncellenir.
 - 2026-07-23: Kamera stream telemetrisi AI inference suresiyle genisletildi. AI tespit use-case'i son inference suresini ms olarak olcer; stream manager kamera bazli son ve hareketli ortalama degeri tutar, `/api/cameras/{id}/diagnostics/stream` ve kamera detay paneli bu metrikleri gosterir.
 - 2026-07-23: Kamera ONVIF onizleme profil detaylari genisletildi. `GetProfiles`, `GetStreamUri` ve desteklenirse `GetSnapshotUri` sonucundan profil adi/token, codec, cozunurluk, FPS, bitrate, maskeli RTSP URI ve maskeli snapshot URI operator panelinde gosterilir.
