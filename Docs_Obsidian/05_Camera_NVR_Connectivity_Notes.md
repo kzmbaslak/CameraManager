@@ -24,6 +24,7 @@
 - NVR kanal keşfi artık mevcut kamera listesini aynı import upsert anahtarıyla karşılaştırır; daha önce eklenen kanallar probe/diagnostics cevabında işaretlenir, duplicate sayıları döndürülür ve frontend import modalında varsayılan seçim dışında tutulur.
 - NVR kanal import önizlemesinde seçili kanallar için kamera adı satır üzerinde düzenlenebilir; frontend boş/tekrarlı adları kaydetmeden durdurur, backend `import_name` alanını gerçek kamera adı olarak kullanır.
 - NVR kanal import modalı toplu seçim ve ad şablonu destekler: operatör yeni/ekli/ONVIF/RTSP gruplarını tek tuşla seçip seçili kanallara token tabanlı kamera adı uygulayabilir.
+- ONVIF NVR profillerindeki codec, çözünürlük, FPS ve bitrate bilgisi kanal önizlemesine taşındı; frontend ana/alt akış etiketini gösterir ve bu grupları tek tuşla seçebilir.
 - NVR kanal import'u kaydetmeden önce erişilebilen RTSP endpoint'i seçiyor: önce ONVIF'in döndürdüğü host, sonra aynı path ile NVR host'u deneniyor. Hiçbiri çalışmazsa kanal bozuk kaydedilmiyor ve kullanıcıya doğrulama hatası dönüyor.
 - NVR kanal import'u artık sadece RTSP DESCRIBE cevabıyla yetinmez; gerçek frame okunabilen endpoint'i kaydeder.
 - NVR kanal import'u ONVIF'in verdiği URL çalışmazsa kanal numarasını path/profil bilgisinden tahmin ederek NVR host'u üzerinde VideoEdge, Hikvision, Dahua ve genel kanal şablonlarını 554, 8554, 10554 ve 7778 portlarında gerçek frame okuyarak dener. Hata durumunda denenen adayları DESCRIBE/Auth Frame/Anon Frame sonucuyla döndürür.

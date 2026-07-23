@@ -117,6 +117,32 @@ def _build_probe_diagnostics(**kwargs) -> NVRProbeDiagnostics:
     return NVRProbeDiagnostics(**kwargs)
 
 
+def infer_stream_role(
+    profile_name: str,
+    profile_token: str,
+    width: int | None,
+    height: int | None,
+    bitrate_kbps: int | None,
+) -> str:
+    """Best-effort main/sub stream label for operator-side bulk profile selection."""
+    text = f"{profile_name} {profile_token}".lower()
+    if any(marker in text for marker in ["sub", "secondary", "minor", "low", "small", "mobile", "alt"]):
+        return "sub"
+    if any(marker in text for marker in ["main", "primary", "major", "high", "hd"]):
+        return "main"
+    if width and height:
+        if width >= 1280 or height >= 720:
+            return "main"
+        if width <= 704 or height <= 576:
+            return "sub"
+    if bitrate_kbps:
+        if bitrate_kbps >= 1500:
+            return "main"
+        if bitrate_kbps <= 768:
+            return "sub"
+    return "unknown"
+
+
 def mask_rtsp_url(rtsp_url: str) -> str:
     """RTSP URL içindeki şifreyi log için maskeler."""
     try:
@@ -347,6 +373,19 @@ async def get_nvr_probe_diagnostics(
                     rtsp_url=ch.rtsp_url,
                     source="onvif",
                     diagnostic="ONVIF GetProfiles/GetStreamUri başarılı.",
+                    encoding=ch.encoding,
+                    width=ch.width,
+                    height=ch.height,
+                    fps=ch.fps,
+                    bitrate_kbps=ch.bitrate_kbps,
+                    snapshot_uri=mask_rtsp_url(ch.snapshot_uri) if ch.snapshot_uri else None,
+                    stream_role=infer_stream_role(
+                        ch.profile_name,
+                        ch.profile_token,
+                        ch.width,
+                        ch.height,
+                        ch.bitrate_kbps,
+                    ),
                 )
                 for ch in channels
             ]
@@ -383,6 +422,7 @@ async def get_nvr_probe_diagnostics(
                 rtsp_url=ch["rtsp_url"],
                 source="rtsp_fallback",
                 diagnostic=f"ONVIF başarısız: {onvif_error}",
+                stream_role="unknown",
             )
             for ch in rtsp_channels
         ]

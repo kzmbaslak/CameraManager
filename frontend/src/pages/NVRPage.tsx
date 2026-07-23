@@ -39,6 +39,28 @@ const nvrNetworkError =
 const getNvrErrorMessage = (error: unknown, fallback: string) =>
   getApiErrorMessage(error, fallback, nvrNetworkError)
 
+const streamRoleLabel = (role?: string | null) => {
+  if (role === 'main') return 'Ana Akış'
+  if (role === 'sub') return 'Alt Akış'
+  return 'Bilinmiyor'
+}
+
+const streamRoleBadgeVariant = (role?: string | null): 'info' | 'neutral' | 'warning' => {
+  if (role === 'main') return 'info'
+  if (role === 'sub') return 'neutral'
+  return 'warning'
+}
+
+const streamDetailText = (channel: NVRChannelInfo) => {
+  const parts = [
+    channel.encoding,
+    channel.width && channel.height ? `${channel.width}x${channel.height}` : null,
+    channel.fps ? `${channel.fps} FPS` : null,
+    channel.bitrate_kbps ? `${channel.bitrate_kbps} kbps` : null,
+  ].filter(Boolean)
+  return parts.length > 0 ? parts.join(' / ') : 'Profil detayı yok'
+}
+
 /** Yeni NVR ekleme modal'ı */
 function AddNVRModal({
   open,
@@ -286,6 +308,9 @@ function ChannelModal({
       rtsp: channels.filter((channel) => channel.source !== 'onvif').length,
       new: channels.filter((channel) => !channel.already_imported).length,
       existing: channels.filter((channel) => channel.already_imported).length,
+      main: channels.filter((channel) => channel.stream_role === 'main').length,
+      sub: channels.filter((channel) => channel.stream_role === 'sub').length,
+      unknownProfile: channels.filter((channel) => !channel.stream_role || channel.stream_role === 'unknown').length,
     }),
     [channels]
   )
@@ -416,6 +441,19 @@ function ChannelModal({
                     <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.source !== 'onvif')}>
                       RTSP ({channelSourceCounts.rtsp})
                     </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.stream_role === 'main')}>
+                      Ana Akış ({channelSourceCounts.main})
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.stream_role === 'sub')}>
+                      Alt Akış ({channelSourceCounts.sub})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => selectMatchingChannels((channel) => !channel.stream_role || channel.stream_role === 'unknown')}
+                    >
+                      Profil Bilinmeyen ({channelSourceCounts.unknownProfile})
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
                       Temizle
                     </Button>
@@ -460,6 +498,7 @@ function ChannelModal({
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Marka / Model</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Durum</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Kaynak</th>
+                        <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Profil</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">RTSP URL</th>
                       </tr>
                     </thead>
@@ -521,6 +560,16 @@ function ChannelModal({
                             <Badge variant={ch.source === 'onvif' ? 'success' : 'warning'}>
                               {ch.source === 'onvif' ? 'ONVIF' : 'RTSP'}
                             </Badge>
+                          </td>
+                          <td className="px-3 py-2 min-w-[180px]">
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={streamRoleBadgeVariant(ch.stream_role)}>
+                                {streamRoleLabel(ch.stream_role)}
+                              </Badge>
+                              <span className="text-[11px] text-[var(--text-secondary)]">
+                                {streamDetailText(ch)}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-3 py-2 text-[var(--text-secondary)] font-mono text-xs truncate max-w-[200px]" title={ch.rtsp_url}>{ch.rtsp_url}</td>
                         </tr>

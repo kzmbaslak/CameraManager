@@ -144,6 +144,13 @@ export interface NVRChannelInfo {
   rtsp_url: string
   source: 'onvif' | 'rtsp_fallback' | string
   diagnostic: string | null
+  encoding: string | null
+  width: number | null
+  height: number | null
+  fps: number | null
+  bitrate_kbps: number | null
+  snapshot_uri: string | null
+  stream_role: 'main' | 'sub' | 'unknown' | string | null
   already_imported: boolean
   existing_camera_id: number | null
   duplicate_reason: string | null

@@ -95,6 +95,13 @@ class NVRChannelInfo(BaseModel):
     rtsp_url: str = Field(min_length=1, max_length=2048)
     source: str = Field(default="onvif", max_length=32)
     diagnostic: Optional[str] = Field(default=None, max_length=1024)
+    encoding: Optional[str] = Field(default=None, max_length=32)
+    width: Optional[int] = None
+    height: Optional[int] = None
+    fps: Optional[float] = None
+    bitrate_kbps: Optional[int] = None
+    snapshot_uri: Optional[str] = Field(default=None, max_length=2048)
+    stream_role: Optional[str] = Field(default=None, max_length=32)
     already_imported: bool = False
     existing_camera_id: Optional[int] = None
     duplicate_reason: Optional[str] = Field(default=None, max_length=256)
