@@ -183,6 +183,28 @@ class CameraScanRequest(BaseModel):
         return validate_port(value, 554) if value is not None else value
 
 
+class CameraRtspPreviewRequest(BaseModel):
+    """Kaydetmeden RTSP baglanti onizleme testi istegi."""
+
+    camera_id: Optional[int] = None
+    name: Optional[str] = Field(default=None, max_length=120)
+    host: Optional[str] = Field(default=None, max_length=255)
+    rtsp_port: Optional[int] = 554
+    rtsp_path: Optional[str] = Field(default=None, max_length=512)
+    username: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=256)
+
+    @field_validator("host")
+    @classmethod
+    def _validate_host(cls, value: Optional[str]) -> Optional[str]:
+        return validate_host(value) if value else value
+
+    @field_validator("rtsp_port")
+    @classmethod
+    def _validate_rtsp_port(cls, value: Optional[int]) -> Optional[int]:
+        return validate_port(value, 554) if value is not None else value
+
+
 class CameraScanResult(BaseModel):
     """Kamera tarama sonucu."""
 

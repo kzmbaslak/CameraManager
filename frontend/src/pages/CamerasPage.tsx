@@ -29,6 +29,24 @@ const getCameraErrorMessage = (error: unknown, fallback: string) =>
   getApiErrorMessage(error, fallback, cameraNetworkError)
 
 /** Yeni kamera ekleme modal'ı */
+function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }) {
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <p className={result.frame_ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
+        {result.message}
+      </p>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <Badge variant={result.tcp_open ? 'success' : 'danger'}>TCP {result.tcp_open ? 'Acik' : 'Kapali'}</Badge>
+        <Badge variant={result.describe_ok ? 'success' : 'danger'}>DESCRIBE {result.describe_ok ? 'OK' : 'Hata'}</Badge>
+        <Badge variant={result.frame_ok ? 'success' : 'danger'}>Frame {result.frame_ok ? 'OK' : 'Yok'}</Badge>
+      </div>
+      <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
+        {result.authenticated_url_masked}
+      </p>
+    </div>
+  )
+}
+
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
@@ -43,6 +61,15 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
+  })
+
+  const {
+    mutate: previewConnection,
+    data: previewResult,
+    isPending: isPreviewingConnection,
+    error: previewError,
+  } = useMutation({
+    mutationFn: () => camerasApi.previewRtsp(form),
   })
 
   const set = (field: keyof CameraCreate, value: string | number) =>
@@ -80,6 +107,32 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         <Input label="RTSP Path veya tam RTSP URL" placeholder="/videoStreamId=1 veya rtsp://192.168.1.100:554/stream1" value={form.rtsp_path ?? ''} onChange={(e) => set('rtsp_path', e.target.value)} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Kaydetmeden Test</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Formdaki host, port, RTSP path ve sifre bilgisi kaydedilmeden denenir.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              icon={<Activity size={13} />}
+              loading={isPreviewingConnection}
+              onClick={() => previewConnection()}
+            >
+              Test Et
+            </Button>
+          </div>
+          {previewError && (
+            <p className="mt-2 text-xs text-[var(--danger)]">
+              {getCameraErrorMessage(previewError, 'RTSP onizleme testi calistirilamadi.')}
+            </p>
+          )}
+          {previewResult && <RtspDiagnosticResultPanel result={previewResult} />}
+        </div>
         {error && (
           <div className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2">
             <p className="text-xs text-[var(--danger)] leading-5">
@@ -381,17 +434,18 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     isPending: isTestingConnection,
     error: testError,
   } = useMutation({
-    mutationFn: () => camerasApi.diagnoseRtsp(camera!.id),
+    mutationFn: () => camerasApi.previewRtsp({
+      camera_id: camera!.id,
+      name: form.name,
+      host: form.host,
+      rtsp_port: form.rtsp_port,
+      rtsp_path: form.rtsp_path,
+      username: form.username,
+      password: form.password,
+    }),
   })
 
   if (!camera) return null
-
-  const connectionChanged =
-    form.host !== camera.host ||
-    form.rtsp_port !== camera.rtsp_port ||
-    form.rtsp_path !== camera.rtsp_path ||
-    form.username !== (camera.username ?? '') ||
-    Boolean(form.password)
 
   return (
     <Modal open onClose={onClose} title={`Düzenle — ${camera.name}`}>
@@ -410,7 +464,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Baglanti Testi</p>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Kayitli RTSP baglantisi sifre gosterilmeden test edilir.
+                Formdaki kaydedilmemis RTSP degerleri denenir; yeni sifre bos ise kayitli sifre kullanilir.
               </p>
             </div>
             <Button
@@ -424,31 +478,12 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
               Test Et
             </Button>
           </div>
-          {connectionChanged && (
-            <p className="mt-2 text-xs text-[var(--warning)]">
-              Kaydedilmemis degisiklikler var; test mevcut kayitli baglanti degerleriyle calisir.
-            </p>
-          )}
           {testError && (
             <p className="mt-2 text-xs text-[var(--danger)]">
               {getCameraErrorMessage(testError, 'RTSP baglanti testi calistirilamadi.')}
             </p>
           )}
-          {testResult && (
-            <div className="mt-3 flex flex-col gap-2">
-              <p className={testResult.frame_ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
-                {testResult.message}
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <Badge variant={testResult.tcp_open ? 'success' : 'danger'}>TCP {testResult.tcp_open ? 'Acik' : 'Kapali'}</Badge>
-                <Badge variant={testResult.describe_ok ? 'success' : 'danger'}>DESCRIBE {testResult.describe_ok ? 'OK' : 'Hata'}</Badge>
-                <Badge variant={testResult.frame_ok ? 'success' : 'danger'}>Frame {testResult.frame_ok ? 'OK' : 'Yok'}</Badge>
-              </div>
-              <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
-                {testResult.authenticated_url_masked}
-              </p>
-            </div>
-          )}
+          {testResult && <RtspDiagnosticResultPanel result={testResult} />}
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>

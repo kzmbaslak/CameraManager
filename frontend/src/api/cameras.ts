@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthSummary, CameraRtspDiagnostics, CameraStreamDiagnostics, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthSummary, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -76,6 +76,12 @@ export const camerasApi = {
   /** Kayıtlı kameranın RTSP bağlantısını şifre göstermeden test eder. */
   diagnoseRtsp: async (id: number): Promise<CameraRtspDiagnostics> => {
     const { data } = await client.get<CameraRtspDiagnostics>(`/cameras/${id}/diagnostics/rtsp`)
+    return data
+  },
+
+  /** Kaydetmeden formdaki RTSP baglantisini test eder. */
+  previewRtsp: async (payload: CameraRtspPreviewRequest): Promise<CameraRtspDiagnostics> => {
+    const { data } = await client.post<CameraRtspDiagnostics>('/cameras/diagnostics/rtsp-preview', payload)
     return data
   },
 

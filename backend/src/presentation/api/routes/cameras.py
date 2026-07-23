@@ -29,6 +29,8 @@ from src.presentation.api.schemas.camera_schema import (
     CameraResponse,
     CameraScanRequest,
     CameraScanResult,
+    CameraRtspDiagnostics,
+    CameraRtspPreviewRequest,
     CameraHealthSummaryResponse,
     CameraStreamDiagnostics,
 )
@@ -45,6 +47,105 @@ from src.infrastructure.security.jwt_service import create_stream_token
 from src.infrastructure.security.audit_logger import write_audit_event
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
+
+
+def _normalize_rtsp_fields(
+    host: str,
+    rtsp_port: int,
+    rtsp_path: str,
+    username: str,
+    password: str,
+) -> tuple[str, int, str, str, str]:
+    """Tam RTSP URL girildiyse host/port/path/auth alanlarina ayirir."""
+    path = rtsp_path or ""
+    if path.lower().startswith("rtsp://"):
+        parsed = urlparse(path)
+        host = parsed.hostname or host
+        rtsp_port = parsed.port or rtsp_port
+        username = unquote(parsed.username) if parsed.username else username
+        password = unquote(parsed.password) if parsed.password else password
+        path = parsed.path or ""
+        if parsed.query:
+            path = f"{path}?{parsed.query}"
+    return host, rtsp_port, path, username, password
+
+
+async def _build_rtsp_diagnostics(
+    *,
+    camera_id: int,
+    name: str,
+    host: str,
+    rtsp_port: int,
+    rtsp_path: str,
+    username: str,
+    password: str,
+    nvr_id: int | None = None,
+) -> dict:
+    """RTSP TCP/DESCRIBE/frame testlerini ortak sonuc semasina donusturur."""
+    host, rtsp_port, path, username, password = _normalize_rtsp_fields(
+        host,
+        rtsp_port,
+        rtsp_path,
+        username,
+        password,
+    )
+    public_path = path if path.startswith("/") else f"/{path}"
+    public_url = f"rtsp://{host}:{rtsp_port}{public_path}"
+    masked_auth = f"{username}:****@" if username else ""
+    masked_url = f"rtsp://{masked_auth}{host}:{rtsp_port}{public_path}"
+
+    tcp_open = await check_port_async(host, rtsp_port, timeout=2.0)
+    describe_ok = await check_rtsp_path_async(
+        host,
+        rtsp_port,
+        path,
+        username,
+        password,
+        timeout=2.0,
+    )
+    frame_result = await validate_rtsp_endpoint_variants_async(
+        host,
+        rtsp_port,
+        path,
+        username,
+        password,
+    )
+    authenticated_frame_ok = frame_result["authenticated"]
+    anonymous_frame_ok = frame_result["anonymous"]
+    frame_ok = authenticated_frame_ok or anonymous_frame_ok
+
+    if frame_ok:
+        if anonymous_frame_ok and not authenticated_frame_ok and username:
+            message = "RTSP anonim erisimle frame veriyor; kullanici/sifreli URL frame vermiyor."
+        else:
+            message = "RTSP baglantisi dogrulandi; gercek frame okunabiliyor."
+    elif describe_ok:
+        if nvr_id:
+            message = "RTSP DESCRIBE basarili, ancak frame okunamadi. NVR kanal path'ini, kanal yetkisini ve NVR uzerindeki canli goruntuyu kontrol edin."
+        else:
+            message = "RTSP DESCRIBE basarili, ancak frame okunamadi. Kamera stream profilini, codec'i ve RTSP transport ayarini kontrol edin."
+    elif tcp_open:
+        message = "Port acik, ancak RTSP path veya kullanici/sifre dogrulanamadi."
+    else:
+        message = "RTSP portuna TCP baglantisi kurulamadi."
+
+    return {
+        "camera_id": camera_id,
+        "name": name,
+        "host": host,
+        "rtsp_port": rtsp_port,
+        "rtsp_path": path,
+        "nvr_id": nvr_id,
+        "has_username": bool(username),
+        "public_url": public_url,
+        "authenticated_url_masked": masked_url,
+        "tcp_open": tcp_open,
+        "describe_ok": describe_ok,
+        "frame_ok": frame_ok,
+        "authenticated_frame_ok": authenticated_frame_ok,
+        "anonymous_frame_ok": anonymous_frame_ok,
+        "message": message,
+    }
 
 
 @router.post("/", response_model=CameraResponse, status_code=201)
@@ -165,6 +266,43 @@ def list_cameras(
     return use_cases.list_cameras()
 
 
+@router.post("/diagnostics/rtsp-preview", response_model=CameraRtspDiagnostics)
+async def preview_camera_rtsp(
+    data: CameraRtspPreviewRequest,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Kaydetmeden formdaki RTSP alanlariyla baglanti testi yapar."""
+    camera = use_cases.get_camera(data.camera_id) if data.camera_id else None
+    if data.camera_id and not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    host = data.host or (camera.host if camera else "")
+    if not host:
+        raise HTTPException(status_code=400, detail="Host bilgisi gereklidir.")
+
+    password = data.password
+    if password is None and camera:
+        password = camera.encrypted_password or ""
+        if password:
+            try:
+                from src.presentation.api.dependencies import password_service
+                password = password_service.decrypt(password)
+            except Exception:
+                pass
+
+    return await _build_rtsp_diagnostics(
+        camera_id=camera.id if camera else 0,
+        name=data.name or (camera.name if camera else "Kaydedilmemis kamera"),
+        host=host,
+        rtsp_port=data.rtsp_port or (camera.rtsp_port if camera else 554),
+        rtsp_path=data.rtsp_path if data.rtsp_path is not None else (camera.rtsp_path if camera else ""),
+        username=data.username if data.username is not None else (camera.username if camera else "") or "",
+        password=password or "",
+        nvr_id=camera.nvr_id if camera else None,
+    )
+
+
 @router.get("/{camera_id}", response_model=CameraResponse)
 def get_camera(
     camera_id: int,
@@ -277,16 +415,16 @@ async def update_camera(
     return updated_camera
 
 
-@router.get("/{camera_id}/diagnostics/rtsp")
+@router.get("/{camera_id}/diagnostics/rtsp", response_model=CameraRtspDiagnostics)
 async def diagnose_camera_rtsp(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     current_user: dict = Depends(get_operator_user),
 ):
-    """Kayıtlı kameranın RTSP erişimini şifre göstermeden test eder."""
+    """Kayitli kameranin RTSP erisimini sifre gostermeden test eder."""
     camera = use_cases.get_camera(camera_id)
     if not camera:
-        raise HTTPException(status_code=404, detail="Kamera bulunamadı")
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
 
     password = camera.encrypted_password or ""
     if password:
@@ -296,64 +434,16 @@ async def diagnose_camera_rtsp(
         except Exception:
             pass
 
-    path = camera.rtsp_path or ""
-    public_path = path if path.startswith("/") else f"/{path}"
-    public_url = f"rtsp://{camera.host}:{camera.rtsp_port}{public_path}"
-    masked_auth = f"{camera.username}:****@" if camera.username else ""
-    masked_url = f"rtsp://{masked_auth}{camera.host}:{camera.rtsp_port}{public_path}"
-
-    tcp_open = await check_port_async(camera.host, camera.rtsp_port, timeout=2.0)
-    describe_ok = await check_rtsp_path_async(
-        camera.host,
-        camera.rtsp_port,
-        path,
-        camera.username or "",
-        password,
-        timeout=2.0,
+    return await _build_rtsp_diagnostics(
+        camera_id=camera.id,
+        name=camera.name,
+        host=camera.host,
+        rtsp_port=camera.rtsp_port,
+        rtsp_path=camera.rtsp_path or "",
+        username=camera.username or "",
+        password=password,
+        nvr_id=camera.nvr_id,
     )
-    frame_result = await validate_rtsp_endpoint_variants_async(
-        camera.host,
-        camera.rtsp_port,
-        path,
-        camera.username or "",
-        password,
-    )
-    authenticated_frame_ok = frame_result["authenticated"]
-    anonymous_frame_ok = frame_result["anonymous"]
-    frame_ok = authenticated_frame_ok or anonymous_frame_ok
-
-    if frame_ok:
-        if anonymous_frame_ok and not authenticated_frame_ok and camera.username:
-            message = "RTSP anonim erişimle frame veriyor; kayıtlı kullanıcı/şifreli URL frame vermiyor."
-        else:
-            message = "RTSP bağlantısı doğrulandı; gerçek frame okunabiliyor."
-    elif describe_ok:
-        if camera.nvr_id:
-            message = "RTSP DESCRIBE başarılı, ancak frame okunamadı. NVR kanal path'ini, kanal yetkisini ve NVR üzerindeki canlı görüntüyü kontrol edin."
-        else:
-            message = "RTSP DESCRIBE başarılı, ancak frame okunamadı. Kamera stream profilini, codec'i ve RTSP transport ayarını kontrol edin."
-    elif tcp_open:
-        message = "Port açık, ancak RTSP path veya kullanıcı/şifre doğrulanamadı."
-    else:
-        message = "RTSP portuna TCP bağlantısı kurulamadı."
-
-    return {
-        "camera_id": camera.id,
-        "name": camera.name,
-        "host": camera.host,
-        "rtsp_port": camera.rtsp_port,
-        "rtsp_path": path,
-        "nvr_id": camera.nvr_id,
-        "has_username": bool(camera.username),
-        "public_url": public_url,
-        "authenticated_url_masked": masked_url,
-        "tcp_open": tcp_open,
-        "describe_ok": describe_ok,
-        "frame_ok": frame_ok,
-        "authenticated_frame_ok": authenticated_frame_ok,
-        "anonymous_frame_ok": anonymous_frame_ok,
-        "message": message,
-    }
 
 
 @router.get("/{camera_id}/diagnostics/stream", response_model=CameraStreamDiagnostics)

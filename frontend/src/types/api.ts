@@ -204,6 +204,16 @@ export interface CameraRtspDiagnostics {
   message: string
 }
 
+export interface CameraRtspPreviewRequest {
+  camera_id?: number
+  name?: string
+  host?: string
+  rtsp_port?: number
+  rtsp_path?: string
+  username?: string
+  password?: string
+}
+
 export interface CameraStreamDiagnostics {
   camera_id: number
   producer_running: boolean
