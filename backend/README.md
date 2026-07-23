@@ -125,6 +125,18 @@ venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHM
 venv\Scripts\python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+### 5.1. Windows Arka Plan Calistiricisi
+
+Harici servis paketi kullanmadan Windows Gorev Zamanlayici ile calistirmak icin repo kokundeki `scripts` klasorunu kullan:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-service.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\service-status.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-service.ps1
+```
+
+`scripts\run-service.ps1` tek surecte `uvicorn main:app` calistirir. Stream yonetimi ve health worker proses icinde oldugu icin coklu worker kullanilmaz.
+
 ---
 
 ## API Endpoint'leri

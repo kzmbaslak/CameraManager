@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Windows arka plan calistiricisi eklendi. `scripts\run-service.ps1`, `install-service.ps1`, `service-status.ps1` ve `uninstall-service.ps1` ile harici servis paketleyici gerektirmeden Windows Task Scheduler uzerinden tek surec `uvicorn main:app` calistirilabiliyor; stream ve health worker proses-bagimli oldugu icin coklu worker acilmiyor.
 - 2026-07-23: Canli kamera karti alarm aninda dogrudan operator aksiyon yuzeyi oldu. Insan tespiti aktifken kart uzerinde tek tikla "Sustur" ve acik alarm varsa "Onayla" butonlari gorunur; tiklamalar canli modal acma davranisini tetiklemeden calisir. BoundingBox overlay normalize 0..1 koordinatlari ve sinir disina tasan kutular icin daha dayanikli hale getirildi. Alarm bildirimindeki "Yanlis Alarm" butonu artik sadece onaylamak yerine gercek `/false-positive` endpoint'ini kullanir.
 - 2026-07-23: Public readiness endpoint eklendi. `/api/health/ready` kimlik gerektirmeden DB semasi, AI modeli ve aktif admin hazirligini hassas mesaj dondurmeden `key/ok/severity` ozetiyle raporlar; high/critical eksikte HTTP 503 verir.
 - 2026-07-23: Security posture ve Dashboard guvenlik karti uygulama log olgunlugunu raporlar. `/api/security/posture` artik `app_log_rotation_configured` ve `app_log_json_format` alanlarini dondurur; rotasyon env'i eksikse sertlestirme bulgusu uretir.
