@@ -18,6 +18,8 @@ class AlarmResponse(BaseModel):
     bounding_box: Optional[BoundingBoxSchema]
     snapshot_path: Optional[str]
     snapshot_sha256: Optional[str] = None
+    snapshot_annotated_path: Optional[str] = None
+    snapshot_annotated_sha256: Optional[str] = None
     message: Optional[str]
     severity: AlarmSeverity = AlarmSeverity.MEDIUM
     false_positive: bool = False

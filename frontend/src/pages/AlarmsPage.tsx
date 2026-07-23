@@ -153,6 +153,8 @@ function AlarmDetailDrawer({
   cameraName,
   snapshotUrl,
   snapshotSha256,
+  rawSnapshotUrl,
+  rawSnapshotSha256,
   snapshotLoading,
   onClose,
   onOpenLive,
@@ -169,6 +171,8 @@ function AlarmDetailDrawer({
   cameraName?: string
   snapshotUrl: string | null
   snapshotSha256: string | null
+  rawSnapshotUrl: string | null
+  rawSnapshotSha256: string | null
   snapshotLoading: boolean
   onClose: () => void
   onOpenLive: () => void
@@ -185,13 +189,24 @@ function AlarmDetailDrawer({
   const [operatorNote, setOperatorNote] = useState(alarm.operator_note ?? '')
   const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
   const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity)
-  const snapshotFilename = `alarm-${alarm.id}-snapshot.jpg`
+  const snapshotFilename = alarm.snapshot_annotated_path ? `alarm-${alarm.id}-kutulu-kanit.jpg` : `alarm-${alarm.id}-snapshot.jpg`
+  const rawSnapshotFilename = `alarm-${alarm.id}-ham-kanit.jpg`
 
   function handleDownloadSnapshot() {
     if (!snapshotUrl) return
     const link = document.createElement('a')
     link.href = snapshotUrl
     link.download = snapshotFilename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  function handleDownloadRawSnapshot() {
+    if (!rawSnapshotUrl) return
+    const link = document.createElement('a')
+    link.href = rawSnapshotUrl
+    link.download = rawSnapshotFilename
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -221,7 +236,7 @@ function AlarmDetailDrawer({
             {snapshotLoading ? (
               <div className="flex h-full items-center justify-center"><Spinner size="sm" /></div>
             ) : snapshotUrl ? (
-              <img src={snapshotUrl} alt="Alarm snapshot" className="h-full w-full object-contain" />
+              <img src={snapshotUrl} alt="Alarm kanit snapshot" className="h-full w-full object-contain" />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-text-secondary">Snapshot yok</div>
             )}
@@ -235,16 +250,34 @@ function AlarmDetailDrawer({
                   SHA-256: {snapshotSha256}
                 </p>
               )}
+              {rawSnapshotSha256 && rawSnapshotSha256 !== snapshotSha256 && (
+                <p className="mt-0.5 truncate font-mono" title={rawSnapshotSha256}>
+                  Ham SHA-256: {rawSnapshotSha256}
+                </p>
+              )}
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<Download size={14} />}
-              disabled={!snapshotUrl || snapshotLoading}
-              onClick={handleDownloadSnapshot}
-            >
-              Kaniti Indir
-            </Button>
+            <div className="flex shrink-0 flex-col gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Download size={14} />}
+                disabled={!snapshotUrl || snapshotLoading}
+                onClick={handleDownloadSnapshot}
+              >
+                Kaniti Indir
+              </Button>
+              {rawSnapshotUrl && rawSnapshotUrl !== snapshotUrl && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Download size={14} />}
+                  disabled={snapshotLoading}
+                  onClick={handleDownloadRawSnapshot}
+                >
+                  Ham Kanit
+                </Button>
+              )}
+            </div>
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -395,23 +428,44 @@ export function AlarmsPage() {
     refetchInterval: 15_000,
   })
 
-  const selectedSnapshotAlarmId = selectedAlarm?.snapshot_path ? selectedAlarm.id : null
+  const selectedSnapshotAlarmId = selectedAlarm?.snapshot_path || selectedAlarm?.snapshot_annotated_path ? selectedAlarm.id : null
+  const selectedSnapshotVariant = selectedAlarm?.snapshot_annotated_path ? 'annotated' : 'raw'
   const { data: snapshotData, isFetching: snapshotLoading } = useQuery({
-    queryKey: ['alarm-snapshot', selectedSnapshotAlarmId],
-    queryFn: () => alarmsApi.snapshot(selectedSnapshotAlarmId as number),
+    queryKey: ['alarm-snapshot', selectedSnapshotAlarmId, selectedSnapshotVariant],
+    queryFn: () => alarmsApi.snapshot(selectedSnapshotAlarmId as number, selectedSnapshotVariant),
     enabled: selectedSnapshotAlarmId !== null,
+  })
+  const selectedRawSnapshotAlarmId = selectedAlarm?.snapshot_annotated_path && selectedAlarm.snapshot_path ? selectedAlarm.id : null
+  const { data: rawSnapshotData } = useQuery({
+    queryKey: ['alarm-snapshot', selectedRawSnapshotAlarmId, 'raw'],
+    queryFn: () => alarmsApi.snapshot(selectedRawSnapshotAlarmId as number, 'raw'),
+    enabled: selectedRawSnapshotAlarmId !== null,
   })
   const snapshotUrl = useMemo(
     () => (snapshotData?.blob ? URL.createObjectURL(snapshotData.blob) : null),
     [snapshotData],
   )
-  const snapshotSha256 = snapshotData?.sha256 ?? selectedAlarm?.snapshot_sha256 ?? null
+  const rawSnapshotUrl = useMemo(
+    () => (rawSnapshotData?.blob ? URL.createObjectURL(rawSnapshotData.blob) : null),
+    [rawSnapshotData],
+  )
+  const snapshotSha256 = snapshotData?.sha256
+    ?? selectedAlarm?.snapshot_annotated_sha256
+    ?? selectedAlarm?.snapshot_sha256
+    ?? null
+  const rawSnapshotSha256 = rawSnapshotData?.sha256 ?? selectedAlarm?.snapshot_sha256 ?? null
 
   useEffect(() => {
     return () => {
       if (snapshotUrl) URL.revokeObjectURL(snapshotUrl)
     }
   }, [snapshotUrl])
+
+  useEffect(() => {
+    return () => {
+      if (rawSnapshotUrl) URL.revokeObjectURL(rawSnapshotUrl)
+    }
+  }, [rawSnapshotUrl])
 
   // Tarih filtresi client-side
   const filtered = useMemo(() => {
@@ -576,6 +630,8 @@ export function AlarmsPage() {
           cameraName={cameraNameMap[selectedAlarm.camera_id]}
           snapshotUrl={snapshotUrl}
           snapshotSha256={snapshotSha256}
+          rawSnapshotUrl={rawSnapshotUrl}
+          rawSnapshotSha256={rawSnapshotSha256}
           snapshotLoading={snapshotLoading}
           onClose={() => setSelectedAlarm(null)}
           onOpenLive={() => {

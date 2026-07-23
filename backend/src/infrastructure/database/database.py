@@ -67,6 +67,8 @@ def ensure_alarm_operation_columns() -> None:
         "severity": "TEXT DEFAULT 'medium'",
         "false_positive": "BOOLEAN DEFAULT 0",
         "snapshot_sha256": "TEXT",
+        "snapshot_annotated_path": "TEXT",
+        "snapshot_annotated_sha256": "TEXT",
     }
     conn = sqlite3.connect(db_path)
     try:

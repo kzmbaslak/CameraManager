@@ -50,6 +50,8 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "confidence",
         "snapshot_path",
         "snapshot_sha256",
+        "snapshot_annotated_path",
+        "snapshot_annotated_sha256",
         "severity",
         "false_positive",
         "assigned_to",

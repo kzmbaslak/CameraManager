@@ -13,6 +13,59 @@ from src.domain.entities.alarm import AlarmStatus, AlarmType
 router = APIRouter(prefix="/alarms", tags=["Alarms"])
 
 
+def _snapshot_file_response(
+    alarm_id: int,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository,
+    current_user: dict,
+    annotated: bool = False,
+) -> FileResponse:
+    """Alarm snapshot varyantini guvenli dosya siniri icinden dondurur."""
+    alarm = repo.get_by_id(alarm_id)
+    snapshot_path = alarm.snapshot_path if alarm else None
+    stored_hash = alarm.snapshot_sha256 if alarm else None
+    variant = "raw"
+    if alarm and annotated and alarm.snapshot_annotated_path:
+        snapshot_path = alarm.snapshot_annotated_path
+        stored_hash = alarm.snapshot_annotated_sha256
+        variant = "annotated"
+    elif annotated:
+        variant = "annotated_fallback"
+    if not alarm or not snapshot_path:
+        raise HTTPException(status_code=404, detail="Alarm snapshot bulunamadi.")
+
+    base_dir = os.path.abspath("snapshots")
+    absolute_path = os.path.abspath(snapshot_path)
+    if os.path.commonpath([base_dir, absolute_path]) != base_dir:
+        raise HTTPException(status_code=403, detail="Snapshot yolu guvenli dizin disinda.")
+    if not os.path.isfile(absolute_path):
+        raise HTTPException(status_code=404, detail="Snapshot dosyasi bulunamadi.")
+    with open(absolute_path, "rb") as file:
+        snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
+    if stored_hash != snapshot_sha256:
+        if variant == "annotated":
+            alarm.snapshot_annotated_sha256 = snapshot_sha256
+        else:
+            alarm.snapshot_sha256 = snapshot_sha256
+        repo.update(alarm)
+    write_audit_event(
+        "alarm.snapshot.access",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "alarm_id": alarm_id,
+            "camera_id": alarm.camera_id,
+            "snapshot_sha256": snapshot_sha256,
+            "variant": variant,
+        },
+    )
+    return FileResponse(
+        absolute_path,
+        media_type="image/jpeg",
+        headers={"X-Snapshot-SHA256": snapshot_sha256, "X-Snapshot-Variant": variant},
+    )
+
+
 @router.get("/", response_model=List[AlarmResponse])
 def list_alarms(
     camera_id: Optional[int] = None,
@@ -55,32 +108,18 @@ def get_alarm_snapshot(
     current_user: dict = Depends(get_current_user),
 ):
     """Alarm kanit snapshot dosyasini guvenli dosya siniri icinden dondurur."""
-    alarm = repo.get_by_id(alarm_id)
-    if not alarm or not alarm.snapshot_path:
-        raise HTTPException(status_code=404, detail="Alarm snapshot bulunamadi.")
+    return _snapshot_file_response(alarm_id, request, repo, current_user, annotated=False)
 
-    base_dir = os.path.abspath("snapshots")
-    snapshot_path = os.path.abspath(alarm.snapshot_path)
-    if os.path.commonpath([base_dir, snapshot_path]) != base_dir:
-        raise HTTPException(status_code=403, detail="Snapshot yolu guvenli dizin disinda.")
-    if not os.path.isfile(snapshot_path):
-        raise HTTPException(status_code=404, detail="Snapshot dosyasi bulunamadi.")
-    with open(snapshot_path, "rb") as file:
-        snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
-    if alarm.snapshot_sha256 != snapshot_sha256:
-        alarm.snapshot_sha256 = snapshot_sha256
-        repo.update(alarm)
-    write_audit_event(
-        "alarm.snapshot.access",
-        actor=current_user.get("sub"),
-        source_ip=request.client.host if request.client else None,
-        metadata={"alarm_id": alarm_id, "camera_id": alarm.camera_id, "snapshot_sha256": snapshot_sha256},
-    )
-    return FileResponse(
-        snapshot_path,
-        media_type="image/jpeg",
-        headers={"X-Snapshot-SHA256": snapshot_sha256},
-    )
+
+@router.get("/{alarm_id}/snapshot/annotated")
+def get_alarm_annotated_snapshot(
+    alarm_id: int,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_current_user),
+):
+    """Alarm operator kanit snapshot'ini, varsa insan kutulariyla dondurur."""
+    return _snapshot_file_response(alarm_id, request, repo, current_user, annotated=True)
 
 @router.post("/{alarm_id}/acknowledge", response_model=AlarmResponse)
 def acknowledge_alarm(

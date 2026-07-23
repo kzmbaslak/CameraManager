@@ -59,22 +59,43 @@ class ProcessFrameUseCase:
                 return True
         return False
 
-    def _save_snapshot(self, frame: object, camera_id: int, bounding_box: Optional[BoundingBox] = None) -> tuple[str, str]:
-        """Goruntuyu diske kaydeder; dosya yolu ve SHA-256 ozetini dondurur."""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"cam_{camera_id}_{timestamp}.jpg"
-        filepath = os.path.join(self.snapshot_dir, filename)
-
-        save_frame = frame.copy()
-        if bounding_box:
-            x1, y1 = bounding_box.x, bounding_box.y
-            x2, y2 = x1 + bounding_box.width, y1 + bounding_box.height
-            cv2.rectangle(save_frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-
-        cv2.imwrite(filepath, save_frame)
+    def _file_sha256(self, filepath: str) -> str:
+        """Dosyanin SHA-256 ozetini dondurur."""
         with open(filepath, "rb") as file:
-            snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
-        return filepath, snapshot_sha256
+            return hashlib.sha256(file.read()).hexdigest()
+
+    def _draw_detection_boxes(self, frame: object, detections: Tuple[Detection, ...]) -> object:
+        """Operator kaniti icin tum insan kutularini confidence etiketiyle cizer."""
+        annotated = frame.copy()
+        for detection in detections:
+            box = detection.bounding_box
+            x1, y1 = box.x, box.y
+            x2, y2 = x1 + box.width, y1 + box.height
+            label = f"Insan {int(detection.confidence * 100)}%"
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 80, 255), 2)
+            label_y = max(16, y1 - 6)
+            cv2.rectangle(annotated, (x1, label_y - 15), (x1 + 98, label_y + 4), (0, 80, 255), -1)
+            cv2.putText(
+                annotated,
+                label,
+                (x1 + 4, label_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (20, 20, 20),
+                1,
+                cv2.LINE_AA,
+            )
+        return annotated
+
+    def _save_alarm_snapshots(self, frame: object, camera_id: int, detections: Tuple[Detection, ...]) -> tuple[str, str, str, str]:
+        """Ham ve kutulu kanit goruntulerini diske kaydeder; yollar ve SHA-256 ozetlerini dondurur."""
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        raw_path = os.path.join(self.snapshot_dir, f"cam_{camera_id}_{timestamp}_raw.jpg")
+        annotated_path = os.path.join(self.snapshot_dir, f"cam_{camera_id}_{timestamp}_boxed.jpg")
+
+        cv2.imwrite(raw_path, frame)
+        cv2.imwrite(annotated_path, self._draw_detection_boxes(frame, detections))
+        return raw_path, self._file_sha256(raw_path), annotated_path, self._file_sha256(annotated_path)
 
     def _is_ai_schedule_active(self, camera) -> bool:
         """Kamera bazli AI aktif saat araligini kontrol eder."""
@@ -223,7 +244,7 @@ class ProcessFrameUseCase:
             in_cooldown = self._is_in_cooldown(camera_id, AlarmType.HUMAN_DETECTED)
             self.cooldown_seconds = original_cooldown
             if not in_cooldown:
-                snapshot_path, snapshot_sha256 = self._save_snapshot(frame, camera_id, best_detection.bounding_box)
+                snapshot_path, snapshot_sha256, snapshot_annotated_path, snapshot_annotated_sha256 = self._save_alarm_snapshots(frame, camera_id, detections)
                 alarm = Alarm(
                     id=None,
                     camera_id=camera_id,
@@ -233,6 +254,8 @@ class ProcessFrameUseCase:
                     bounding_box=best_detection.bounding_box,
                     snapshot_path=snapshot_path,
                     snapshot_sha256=snapshot_sha256,
+                    snapshot_annotated_path=snapshot_annotated_path,
+                    snapshot_annotated_sha256=snapshot_annotated_sha256,
                     severity=AlarmSeverity.HIGH,
                     message=f"Insan tespit edildi! Guven (Confidence): %{int(best_detection.confidence * 100)}",
                     created_at=detected_at,

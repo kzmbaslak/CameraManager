@@ -31,6 +31,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             bounding_box=bbox,
             snapshot_path=model.snapshot_path,
             snapshot_sha256=model.snapshot_sha256,
+            snapshot_annotated_path=model.snapshot_annotated_path,
+            snapshot_annotated_sha256=model.snapshot_annotated_sha256,
             message=model.message,
             severity=self._severity_to_entity(model.severity),
             false_positive=bool(model.false_positive),
@@ -51,6 +53,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             confidence=entity.confidence,
             snapshot_path=entity.snapshot_path,
             snapshot_sha256=entity.snapshot_sha256,
+            snapshot_annotated_path=entity.snapshot_annotated_path,
+            snapshot_annotated_sha256=entity.snapshot_annotated_sha256,
             message=entity.message,
             severity=entity.severity.value,
             false_positive=entity.false_positive,
@@ -114,6 +118,8 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
             model.confidence = alarm.confidence
             model.snapshot_path = alarm.snapshot_path
             model.snapshot_sha256 = alarm.snapshot_sha256
+            model.snapshot_annotated_path = alarm.snapshot_annotated_path
+            model.snapshot_annotated_sha256 = alarm.snapshot_annotated_sha256
             model.message = alarm.message
             model.severity = alarm.severity.value
             model.false_positive = alarm.false_positive

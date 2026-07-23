@@ -15,6 +15,8 @@ COLUMNS = {
     "severity": "TEXT DEFAULT 'medium'",
     "false_positive": "BOOLEAN DEFAULT 0",
     "snapshot_sha256": "TEXT",
+    "snapshot_annotated_path": "TEXT",
+    "snapshot_annotated_sha256": "TEXT",
 }
 
 
