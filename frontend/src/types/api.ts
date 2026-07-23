@@ -385,6 +385,7 @@ export interface SecurityPosture {
   audit_webhook_configured: boolean
   app_log_rotation_configured: boolean
   app_log_json_format: boolean
+  app_log_sensitive_query_masking: boolean
   security_headers_enabled: boolean
   content_security_policy_enabled: boolean
   setup_checks: SetupCheck[]

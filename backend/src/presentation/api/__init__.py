@@ -107,6 +107,7 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         app_log_backup_count = 0
     app_log_rotation_configured = bool(app_log_dir) and app_log_backup_count > 0
     app_log_json_format = os.environ.get("APP_LOG_FORMAT", "text").strip().lower() == "json"
+    app_log_sensitive_query_masking = True
     if not app_log_rotation_configured:
         findings.append({"severity": "medium", "message": "APP_LOG_DIR ve APP_LOG_BACKUP_COUNT ile uygulama log rotasyonu tanimlanmali."})
 
@@ -140,6 +141,7 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         "audit_webhook_configured": audit_webhook_configured,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
+        "app_log_sensitive_query_masking": app_log_sensitive_query_masking,
         "security_headers_enabled": True,
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -16,6 +17,46 @@ def _env_int(name: str, default: int, minimum: int) -> int:
     except ValueError:
         return default
     return max(minimum, value)
+
+
+_QUERY_SECRET_RE = re.compile(
+    r"([?&](?:token|stream_token|access_token|refresh_token|password|secret|key|authorization)=)([^&\s\"']+)",
+    re.IGNORECASE,
+)
+_BEARER_RE = re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]+", re.IGNORECASE)
+_RTSP_CREDENTIAL_RE = re.compile(r"(rtsp://)([^:@/\s]+):([^@/\s]+)@", re.IGNORECASE)
+
+
+def mask_sensitive_log_text(value: str) -> str:
+    """Log metnindeki token, query secret ve RTSP parolalarini maskeler."""
+    masked = _RTSP_CREDENTIAL_RE.sub(r"\1\2:****@", value)
+    masked = _QUERY_SECRET_RE.sub(r"\1****", masked)
+    return _BEARER_RE.sub("Bearer ****", masked)
+
+
+def _sanitize_value(value):
+    """LogRecord args/extra icindeki string degerleri guvenli hale getirir."""
+    if isinstance(value, str):
+        return mask_sensitive_log_text(value)
+    if isinstance(value, tuple):
+        return tuple(_sanitize_value(item) for item in value)
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _sanitize_value(item) for key, item in value.items()}
+    return value
+
+
+class SensitiveLogFilter(logging.Filter):
+    """Handler'a ulasan kayitlarda hassas metinleri maskeleyen filtre."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Kaydi engellemez; sadece mesaj ve argumanlari sanitize eder."""
+        if isinstance(record.msg, str):
+            record.msg = mask_sensitive_log_text(record.msg)
+        if record.args:
+            record.args = _sanitize_value(record.args)
+        return True
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -63,7 +104,7 @@ class JsonLogFormatter(logging.Formatter):
             if key not in self._reserved and not key.startswith("_")
         }
         if extra:
-            payload["extra"] = extra
+            payload["extra"] = _sanitize_value(extra)
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
@@ -101,10 +142,12 @@ def configure_application_logging() -> None:
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(log_level)
+    file_handler.addFilter(SensitiveLogFilter())
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     console_handler.setLevel(log_level)
+    console_handler.addFilter(SensitiveLogFilter())
 
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)

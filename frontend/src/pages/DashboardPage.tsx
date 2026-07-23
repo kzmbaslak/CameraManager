@@ -278,7 +278,7 @@ function OperatorAssistPanel({
             {security
               ? security.findings.length > 0
                 ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · host ${security.trusted_hosts_configured ? 'sinirli' : 'acik'} · log ${security.app_log_rotation_configured ? 'rotasyon' : 'eksik'}`
-                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · log ${security.app_log_json_format ? 'JSON' : 'text'} · host sinirli`
+                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · log ${security.app_log_json_format ? 'JSON' : 'text'} · maske ${security.app_log_sensitive_query_masking ? 'aktif' : 'eksik'}`
               : 'Guvenlik durusu okunuyor'}
           </p>
         </div>
