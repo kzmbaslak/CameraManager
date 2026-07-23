@@ -23,6 +23,44 @@ import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifP
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
 const EMPTY_CAMERAS: Camera[] = []
+const AI_PRESETS = [
+  {
+    key: 'sensitive',
+    label: 'Hassas',
+    description: 'Daha fazla tespit, daha fazla alarm',
+    values: {
+      ai_confidence_threshold: 0.35,
+      ai_iou_threshold: 0.45,
+      ai_alarm_cooldown_seconds: 30,
+      ai_frame_stride: 1,
+      ai_inference_width: 768,
+    },
+  },
+  {
+    key: 'balanced',
+    label: 'Dengeli',
+    description: 'Genel saha varsayilani',
+    values: {
+      ai_confidence_threshold: 0.5,
+      ai_iou_threshold: 0.45,
+      ai_alarm_cooldown_seconds: 60,
+      ai_frame_stride: 2,
+      ai_inference_width: 640,
+    },
+  },
+  {
+    key: 'strict',
+    label: 'Siki',
+    description: 'Yanlis alarmi azaltir',
+    values: {
+      ai_confidence_threshold: 0.65,
+      ai_iou_threshold: 0.5,
+      ai_alarm_cooldown_seconds: 120,
+      ai_frame_stride: 3,
+      ai_inference_width: 640,
+    },
+  },
+] as const
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 const cameraNetworkError =
@@ -593,6 +631,23 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
 
   if (!camera) return null
 
+  const activePresetKey = AI_PRESETS.find((preset) =>
+    Object.entries(preset.values).every(([key, value]) => form[key as keyof CameraUpdate] === value)
+  )?.key
+
+  const applyAiPreset = (values: (typeof AI_PRESETS)[number]['values']) => {
+    setForm((current) => ({ ...current, ...values }))
+    setFieldErrors((current) => {
+      const next = { ...current }
+      delete next.ai_confidence_threshold
+      delete next.ai_iou_threshold
+      delete next.ai_alarm_cooldown_seconds
+      delete next.ai_frame_stride
+      delete next.ai_inference_width
+      return next
+    })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const errors: FieldErrors = {}
@@ -685,7 +740,31 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
           {testResult && <RtspDiagnosticResultPanel result={testResult} />}
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
+              <p className="mt-1 text-[10px] text-[var(--text-secondary)]">
+                Hazir profiller temel esikleri birlikte ayarlar; alanlari elle degistirebilirsiniz.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {AI_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  title={preset.description}
+                  onClick={() => applyAiPreset(preset.values)}
+                  className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                    activePresetKey === preset.key
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
+                      : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="mt-3 grid grid-cols-3 gap-3">
             <Input label="Confidence" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_confidence_threshold ?? 0.5} onChange={(e) => setForm((f) => ({ ...f, ai_confidence_threshold: Number(e.target.value) }))} error={fieldErrors.ai_confidence_threshold} />
             <Input label="IoU" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_iou_threshold ?? 0.45} onChange={(e) => setForm((f) => ({ ...f, ai_iou_threshold: Number(e.target.value) }))} error={fieldErrors.ai_iou_threshold} />
