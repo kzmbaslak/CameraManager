@@ -639,8 +639,11 @@ async def import_nvr_cameras(
         imported: list = []
         logger.info(f"[NVR Import] NVR={nvr.host} — {len(body.channels)} kanal aktarılacak")
         for idx, ch in enumerate(body.channels, 1):
+            import_name = (ch.import_name or f"{nvr.name} — {ch.profile_name}").strip()
+            if not import_name:
+                raise ValueError("Kamera adi bos olamaz.")
             logger.info(
-                f"[NVR Import] Kanal {idx}/{len(body.channels)}: {ch.profile_name} — "
+                f"[NVR Import] Kanal {idx}/{len(body.channels)}: {import_name} — "
                 f"{mask_rtsp_url(ch.rtsp_url)}"
             )
             endpoint = probe_svc.parse_rtsp_endpoint(ch.rtsp_url, nvr.host)
@@ -660,7 +663,7 @@ async def import_nvr_cameras(
                 f"{reachable_endpoint['path']} → ACTIVE (frame doğrulandı)"
             )
             camera = cam_use_cases.add_camera(
-                name=f"{nvr.name} — {ch.profile_name}",
+                name=import_name,
                 host=reachable_endpoint["host"],
                 rtsp_path=reachable_endpoint["path"],
                 rtsp_port=reachable_endpoint["port"],

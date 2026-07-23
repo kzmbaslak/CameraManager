@@ -138,6 +138,7 @@ export interface NVRCreate {
 export interface NVRChannelInfo {
   profile_token: string
   profile_name: string
+  import_name?: string | null
   manufacturer: string | null
   model: string | null
   rtsp_url: string

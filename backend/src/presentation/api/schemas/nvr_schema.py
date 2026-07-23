@@ -89,6 +89,7 @@ class NVRProbeRequest(BaseModel):
 class NVRChannelInfo(BaseModel):
     profile_token: str = Field(min_length=1, max_length=256)
     profile_name: str = Field(min_length=1, max_length=256)
+    import_name: Optional[str] = Field(default=None, max_length=256)
     manufacturer: Optional[str] = Field(default=None, max_length=120)
     model: Optional[str] = Field(default=None, max_length=120)
     rtsp_url: str = Field(min_length=1, max_length=2048)

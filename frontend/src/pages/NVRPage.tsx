@@ -1,5 +1,5 @@
 // NVR cihazı yönetimi sayfası — listeleme, ekleme, düzenleme, silme, kanal tarama ve seçili içe aktarma
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, Search, Download, Pencil, Power } from 'lucide-react'
 import { nvrsApi, type NVRUpdate } from '../api/nvrs'
@@ -246,6 +246,38 @@ function ChannelModal({
   const toggleAll = () =>
     setSelected(allSelected ? new Set() : new Set(channels.map((c) => c.profile_token)))
   const selectedExistingCount = channels.filter((ch) => ch.already_imported && selected.has(ch.profile_token)).length
+  const getImportName = useCallback(
+    (channel: NVRChannelInfo) => channel.import_name ?? `${nvr?.name || 'NVR'} — ${channel.profile_name}`,
+    [nvr?.name]
+  )
+  const updateImportName = (token: string, importName: string) =>
+    setChannels((prev) =>
+      prev.map((channel) =>
+        channel.profile_token === token ? { ...channel, import_name: importName } : channel
+      )
+    )
+  const importNameErrors = useMemo(() => {
+    const errors = new Map<string, string>()
+    const seen = new Map<string, string>()
+    channels.forEach((channel) => {
+      if (!selected.has(channel.profile_token)) return
+      const importName = getImportName(channel).trim()
+      if (!importName) {
+        errors.set(channel.profile_token, 'Kamera adı boş olamaz.')
+        return
+      }
+      const key = importName.toLocaleLowerCase('tr-TR')
+      const previousToken = seen.get(key)
+      if (previousToken) {
+        errors.set(channel.profile_token, 'Aynı kamera adı birden fazla seçili kanalda kullanılamaz.')
+        errors.set(previousToken, 'Aynı kamera adı birden fazla seçili kanalda kullanılamaz.')
+        return
+      }
+      seen.set(key, channel.profile_token)
+    })
+    return errors
+  }, [channels, selected, getImportName])
+  const hasImportNameErrors = importNameErrors.size > 0
 
   const importSelected = useMutation({
     mutationFn: (selectedChannels: NVRChannelInfo[]) =>
@@ -347,6 +379,7 @@ function ChannelModal({
                           />
                         </th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Profil / Ad</th>
+                        <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Kamera Adı</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Marka / Model</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Durum</th>
                         <th className="px-3 py-2 text-left text-xs text-[var(--text-secondary)]">Kaynak</th>
@@ -379,6 +412,23 @@ function ChannelModal({
                                 </span>
                               )}
                             </div>
+                          </td>
+                          <td className="px-3 py-2 min-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={getImportName(ch)}
+                              onChange={(e) => updateImportName(ch.profile_token, e.target.value)}
+                              aria-label={`${ch.profile_name} kamera adı`}
+                              aria-invalid={importNameErrors.has(ch.profile_token) ? true : undefined}
+                              className={`w-full rounded border bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)] ${
+                                importNameErrors.has(ch.profile_token) ? 'border-[var(--danger)]' : 'border-[var(--border)]'
+                              }`}
+                            />
+                            {importNameErrors.has(ch.profile_token) && (
+                              <p className="mt-1 text-[11px] text-[var(--danger)]">
+                                {importNameErrors.get(ch.profile_token)}
+                              </p>
+                            )}
                           </td>
                           <td className="px-3 py-2 text-[var(--text-secondary)]">{ch.manufacturer ?? '—'} / {ch.model ?? '—'}</td>
                           <td className="px-3 py-2">
@@ -413,6 +463,11 @@ function ChannelModal({
                     {selectedExistingCount} zaten ekli kanal yeniden eşitlenecek.
                   </span>
                 )}
+                {hasImportNameErrors && (
+                  <span className="text-xs text-[var(--danger)]">
+                    Seçili kanallardaki kamera adlarını düzeltin.
+                  </span>
+                )}
                 {importMessage && <span className="text-xs text-[var(--success)]">{importMessage}</span>}
                 {importSelected.error && (
                   <span className="text-xs text-[var(--danger)]">
@@ -426,9 +481,11 @@ function ChannelModal({
                   <Button
                     icon={<Download size={14} />}
                     loading={importSelected.isPending}
-                    disabled={selected.size === 0}
+                    disabled={selected.size === 0 || hasImportNameErrors}
                     onClick={() => {
-                      const selectedList = channels.filter((ch) => selected.has(ch.profile_token))
+                      const selectedList = channels
+                        .filter((ch) => selected.has(ch.profile_token))
+                        .map((ch) => ({ ...ch, import_name: getImportName(ch).trim() }))
                       importSelected.mutate(selectedList)
                     }}
                   >
