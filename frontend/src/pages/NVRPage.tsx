@@ -208,6 +208,7 @@ function ChannelModal({
   const [channels, setChannels] = useState<NVRChannelInfo[]>([])
   const [diagnostics, setDiagnostics] = useState<NVRProbeDiagnostics | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
+  const [nameTemplate, setNameTemplate] = useState('{nvr} - {profile}')
 
   const { mutate: scanChannels, isPending, error } = useMutation({
     mutationFn: () => nvrsApi.probeDiagnostics(nvr!.id),
@@ -227,6 +228,7 @@ function ChannelModal({
       setDiagnostics(null)
       setSelected(new Set())
       setImportMessage(null)
+      setNameTemplate('{nvr} - {profile}')
       scanChannels()
     }
   }, [open, nvr, scanChannels])
@@ -245,10 +247,22 @@ function ChannelModal({
   const allSelected = channels.length > 0 && selected.size === channels.length
   const toggleAll = () =>
     setSelected(allSelected ? new Set() : new Set(channels.map((c) => c.profile_token)))
+  const selectMatchingChannels = (predicate: (channel: NVRChannelInfo) => boolean) =>
+    setSelected(new Set(channels.filter(predicate).map((c) => c.profile_token)))
   const selectedExistingCount = channels.filter((ch) => ch.already_imported && selected.has(ch.profile_token)).length
   const getImportName = useCallback(
     (channel: NVRChannelInfo) => channel.import_name ?? `${nvr?.name || 'NVR'} — ${channel.profile_name}`,
     [nvr?.name]
+  )
+  const renderNameTemplate = useCallback(
+    (channel: NVRChannelInfo, index: number) =>
+      nameTemplate
+        .replaceAll('{nvr}', nvr?.name || 'NVR')
+        .replaceAll('{profile}', channel.profile_name)
+        .replaceAll('{token}', channel.profile_token)
+        .replaceAll('{index}', String(index).padStart(2, '0'))
+        .replaceAll('{source}', channel.source === 'onvif' ? 'ONVIF' : 'RTSP'),
+    [nameTemplate, nvr?.name]
   )
   const updateImportName = (token: string, importName: string) =>
     setChannels((prev) =>
@@ -256,6 +270,25 @@ function ChannelModal({
         channel.profile_token === token ? { ...channel, import_name: importName } : channel
       )
     )
+  const applyNameTemplate = () => {
+    let selectedIndex = 0
+    setChannels((prev) =>
+      prev.map((channel) => {
+        if (!selected.has(channel.profile_token)) return channel
+        selectedIndex += 1
+        return { ...channel, import_name: renderNameTemplate(channel, selectedIndex) }
+      })
+    )
+  }
+  const channelSourceCounts = useMemo(
+    () => ({
+      onvif: channels.filter((channel) => channel.source === 'onvif').length,
+      rtsp: channels.filter((channel) => channel.source !== 'onvif').length,
+      new: channels.filter((channel) => !channel.already_imported).length,
+      existing: channels.filter((channel) => channel.already_imported).length,
+    }),
+    [channels]
+  )
   const importNameErrors = useMemo(() => {
     const errors = new Map<string, string>()
     const seen = new Map<string, string>()
@@ -365,6 +398,50 @@ function ChannelModal({
                   host, port ve path bilgisi doğrulanır; ONVIF'in döndürdüğü kamera adresine ulaşılamazsa aynı path NVR host'u üzerinden denenir.
                   Zaten ekli kanallar varsayılan olarak seçilmez; seçerseniz mevcut kamera kaydı eşitlenir.
                 </p>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">Hızlı seçim</span>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels(() => true)}>
+                      Tümü
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => !channel.already_imported)}>
+                      Yeni ({channelSourceCounts.new})
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.already_imported)}>
+                      Zaten Ekli ({channelSourceCounts.existing})
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.source === 'onvif')}>
+                      ONVIF ({channelSourceCounts.onvif})
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.source !== 'onvif')}>
+                      RTSP ({channelSourceCounts.rtsp})
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                      Temizle
+                    </Button>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]" htmlFor="nvr-import-name-template">
+                        Ad şablonu
+                      </label>
+                      <input
+                        id="nvr-import-name-template"
+                        value={nameTemplate}
+                        onChange={(e) => setNameTemplate(e.target.value)}
+                        className="w-full rounded border border-[var(--border)] bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                      />
+                      <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
+                        Kullanılabilir alanlar: {'{nvr}'}, {'{profile}'}, {'{index}'}, {'{source}'}, {'{token}'}
+                      </p>
+                    </div>
+                    <div className="flex items-end">
+                      <Button size="sm" variant="secondary" onClick={applyNameTemplate} disabled={selected.size === 0}>
+                        Seçililere Uygula
+                      </Button>
+                    </div>
+                  </div>
+                </div>
                 <div className="overflow-x-auto rounded-lg border border-[var(--border)] max-h-[300px] overflow-y-auto">
                   <table className="w-full text-sm">
                     <thead>
