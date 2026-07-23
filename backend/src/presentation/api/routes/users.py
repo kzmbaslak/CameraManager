@@ -12,7 +12,7 @@ DELETE /users/{id}    — kullanıcıyı siler (kendi hesabını silemez).
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import List
 import bcrypt
-from src.presentation.api.dependencies import get_user_repository, get_admin_user
+from src.presentation.api.dependencies import get_user_manage_user, get_user_repository
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
 from src.presentation.api.schemas.user_schema import UserCreate, UserUpdate, UserResponse, UserPageResponse
 from src.domain.entities.user import User
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def create_user(
     user_data: UserCreate,
     repo: SqlAlchemyUserRepository = Depends(get_user_repository),
-    current_user: dict = Depends(get_admin_user),
+    current_user: dict = Depends(get_user_manage_user),
 ):
     """Sisteme yeni bir kullanıcı ekler."""
     existing = repo.get_by_username(user_data.username)
@@ -52,7 +52,7 @@ def list_users(
     active: str = "all",
     sort: str = "username_asc",
     repo: SqlAlchemyUserRepository = Depends(get_user_repository),
-    current_user: dict = Depends(get_admin_user),
+    current_user: dict = Depends(get_user_manage_user),
 ):
     """Sistemdeki kullanicilari listeler; paginated=true ise sayfali yanit dondurur."""
     if paginated:
@@ -73,7 +73,7 @@ def update_user(
     user_id: int,
     data: UserUpdate,
     repo: SqlAlchemyUserRepository = Depends(get_user_repository),
-    current_user: dict = Depends(get_admin_user),
+    current_user: dict = Depends(get_user_manage_user),
 ):
     """Kullanıcı rolünü, aktiflik durumunu veya şifresini günceller."""
     user = repo.get_by_id(user_id)
@@ -96,7 +96,7 @@ def update_user(
 def delete_user(
     user_id: int,
     repo: SqlAlchemyUserRepository = Depends(get_user_repository),
-    current_user: dict = Depends(get_admin_user),
+    current_user: dict = Depends(get_user_manage_user),
 ):
     """Kullanıcıyı sistemden siler."""
     user = repo.get_by_id(user_id)

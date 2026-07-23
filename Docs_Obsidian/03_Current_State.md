@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Backend RBAC izin politikasi adlandirilmis yetkilere ayrildi. `audit.read`, `camera.manage`, `camera.diagnostics`, `evidence.export`, `live.view`, `nvr.manage`, `security.status`, `user.manage` ve `alarm.operate` izinleri rol matrisinden uretilir; kritik route'lar bu izin dependency'leriyle korunur ve `/api/security/permissions` mevcut kullanicinin izinlerini dondurur.
 - 2026-07-23: Tema kontrast kontrolu eklendi. `frontend/scripts/check-theme-contrast.mjs` koyu/acik tema CSS token'larini okuyup kritik metin ve durum renkleri icin WCAG kontrast oranlarini dogrular; `npm run test:contrast` ile calisir.
 - 2026-07-23: Arayuz tema secimi eklendi. Genel Ayarlar icinde koyu/acik yuksek kontrast tema secilebilir; tercih `kamera-system-settings` store'unda kalici saklanir ve CSS token'lari uygulama genelinde aninda guncellenir.
 - 2026-07-23: Kamera stream telemetrisi AI inference suresiyle genisletildi. AI tespit use-case'i son inference suresini ms olarak olcer; stream manager kamera bazli son ve hareketli ortalama degeri tutar, `/api/cameras/{id}/diagnostics/stream` ve kamera detay paneli bu metrikleri gosterir.

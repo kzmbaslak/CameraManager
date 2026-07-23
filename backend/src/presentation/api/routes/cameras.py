@@ -18,8 +18,10 @@ from src.presentation.api.dependencies import (
     get_camera_use_cases,
     get_nvr_probe_service,
     get_stream_manager,
+    get_camera_diagnostics_user,
+    get_camera_manage_user,
     get_current_user,
-    get_operator_user,
+    get_live_view_user,
     frame_source,
 )
 from src.application.use_cases.camera_use_cases import CameraUseCases
@@ -172,7 +174,7 @@ async def add_camera(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Sisteme yeni bir kamera ekler."""
     try:
@@ -305,7 +307,7 @@ def list_cameras(
 async def preview_camera_rtsp(
     data: CameraRtspPreviewRequest,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kaydetmeden formdaki RTSP alanlariyla baglanti testi yapar."""
     camera = use_cases.get_camera(data.camera_id) if data.camera_id else None
@@ -343,7 +345,7 @@ async def preview_camera_onvif(
     data: CameraOnvifPreviewRequest,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kaydetmeden formdaki ONVIF alanlariyla cihaz/profil testi yapar."""
     camera = use_cases.get_camera(data.camera_id) if data.camera_id else None
@@ -454,7 +456,7 @@ def get_camera(
 def create_camera_stream_token(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_live_view_user),
 ):
     """Belirli kamera için kısa ömürlü WebSocket izleme token'ı üretir."""
     camera = use_cases.get_camera(camera_id)
@@ -475,7 +477,7 @@ async def update_camera(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Kameranın adını, host'unu, port ve path gibi bağlantı bilgilerini günceller."""
     camera = use_cases.get_camera(camera_id)
@@ -553,7 +555,7 @@ async def update_camera(
 async def diagnose_camera_rtsp(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kayitli kameranin RTSP erisimini sifre gostermeden test eder."""
     camera = use_cases.get_camera(camera_id)
@@ -585,7 +587,7 @@ async def diagnose_camera_stream(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kayıtlı kameranın canlı akış ve üretici sağlık metriklerini döner."""
     camera = use_cases.get_camera(camera_id)
@@ -628,7 +630,7 @@ async def diagnose_camera_health_history(
     limit: int = 120,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     health_repo=Depends(get_camera_health_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kayitli kameranin son erisilebilirlik olcumlerini ve trend ozetini dondurur."""
     camera = use_cases.get_camera(camera_id)
@@ -660,7 +662,7 @@ async def delete_camera(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Belirli bir kamerayı sistemden siler."""
     await sm.close_all(camera_id, "Kamera silindi.")
@@ -680,7 +682,7 @@ async def update_camera_status(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Kameranın aktif/pasif durumunu günceller; akış yöneticisini buna göre günceller."""
     try:
@@ -711,7 +713,7 @@ async def update_camera_ai(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """AI insan tespitini açar veya kapatır.
 
@@ -741,7 +743,7 @@ async def scan_cameras(
     scan_data: CameraScanRequest,
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Ağdaki kameraları tarar. İstemci bağlantıyı keser veya 'Durdur' basarsa tarama iptal edilir."""
     timeout = 180.0 if scan_data.auto_rtsp_ports else 120.0
@@ -790,7 +792,7 @@ async def bulk_add_cameras(
     request: Request,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_camera_manage_user),
 ):
     """Birden fazla kamerayı toplu olarak sisteme ekler."""
     try:

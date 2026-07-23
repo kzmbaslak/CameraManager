@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from src.infrastructure.security.audit_logger import read_audit_events
-from src.presentation.api.dependencies import get_admin_user
+from src.presentation.api.dependencies import get_audit_read_user
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
@@ -26,7 +26,7 @@ class AuditEventResponse(BaseModel):
 @router.get("/events", response_model=list[AuditEventResponse])
 def list_audit_events(
     limit: int = Query(default=100, ge=1, le=500),
-    current_user: dict = Depends(get_admin_user),
+    current_user: dict = Depends(get_audit_read_user),
 ):
     """Admin kullanicilar icin son audit olaylarini listeler."""
     return read_audit_events(limit=limit)

@@ -4,7 +4,12 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from typing import List, Optional
-from src.presentation.api.dependencies import get_alarm_repository, get_current_user, get_operator_user
+from src.presentation.api.dependencies import (
+    get_alarm_operate_user,
+    get_alarm_repository,
+    get_current_user,
+    get_evidence_export_user,
+)
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.presentation.api.schemas.alarm_schema import AlarmResolveRequest, AlarmResponse, AlarmTrainingFeedbackItem, AlarmUpdate
@@ -106,7 +111,7 @@ def export_training_feedback(
     limit: int = 500,
     false_positive_only: bool = True,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_evidence_export_user),
 ):
     """AI threshold/model iyilestirmesi icin sinirli alarm geri bildirimi dondurur."""
     safe_limit = max(1, min(limit, 5000))
@@ -147,7 +152,7 @@ def get_alarm_snapshot(
     alarm_id: int,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_evidence_export_user),
 ):
     """Alarm kanit snapshot dosyasini guvenli dosya siniri icinden dondurur."""
     return _snapshot_file_response(alarm_id, request, repo, current_user, annotated=False)
@@ -158,7 +163,7 @@ def get_alarm_annotated_snapshot(
     alarm_id: int,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_evidence_export_user),
 ):
     """Alarm operator kanit snapshot'ini, varsa insan kutulariyla dondurur."""
     return _snapshot_file_response(alarm_id, request, repo, current_user, annotated=True)
@@ -168,7 +173,7 @@ def acknowledge_alarm(
     alarm_id: int,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_alarm_operate_user),
 ):
     """Bir alarmın onaylandığını (incelendiğini) işaretler."""
     from datetime import datetime
@@ -193,7 +198,7 @@ def update_alarm(
     data: AlarmUpdate,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_alarm_operate_user),
 ):
     """Alarm atama ve operator notu alanlarini gunceller."""
     alarm = repo.get_by_id(alarm_id)
@@ -231,7 +236,7 @@ def resolve_alarm(
     data: AlarmResolveRequest,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_alarm_operate_user),
 ):
     """Alarmi cozum nedeniyle kapatir."""
     from datetime import datetime
@@ -262,7 +267,7 @@ def mark_alarm_false_positive(
     alarm_id: int,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_alarm_operate_user),
 ):
     """Alarmi tek aksiyonla yanlis alarm olarak kapatir."""
     from datetime import datetime

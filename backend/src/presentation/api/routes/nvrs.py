@@ -22,7 +22,7 @@ from src.presentation.api.dependencies import (
     get_nvr_probe_service,
     get_stream_manager,
     get_current_user,
-    get_operator_user,
+    get_nvr_manage_user,
 )
 from src.application.use_cases.nvr_use_cases import NVRUseCases
 from src.application.use_cases.camera_use_cases import CameraUseCases
@@ -371,7 +371,7 @@ def add_nvr(
     data: NVRCreate,
     request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """Sisteme yeni bir NVR cihazı ekler."""
     try:
@@ -438,7 +438,7 @@ def update_nvr(
     data: NVRUpdate,
     request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """NVR cihazının adını, host'unu, portunu veya kimlik bilgilerini günceller."""
     nvr = use_cases.get_nvr(nvr_id)
@@ -469,7 +469,7 @@ def update_nvr_status(
     is_active: bool,
     request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """NVR cihazını aktif veya pasif yapar."""
     nvr = use_cases.get_nvr(nvr_id)
@@ -491,7 +491,7 @@ def delete_nvr(
     nvr_id: int,
     request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """Belirli bir NVR cihazını siler (bağlı kameralar nvr_id=null olur)."""
     use_cases.delete_nvr(nvr_id)
@@ -508,7 +508,7 @@ async def probe_nvr_channels(
     nvr_id: int,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """
     NVR'a ONVIF veya RTSP kanalları tarayarak bağlanır ve bağlı kamera kanallarını listeler.
@@ -538,7 +538,7 @@ async def probe_nvr_channels_diagnostics(
     nvr_id: int,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """NVR kanal keşfini ONVIF/fallback teşhis bilgisiyle döner."""
     nvr = nvr_use_cases.get_nvr(nvr_id)
@@ -565,7 +565,7 @@ async def import_nvr_cameras(
     cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
     sm: CameraStreamManager = Depends(get_stream_manager),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """
     NVR'dan keşfedilen kanalları doğrudan sisteme kamera olarak kaydeder.
@@ -638,7 +638,7 @@ async def import_nvr_cameras(
 
 @router.post("/discover", response_model=List[NVRDiscoverResponse])
 async def discover_nvrs(
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """
     WS-Discovery (Web Services Dynamic Discovery) kullanarak yerel ağdaki ONVIF/NVR cihazlarını arar.
@@ -683,7 +683,7 @@ async def discover_nvrs(
 async def scan_nvrs(
     scan_data: NVRScanRequest,
     request: Request,
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """Ağda NVR (VideoEdge, Hikvision, Dahua) cihazlarını IP aralığına göre tarar. İstemci 'Durdur' basarsa iptal edilir."""
     from src.infrastructure.camera.camera_scanner import scan_nvrs_async
@@ -726,7 +726,7 @@ def bulk_add_nvrs(
     nvrs: List[NVRCreate],
     request: Request,
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
-    current_user: dict = Depends(get_operator_user),
+    current_user: dict = Depends(get_nvr_manage_user),
 ):
     """Birden fazla NVR cihazını toplu olarak sisteme ekler."""
     try:

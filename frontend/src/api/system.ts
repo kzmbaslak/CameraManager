@@ -1,11 +1,17 @@
 // Sistem saglik ve guvenlik durusu API cagrilari.
 import client from './client'
-import type { AuditEvent, SecurityPosture, SetupStatus } from '../types/api'
+import type { AuditEvent, SecurityPermissions, SecurityPosture, SetupStatus } from '../types/api'
 
 export const systemApi = {
   /** Uygulamanin temel guvenlik durusunu getirir. */
   securityPosture: async (): Promise<SecurityPosture> => {
     const { data } = await client.get<SecurityPosture>('/security/posture')
+    return data
+  },
+
+  /** Mevcut kullanicinin backend politika izinlerini getirir. */
+  securityPermissions: async (): Promise<SecurityPermissions> => {
+    const { data } = await client.get<SecurityPermissions>('/security/permissions')
     return data
   },
 

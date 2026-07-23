@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 
 from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
-from src.presentation.api.dependencies import get_operator_user
+from src.presentation.api.dependencies import get_current_user, get_role_permissions, get_security_status_user
 from src.presentation.api.routes.alarms import router as alarms_router
 from src.presentation.api.routes.audit import router as audit_router
 from src.presentation.api.routes.auth import router as auth_router
@@ -26,7 +26,7 @@ def health_check():
 
 
 @router.get("/security/posture")
-def security_posture(current_user: dict = Depends(get_operator_user)):
+def security_posture(current_user: dict = Depends(get_security_status_user)):
     """Uygulamanin temel guvenlik durusunu operator icin ozetler."""
     findings = []
     cors_origins = [
@@ -99,8 +99,18 @@ def security_posture(current_user: dict = Depends(get_operator_user)):
     }
 
 
+@router.get("/security/permissions")
+def security_permissions(current_user: dict = Depends(get_current_user)):
+    """Mevcut kullanicinin rol ve politika izinlerini dondurur."""
+    permissions = sorted(get_role_permissions(current_user.get("role")))
+    return {
+        "role": current_user.get("role"),
+        "permissions": permissions,
+    }
+
+
 @router.get("/setup/status")
-def setup_status(current_user: dict = Depends(get_operator_user)):
+def setup_status(current_user: dict = Depends(get_security_status_user)):
     """Kurulum dosyasi, model, DB semasi ve admin hazirligini raporlar."""
     checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}

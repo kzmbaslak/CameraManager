@@ -139,6 +139,54 @@ from src.infrastructure.security.jwt_service import decode_access_token
 
 _bearer = HTTPBearer(auto_error=False)
 
+
+ROLE_PERMISSIONS = {
+    "admin": {
+        "audit.read",
+        "camera.diagnostics",
+        "camera.manage",
+        "evidence.export",
+        "live.view",
+        "nvr.manage",
+        "security.status",
+        "user.manage",
+        "alarm.operate",
+    },
+    "operator": {
+        "camera.diagnostics",
+        "camera.manage",
+        "evidence.export",
+        "live.view",
+        "nvr.manage",
+        "security.status",
+        "alarm.operate",
+    },
+    "viewer": {
+        "live.view",
+    },
+}
+
+
+def get_role_permissions(role: str | None) -> set[str]:
+    """Rol icin tanimli izin kodlarini dondurur."""
+    return set(ROLE_PERMISSIONS.get(role or "", set()))
+
+
+def require_permission(permission: str):
+    """Endpoint'ler icin politika tabanli izin dependency'si uretir."""
+
+    def _dependency(current_user: dict = Depends(get_current_user)) -> dict:
+        from fastapi import HTTPException, status
+
+        if permission not in get_role_permissions(current_user.get("role")):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Bu islem icin {permission} izni gereklidir.",
+            )
+        return current_user
+
+    return _dependency
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(_bearer),
 ) -> dict:
@@ -177,3 +225,14 @@ def get_operator_user(current_user: dict = Depends(get_current_user)) -> dict:
             detail="Bu işlem için Admin veya Operatör yetkisi gereklidir."
         )
     return current_user
+
+
+get_audit_read_user = require_permission("audit.read")
+get_camera_diagnostics_user = require_permission("camera.diagnostics")
+get_camera_manage_user = require_permission("camera.manage")
+get_evidence_export_user = require_permission("evidence.export")
+get_live_view_user = require_permission("live.view")
+get_nvr_manage_user = require_permission("nvr.manage")
+get_security_status_user = require_permission("security.status")
+get_user_manage_user = require_permission("user.manage")
+get_alarm_operate_user = require_permission("alarm.operate")

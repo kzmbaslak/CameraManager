@@ -354,6 +354,11 @@ export interface SecurityPosture {
   findings: SecurityPostureFinding[]
 }
 
+export interface SecurityPermissions {
+  role: string | null
+  permissions: string[]
+}
+
 export interface SetupStatus {
   ready: boolean
   checks: SetupCheck[]
