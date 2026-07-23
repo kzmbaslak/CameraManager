@@ -38,6 +38,7 @@ class NVRResponse(BaseModel):
     host: str
     onvif_port: int
     username: Optional[str] = None
+    password_updated_at: Optional[datetime] = None
     brand: Optional[str] = None
     model: Optional[str] = None
     is_active: bool

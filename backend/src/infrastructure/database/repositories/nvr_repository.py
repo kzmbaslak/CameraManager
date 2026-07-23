@@ -18,6 +18,7 @@ class SqlAlchemyNVRRepository(INVRRepository):
             onvif_port=model.onvif_port,
             username=model.username,
             encrypted_password=model.encrypted_password,
+            password_updated_at=model.password_updated_at,
             brand=model.brand,
             model=model.model,
             is_active=model.is_active,
@@ -33,6 +34,7 @@ class SqlAlchemyNVRRepository(INVRRepository):
             onvif_port=entity.onvif_port,
             username=entity.username,
             encrypted_password=entity.encrypted_password,
+            password_updated_at=entity.password_updated_at,
             brand=entity.brand,
             model=entity.model,
             is_active=entity.is_active,
@@ -104,6 +106,7 @@ class SqlAlchemyNVRRepository(INVRRepository):
         model.onvif_port = nvr.onvif_port
         model.username = nvr.username
         model.encrypted_password = nvr.encrypted_password
+        model.password_updated_at = nvr.password_updated_at
         model.brand = nvr.brand
         model.model = nvr.model
         model.is_active = nvr.is_active

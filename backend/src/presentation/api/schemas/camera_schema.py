@@ -142,6 +142,7 @@ class CameraResponse(BaseModel):
     rtsp_port: int
     onvif_port: int
     username: Optional[str] = None
+    password_updated_at: Optional[datetime] = None
     rtsp_path: str
     status: CameraStatus
     motion_detection_enabled: bool

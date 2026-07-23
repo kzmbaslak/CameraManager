@@ -388,7 +388,12 @@ def add_nvr(
             "nvr.create",
             actor=current_user.get("sub"),
             source_ip=request.client.host if request.client else None,
-            metadata={"nvr_id": nvr.id, "host": nvr.host},
+            metadata={
+                "nvr_id": nvr.id,
+                "host": nvr.host,
+                "password_configured": bool(data.password),
+                "password_updated_at": nvr.password_updated_at.isoformat() + "Z" if nvr.password_updated_at else None,
+            },
         )
         return nvr
     except ValueError as e:
@@ -453,12 +458,17 @@ def update_nvr(
         nvr.onvif_port = data.onvif_port
     if data.username is not None:
         nvr.username = data.username
-    updated = use_cases.update_nvr(nvr, plain_password=data.password if data.password is not None else None)
+    password_rotated = data.password is not None
+    updated = use_cases.update_nvr(nvr, plain_password=data.password if password_rotated else None)
     write_audit_event(
         "nvr.update",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
-        metadata={"nvr_id": nvr_id},
+        metadata={
+            "nvr_id": nvr_id,
+            "password_rotated": password_rotated,
+            "password_updated_at": updated.password_updated_at.isoformat() + "Z" if updated.password_updated_at else None,
+        },
     )
     return updated
 

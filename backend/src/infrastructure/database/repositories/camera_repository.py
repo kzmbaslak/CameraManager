@@ -19,6 +19,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             onvif_port=model.onvif_port,
             username=model.username,
             encrypted_password=model.encrypted_password,
+            password_updated_at=model.password_updated_at,
             rtsp_path=model.rtsp_path,
             status=model.status,
             motion_detection_enabled=model.motion_detection_enabled,
@@ -47,6 +48,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             onvif_port=entity.onvif_port,
             username=entity.username,
             encrypted_password=entity.encrypted_password,
+            password_updated_at=entity.password_updated_at,
             rtsp_path=entity.rtsp_path,
             status=entity.status,
             motion_detection_enabled=entity.motion_detection_enabled,
@@ -141,6 +143,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
         model.onvif_port = camera.onvif_port
         model.username = camera.username
         model.encrypted_password = camera.encrypted_password
+        model.password_updated_at = camera.password_updated_at
         model.rtsp_path = camera.rtsp_path
         model.status = camera.status
         model.motion_detection_enabled = camera.motion_detection_enabled

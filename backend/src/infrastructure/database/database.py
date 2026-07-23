@@ -96,6 +96,33 @@ def ensure_alarm_operation_columns() -> None:
         conn.close()
 
 
+def ensure_device_password_rotation_columns() -> None:
+    """Eski SQLite kurulumlarinda cihaz parola rotasyonu kolonlarini idempotent ekler."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    conn = sqlite3.connect(db_path)
+    try:
+        for table in ("cameras", "nvrs"):
+            existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            if "password_updated_at" not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN password_updated_at DATETIME")
+            conn.execute(
+                f"""
+                UPDATE {table}
+                SET password_updated_at = COALESCE(updated_at, created_at)
+                WHERE encrypted_password IS NOT NULL
+                  AND encrypted_password != ''
+                  AND password_updated_at IS NULL
+                """
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_db():
     """FastAPI dependency — request başına bir DB session açar, biter bitmez kapatır."""
     db = SessionLocal()

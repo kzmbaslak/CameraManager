@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, Sequence
 from src.domain.entities.nvr import NVR
 from src.domain.interfaces.nvr_repository import INVRRepository
@@ -45,6 +46,7 @@ class NVRUseCases:
             existing.username = username
             if password is not None:
                 existing.encrypted_password = self._encrypt_password(password)
+                existing.password_updated_at = datetime.utcnow()
             if brand is not None:
                 existing.brand = brand
             if model is not None:
@@ -58,6 +60,7 @@ class NVRUseCases:
             onvif_port=onvif_port,
             username=username,
             encrypted_password=self._encrypt_password(password),
+            password_updated_at=datetime.utcnow() if password else None,
             brand=brand,
             model=model,
             is_active=True,
@@ -93,6 +96,7 @@ class NVRUseCases:
     def update_nvr(self, nvr: NVR, plain_password: Optional[str] = None) -> NVR:
         if plain_password is not None:
             nvr.encrypted_password = self._encrypt_password(plain_password)
+            nvr.password_updated_at = datetime.utcnow()
         return self._repo.update(nvr)
 
     def bulk_add_nvrs(self, nvrs_list: list) -> list[NVR]:
@@ -126,6 +130,7 @@ class NVRUseCases:
                 existing.username = username
                 if password is not None:
                     existing.encrypted_password = self._encrypt_password(password)
+                    existing.password_updated_at = datetime.utcnow()
                 if brand is not None:
                     existing.brand = brand
                 if model is not None:
@@ -140,6 +145,7 @@ class NVRUseCases:
                     onvif_port=onvif_port,
                     username=username,
                     encrypted_password=self._encrypt_password(password),
+                    password_updated_at=datetime.utcnow() if password else None,
                     brand=brand,
                     model=model,
                     is_active=True,

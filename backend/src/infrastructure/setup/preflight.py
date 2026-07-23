@@ -25,6 +25,7 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "onvif_port",
         "username",
         "encrypted_password",
+        "password_updated_at",
         "rtsp_path",
         "status",
         "motion_detection_enabled",
@@ -41,7 +42,7 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "model",
         "nvr_id",
     },
-    "nvrs": {"id", "name", "host", "onvif_port", "username", "encrypted_password", "brand", "model", "is_active"},
+    "nvrs": {"id", "name", "host", "onvif_port", "username", "encrypted_password", "password_updated_at", "brand", "model", "is_active"},
     "alarms": {
         "id",
         "camera_id",

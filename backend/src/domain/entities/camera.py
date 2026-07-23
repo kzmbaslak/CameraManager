@@ -21,6 +21,7 @@ class Camera:
     onvif_port: int = 80
     username: Optional[str] = None
     encrypted_password: Optional[str] = None
+    password_updated_at: Optional[datetime] = None
     rtsp_path: str = ""
     status: CameraStatus = CameraStatus.INACTIVE
     motion_detection_enabled: bool = False

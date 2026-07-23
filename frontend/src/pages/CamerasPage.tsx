@@ -23,6 +23,8 @@ import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifP
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
 const EMPTY_CAMERAS: Camera[] = []
+const formatRotationDate = (value: string | null) =>
+  value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
 const AI_PRESETS = [
   {
     key: 'sensitive',
@@ -720,6 +722,9 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
+        <p className="text-xs text-[var(--text-secondary)]">
+          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(camera.password_updated_at)}</span>. Yeni sifre bos birakilirsa kayitli sifre korunur.
+        </p>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

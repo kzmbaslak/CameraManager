@@ -265,7 +265,12 @@ async def add_camera(
             "camera.create",
             actor=current_user.get("sub"),
             source_ip=request.client.host if request.client else None,
-            metadata={"camera_id": camera.id, "host": camera.host},
+            metadata={
+                "camera_id": camera.id,
+                "host": camera.host,
+                "password_configured": bool(password),
+                "password_updated_at": camera.password_updated_at.isoformat() + "Z" if camera.password_updated_at else None,
+            },
         )
         return camera
     except ValueError as e:
@@ -496,6 +501,7 @@ async def update_camera(
         connection_changed = True
     if data.password is not None:
         connection_changed = True
+    password_rotated = data.password is not None
 
     if data.name is not None:
         camera.name = data.name
@@ -546,7 +552,13 @@ async def update_camera(
         "camera.update",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
-        metadata={"camera_id": camera_id, "connection_changed": connection_changed, "ai_settings_changed": ai_settings_changed},
+        metadata={
+            "camera_id": camera_id,
+            "connection_changed": connection_changed,
+            "ai_settings_changed": ai_settings_changed,
+            "password_rotated": password_rotated,
+            "password_updated_at": updated_camera.password_updated_at.isoformat() + "Z" if updated_camera.password_updated_at else None,
+        },
     )
     return updated_camera
 

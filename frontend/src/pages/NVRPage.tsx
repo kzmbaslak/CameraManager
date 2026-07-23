@@ -20,6 +20,8 @@ import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../typ
 
 type NVRBulkAddPayload = NVRCreate[]
 const EMPTY_NVRS: NVR[] = []
+const formatRotationDate = (value: string | null) =>
+  value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 const nvrNetworkError =
@@ -169,6 +171,9 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
         <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} error={fieldErrors.onvif_port} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
+        <p className="text-xs text-[var(--text-secondary)]">
+          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(nvr.password_updated_at)}</span>. Yeni sifre bos birakilirsa kayitli sifre korunur.
+        </p>
         {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>

@@ -22,7 +22,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.presentation.api import router as api_router
-from src.infrastructure.database.database import engine, ensure_alarm_operation_columns, ensure_camera_ai_settings_columns
+from src.infrastructure.database.database import (
+    engine,
+    ensure_alarm_operation_columns,
+    ensure_camera_ai_settings_columns,
+    ensure_device_password_rotation_columns,
+)
 from src.infrastructure.database import models
 from src.infrastructure.security.runtime_config import validate_security_environment
 
@@ -31,6 +36,7 @@ validate_security_environment()
 models.Base.metadata.create_all(bind=engine)
 ensure_camera_ai_settings_columns()
 ensure_alarm_operation_columns()
+ensure_device_password_rotation_columns()
 
 
 def _seed_admin_user() -> None:

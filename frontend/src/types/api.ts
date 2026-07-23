@@ -18,6 +18,7 @@ export interface Camera {
   rtsp_path: string
   onvif_port: number
   username: string | null
+  password_updated_at: string | null
   status: CameraStatus
   motion_detection_enabled: boolean
   ai_detection_enabled: boolean
@@ -116,6 +117,7 @@ export interface NVR {
   host: string
   onvif_port: number
   username: string | null
+  password_updated_at: string | null
   brand: string | null
   model: string | null
   is_active: boolean

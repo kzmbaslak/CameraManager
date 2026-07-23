@@ -13,6 +13,7 @@ class NVR:
     onvif_port: int = 80
     username: Optional[str] = None
     encrypted_password: Optional[str] = None
+    password_updated_at: Optional[datetime] = None
     brand: Optional[str] = None
     model: Optional[str] = None
     is_active: bool = True
