@@ -214,6 +214,29 @@ export interface CameraRtspPreviewRequest {
   password?: string
 }
 
+export interface CameraOnvifPreviewRequest {
+  camera_id?: number
+  host?: string
+  onvif_port?: number
+  username?: string
+  password?: string
+}
+
+export interface CameraOnvifPreviewResponse {
+  camera_id: number
+  host: string
+  onvif_port: number
+  ok: boolean
+  manufacturer: string | null
+  model: string | null
+  serial_number: string | null
+  firmware_version: string | null
+  profile_count: number
+  stream_uri_count: number
+  first_stream_uri_masked: string | null
+  message: string
+}
+
 export interface CameraStreamDiagnostics {
   camera_id: number
   producer_running: boolean

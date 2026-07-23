@@ -16,6 +16,7 @@ from urllib.parse import unquote, urlparse
 from src.presentation.api.dependencies import (
     get_camera_health_repository,
     get_camera_use_cases,
+    get_nvr_probe_service,
     get_stream_manager,
     get_current_user,
     get_operator_user,
@@ -29,12 +30,15 @@ from src.presentation.api.schemas.camera_schema import (
     CameraResponse,
     CameraScanRequest,
     CameraScanResult,
+    CameraOnvifPreviewRequest,
+    CameraOnvifPreviewResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
     CameraHealthSummaryResponse,
     CameraStreamDiagnostics,
 )
 from src.domain.entities.camera import CameraStatus
+from src.infrastructure.onvif.onvif_probe_service import ONVIFProbeService
 from src.infrastructure.camera.camera_scanner import (
     build_candidate_ports,
     check_port_async,
@@ -68,6 +72,19 @@ def _normalize_rtsp_fields(
         if parsed.query:
             path = f"{path}?{parsed.query}"
     return host, rtsp_port, path, username, password
+
+
+def _mask_rtsp_url(rtsp_url: str) -> str:
+    """RTSP URL icindeki sifreyi API yanitinda maskeleyerek dondurur."""
+    parsed = urlparse(rtsp_url)
+    if not parsed.username:
+        return rtsp_url
+    password_part = ":***" if parsed.password is not None else ""
+    host = parsed.hostname or ""
+    port = f":{parsed.port}" if parsed.port else ""
+    netloc = f"{parsed.username}{password_part}@{host}{port}"
+    suffix = f"?{parsed.query}" if parsed.query else ""
+    return f"{parsed.scheme}://{netloc}{parsed.path}{suffix}"
 
 
 async def _build_rtsp_diagnostics(
@@ -301,6 +318,77 @@ async def preview_camera_rtsp(
         password=password or "",
         nvr_id=camera.nvr_id if camera else None,
     )
+
+
+@router.post("/diagnostics/onvif-preview", response_model=CameraOnvifPreviewResponse)
+async def preview_camera_onvif(
+    data: CameraOnvifPreviewRequest,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    current_user: dict = Depends(get_operator_user),
+):
+    """Kaydetmeden formdaki ONVIF alanlariyla cihaz/profil testi yapar."""
+    camera = use_cases.get_camera(data.camera_id) if data.camera_id else None
+    if data.camera_id and not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    host = data.host or (camera.host if camera else "")
+    if not host:
+        raise HTTPException(status_code=400, detail="Host bilgisi gereklidir.")
+
+    password = data.password
+    if password is None and camera:
+        password = camera.encrypted_password or ""
+        if password:
+            try:
+                from src.presentation.api.dependencies import password_service
+                password = password_service.decrypt(password)
+            except Exception:
+                pass
+
+    onvif_port = data.onvif_port or (camera.onvif_port if camera else 80)
+    username = data.username if data.username is not None else (camera.username if camera else "") or ""
+
+    try:
+        device = probe_svc.probe_device(host, onvif_port, username, password or "")
+    except Exception as exc:
+        return {
+            "camera_id": camera.id if camera else 0,
+            "host": host,
+            "onvif_port": onvif_port,
+            "ok": False,
+            "profile_count": 0,
+            "stream_uri_count": 0,
+            "message": f"ONVIF baglantisi kurulamadi: {exc}",
+        }
+
+    stream_error = None
+    try:
+        streams = list(probe_svc.get_stream_uris(host, onvif_port, username, password or ""))
+    except Exception as exc:
+        streams = []
+        stream_error = str(exc)
+
+    return {
+        "camera_id": camera.id if camera else 0,
+        "host": host,
+        "onvif_port": onvif_port,
+        "ok": True,
+        "manufacturer": device.manufacturer,
+        "model": device.model,
+        "serial_number": device.serial_number,
+        "firmware_version": device.firmware_version,
+        "profile_count": len(streams),
+        "stream_uri_count": sum(1 for stream in streams if stream.rtsp_url),
+        "first_stream_uri_masked": _mask_rtsp_url(streams[0].rtsp_url) if streams else None,
+        "message": (
+            "ONVIF cihaz bilgisi ve stream profilleri okundu."
+            if streams
+            else f"ONVIF cihaz bilgisi okundu, ancak stream URI donmedi: {stream_error}"
+            if stream_error
+            else "ONVIF cihaz bilgisi okundu, ancak stream URI donmedi."
+        ),
+    }
 
 
 @router.get("/{camera_id}", response_model=CameraResponse)

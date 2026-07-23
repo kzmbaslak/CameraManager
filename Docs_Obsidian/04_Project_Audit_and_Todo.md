@@ -45,11 +45,11 @@ Riskler:
 
 ### P1 - Kamera/NVR Yönetimi
 
-- ONVIF yetenek keşfi sınırlı: Profile S/T/G/M, stream profilleri, çözünürlük/FPS/codec, snapshot URI, event subscriptions ve PTZ capability okunmalı.
+- ONVIF yetenek keşfi kısmen var: NVR kanal keşfi ve kamera formunda kaydetmeden GetDeviceInformation/stream URI profil testi çalışıyor. Kalan iş Profile S/T/G/M uyumluluk bilgisi, çözünürlük/FPS/codec, snapshot URI, event subscriptions ve PTZ capability alanlarını ayrıntılı okumak.
 - PTZ desteği yok: pan/tilt/zoom, preset, patrol ve yetkiye bağlı PTZ kontrolü eklenmeli.
 - Kamera sağlık metrikleri yetersiz: son frame zamanı, reconnect sayısı, FPS, latency, hata nedeni ve uptime gösterilmeli.
 - NVR import deneyimi geliştirilmeli: daha önce eklenen kanallar işaretlenmeli, kanal ismi düzenlenebilmeli, toplu profil seçimi ve duplicate raporu sunulmalı.
-- Kamera bağlantı testi kısmen tamamlandı: kamera listesinde kayıtlı RTSP bağlantısı; kamera ekleme ve düzenleme modallarında ise kaydetmeden form değerleri TCP/DESCRIBE/frame sonucu ve açıklayıcı hata mesajıyla test edilebiliyor. Düzenleme formunda yeni şifre boşsa backend kayıtlı şifreyi güvenli şekilde kullanıyor. Kalan iş ONVIF testini aynı akışa eklemek.
+- Kamera bağlantı testi büyük ölçüde tamamlandı: kamera listesinde kayıtlı RTSP bağlantısı; kamera ekleme ve düzenleme modallarında kaydetmeden RTSP TCP/DESCRIBE/frame ve ONVIF cihaz/profil testi açıklayıcı sonuçlarla çalışıyor. Düzenleme formunda yeni şifre boşsa backend kayıtlı şifreyi güvenli şekilde kullanıyor. Kalan iş ONVIF capability detaylarını aynı sonuç paneline genişletmek.
 - Çoklu saha/konum modeli yok: site, bina, kat, bölge gibi hiyerarşi ve ileride harita/floorplan görünümü için domain alanları eklenmeli.
 
 ### P1 - AI ve Olay Tespiti
@@ -78,7 +78,7 @@ Riskler:
 - Sidebar desktop'ta sabit, küçük ekran/tablet için üst bar ve overlay drawer davranışı eklendi. Kalan iş ileri seviye kullanıcı tercihi olarak desktop collapse durumunu kalıcı saklamak.
 - Kameralar, NVR ve Kullanıcılar listelerinde arama/durum/rol gibi hızlı client-side filtreler ve ad/durum/aktiflik/host/rol/en yeni gibi client-side sıralama kontrolleri eklendi. Kalan iş geniş kurulumlar için server-side pagination.
 - `confirm()`/`alert()` kullanımı kaldırıldı; kamera, NVR ve kullanıcı silme akışları ortak erişilebilir `ConfirmDialog` modalını kullanıyor. Global toast standardı eklendi ve kamera/NVR/kullanıcı/alarm operasyonlarına başarı/başarısızlık bildirimleri bağlandı. Ortak API hata mesajı yardımcı fonksiyonu ile kamera, NVR, kullanıcı ve alarm hataları backend `detail` veya okunabilir fallback mesajını gösteriyor. Kalan iş daha ince alan bazlı validasyon uyarılarını inline alan seviyesine indirmek.
-- Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kamera ekleme/düzenleme formlarında kaydetmeden RTSP bağlantı önizlemesi sunuluyor. Kalan iş ONVIF önizlemesi ve tüm formlarda doğrulama mesajlarını standartlaştırmak.
+- Formlarda password visibility toggle eklendi. Kamera/NVR ekleme akışlarında RTSP path açıklaması ve port sınırları kısmen var. Kamera ekleme/düzenleme formlarında kaydetmeden RTSP ve ONVIF bağlantı önizlemesi sunuluyor. Kalan iş tüm formlarda doğrulama mesajlarını standartlaştırmak.
 - Alarm sayfasında detay drawer, snapshot preview, kamera canlı görüntüsüne geçiş, toplu onaylama, not/atama/çözüm nedeni, önem seviyesi ve yanlış alarm kapatma akışları eklendi. Kalan iş bu verileri raporlama/eğitim seti geri beslemesine bağlamak.
 - Canlı grid'de kamera arama, layout kalıcılığı, düşük bant modu, sürükle-bırak kamera sıralaması ve tam ekran 1/2x2/3x3 çoklu layout eklendi. Kalan iş daha ileri seviye layout preset paylaşımı ve rol bazlı layout şablonları.
 - Erişilebilirlik kısmen iyileştirildi: global focus ring var; ortak Input hata metnini ARIA ile input'a bağlar, Modal dialog semantiği taşır, Button varsayılan submit riskini azaltır ve Table ekran okuyucu caption/bos durum desteği alır. Kalan iş sayfa bazlı klavye gezinme denetimi, kontrast testi ve tüm özel kontrol gruplarında ARIA etiketlerini tamamlamak.

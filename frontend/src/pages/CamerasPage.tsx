@@ -16,7 +16,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraRtspDiagnostics } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
@@ -47,6 +47,31 @@ function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }
   )
 }
 
+function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResponse }) {
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <p className={result.ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
+        {result.message}
+      </p>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <Badge variant={result.ok ? 'success' : 'danger'}>ONVIF {result.ok ? 'OK' : 'Hata'}</Badge>
+        <Badge variant={result.profile_count > 0 ? 'success' : 'warning'}>Profil {result.profile_count}</Badge>
+        <Badge variant={result.stream_uri_count > 0 ? 'success' : 'warning'}>Stream {result.stream_uri_count}</Badge>
+      </div>
+      {(result.manufacturer || result.model) && (
+        <p className="text-xs text-[var(--text-secondary)]">
+          {[result.manufacturer, result.model, result.firmware_version].filter(Boolean).join(' / ')}
+        </p>
+      )}
+      {result.first_stream_uri_masked && (
+        <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
+          {result.first_stream_uri_masked}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
@@ -70,6 +95,20 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
     error: previewError,
   } = useMutation({
     mutationFn: () => camerasApi.previewRtsp(form),
+  })
+
+  const {
+    mutate: previewOnvif,
+    data: onvifResult,
+    isPending: isPreviewingOnvif,
+    error: onvifError,
+  } = useMutation({
+    mutationFn: () => camerasApi.previewOnvif({
+      host: form.host,
+      onvif_port: form.onvif_port,
+      username: form.username,
+      password: form.password,
+    }),
   })
 
   const set = (field: keyof CameraCreate, value: string | number) =>
@@ -107,6 +146,32 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         <Input label="RTSP Path veya tam RTSP URL" placeholder="/videoStreamId=1 veya rtsp://192.168.1.100:554/stream1" value={form.rtsp_path ?? ''} onChange={(e) => set('rtsp_path', e.target.value)} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">ONVIF Testi</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Cihaz bilgisi, profil sayisi ve ONVIF stream URI sonucu kaydetmeden okunur.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              icon={<Activity size={13} />}
+              loading={isPreviewingOnvif}
+              onClick={() => previewOnvif()}
+            >
+              ONVIF Test
+            </Button>
+          </div>
+          {onvifError && (
+            <p className="mt-2 text-xs text-[var(--danger)]">
+              {getCameraErrorMessage(onvifError, 'ONVIF testi calistirilamadi.')}
+            </p>
+          )}
+          {onvifResult && <OnvifDiagnosticResultPanel result={onvifResult} />}
+        </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -445,6 +510,21 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     }),
   })
 
+  const {
+    mutate: testOnvif,
+    data: onvifTestResult,
+    isPending: isTestingOnvif,
+    error: onvifTestError,
+  } = useMutation({
+    mutationFn: () => camerasApi.previewOnvif({
+      camera_id: camera!.id,
+      host: form.host,
+      onvif_port: form.onvif_port,
+      username: form.username,
+      password: form.password,
+    }),
+  })
+
   if (!camera) return null
 
   return (
@@ -459,6 +539,32 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">ONVIF Testi</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Formdaki ONVIF degerleri denenir; yeni sifre bos ise kayitli sifre kullanilir.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              icon={<Activity size={13} />}
+              loading={isTestingOnvif}
+              onClick={() => testOnvif()}
+            >
+              ONVIF Test
+            </Button>
+          </div>
+          {onvifTestError && (
+            <p className="mt-2 text-xs text-[var(--danger)]">
+              {getCameraErrorMessage(onvifTestError, 'ONVIF testi calistirilamadi.')}
+            </p>
+          )}
+          {onvifTestResult && <OnvifDiagnosticResultPanel result={onvifTestResult} />}
+        </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

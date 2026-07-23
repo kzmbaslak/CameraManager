@@ -205,6 +205,43 @@ class CameraRtspPreviewRequest(BaseModel):
         return validate_port(value, 554) if value is not None else value
 
 
+class CameraOnvifPreviewRequest(BaseModel):
+    """Kaydetmeden ONVIF cihaz/profil onizleme testi istegi."""
+
+    camera_id: Optional[int] = None
+    host: Optional[str] = Field(default=None, max_length=255)
+    onvif_port: Optional[int] = 80
+    username: Optional[str] = Field(default=None, max_length=128)
+    password: Optional[str] = Field(default=None, max_length=256)
+
+    @field_validator("host")
+    @classmethod
+    def _validate_host(cls, value: Optional[str]) -> Optional[str]:
+        return validate_host(value) if value else value
+
+    @field_validator("onvif_port")
+    @classmethod
+    def _validate_onvif_port(cls, value: Optional[int]) -> Optional[int]:
+        return validate_port(value, 80) if value is not None else value
+
+
+class CameraOnvifPreviewResponse(BaseModel):
+    """ONVIF cihaz/profil onizleme testi sonucu."""
+
+    camera_id: int
+    host: str
+    onvif_port: int
+    ok: bool
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    firmware_version: Optional[str] = None
+    profile_count: int = 0
+    stream_uri_count: int = 0
+    first_stream_uri_masked: Optional[str] = None
+    message: str
+
+
 class CameraScanResult(BaseModel):
     """Kamera tarama sonucu."""
 
