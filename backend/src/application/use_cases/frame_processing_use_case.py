@@ -3,6 +3,7 @@
 import os
 import json
 import hashlib
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
@@ -26,6 +27,7 @@ class DetectionAnalysisResult:
     frame_width: Optional[int]
     frame_height: Optional[int]
     detected_at: datetime
+    inference_ms: Optional[float] = None
 
 
 class ProcessFrameUseCase:
@@ -224,14 +226,17 @@ class ProcessFrameUseCase:
                 frame_width=frame_width,
                 frame_height=frame_height,
                 detected_at=detected_at,
+                inference_ms=None,
             )
 
         ai_frame, ai_scale = self._resize_frame_for_ai(frame, camera)
+        inference_started = time.perf_counter()
         detections = tuple(self.ai_service.detect_humans(
             ai_frame,
             conf_threshold=getattr(camera, "ai_confidence_threshold", None),
             iou_threshold=getattr(camera, "ai_iou_threshold", None),
         ))
+        inference_ms = (time.perf_counter() - inference_started) * 1000
         detections = self._scale_detections(detections, ai_scale, frame_width, frame_height)
         detections = self._filter_roi(detections, camera, frame_width, frame_height)
 
@@ -269,6 +274,7 @@ class ProcessFrameUseCase:
             frame_width=frame_width,
             frame_height=frame_height,
             detected_at=detected_at,
+            inference_ms=inference_ms,
         )
 
     def detect_and_alarm(self, camera_id: int, frame: object) -> Optional[Alarm]:

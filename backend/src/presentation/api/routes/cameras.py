@@ -604,6 +604,8 @@ async def diagnose_camera_stream(
         "ai_provider": runtime_stats["ai_provider"],
         "ai_frame_stride": camera.ai_frame_stride,
         "ai_inference_width": camera.ai_inference_width,
+        "last_ai_inference_ms": runtime_stats["last_ai_inference_ms"],
+        "average_ai_inference_ms": runtime_stats["average_ai_inference_ms"],
         "cached_frame_available": runtime_stats["cached_frame_available"],
         "last_broadcast_age_seconds": runtime_stats["last_broadcast_age_seconds"],
         "last_frame_age_seconds": frame_stats["last_frame_age_seconds"],

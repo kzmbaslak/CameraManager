@@ -72,6 +72,8 @@ class CameraStreamManager:
         self._ai_frame_stride_cache: Dict[int, int] = {}
         self._ai_frame_counters: Dict[int, int] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
+        self._last_ai_inference_ms: Dict[int, float] = {}
+        self._avg_ai_inference_ms: Dict[int, float] = {}
         self._idle_grace_seconds = 10.0
         self._executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cam_stream")
         self._ai_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="cam_ai")
@@ -348,6 +350,12 @@ class CameraStreamManager:
                 result = await loop.run_in_executor(self._ai_executor, lambda: self._detect_and_alarm_sync(camera_id, frame))
                 if result is None:
                     return
+                if result.inference_ms is not None:
+                    self._last_ai_inference_ms[camera_id] = result.inference_ms
+                    previous_avg = self._avg_ai_inference_ms.get(camera_id)
+                    self._avg_ai_inference_ms[camera_id] = (
+                        result.inference_ms if previous_avg is None else (previous_avg * 0.8) + (result.inference_ms * 0.2)
+                    )
                 alarm = result.alarm
                 detection_payload = self._serialize_detection_result(result)
                 if detection_payload["detections"]:
@@ -453,6 +461,7 @@ class CameraStreamManager:
             "frame_width": result.frame_width,
             "frame_height": result.frame_height,
             "detected_at": result.detected_at.isoformat() + "Z",
+            "ai_inference_ms": result.inference_ms,
         }
 
     # ------------------------------------------------------------------
@@ -499,6 +508,8 @@ class CameraStreamManager:
             "ai_task_running": bool(ai_task and not ai_task.done()),
             "ai_provider": getattr(self._ai_service, "active_provider", None),
             "ai_frame_stride": self._ai_frame_stride_cache.get(camera_id, 1),
+            "last_ai_inference_ms": self._last_ai_inference_ms.get(camera_id),
+            "average_ai_inference_ms": self._avg_ai_inference_ms.get(camera_id),
             "cached_frame_available": cached is not None,
             "last_broadcast_age_seconds": (now - last_broadcast_at) if last_broadcast_at else None,
             "last_broadcast_at_monotonic": last_broadcast_at,

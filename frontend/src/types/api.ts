@@ -190,6 +190,7 @@ export interface StreamMessage {
   frame_width?: number | null
   frame_height?: number | null
   detected_at?: string | null
+  ai_inference_ms?: number | null
 }
 
 export interface CameraScanRequest {
@@ -287,6 +288,8 @@ export interface CameraStreamDiagnostics {
   ai_provider: string | null
   ai_frame_stride: number
   ai_inference_width: number
+  last_ai_inference_ms: number | null
+  average_ai_inference_ms: number | null
   cached_frame_available: boolean
   last_broadcast_age_seconds: number | null
   last_frame_age_seconds: number | null

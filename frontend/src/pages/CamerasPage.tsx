@@ -1206,6 +1206,8 @@ export function CamerasPage() {
                   <span>AI Provider: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_provider ?? 'Yok'}</strong></span>
                   <span>AI Stride: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_frame_stride}</strong></span>
                   <span>AI Genislik: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_inference_width}px</strong></span>
+                  <span>Son AI: <strong className="text-[var(--text-primary)]">{streamDiagnostic.last_ai_inference_ms !== null ? `${streamDiagnostic.last_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                  <span>AI Ortalama: <strong className="text-[var(--text-primary)]">{streamDiagnostic.average_ai_inference_ms !== null ? `${streamDiagnostic.average_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
                   <span>Cache: <strong className="text-[var(--text-primary)]">{streamDiagnostic.cached_frame_available ? 'Var' : 'Yok'}</strong></span>
                   <span>Open Deneme: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_attempts}</strong></span>
                   <span>Open Hata: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_failures}</strong></span>

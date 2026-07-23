@@ -61,7 +61,7 @@ Riskler:
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
 - False positive yönetimi büyük ölçüde tamamlandı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor, DB/audit kaydı oluşuyor ve operatör/admin bu örnekleri dosya yolu veya görsel içerik sızdırmadan AI geri bildirim CSV'si olarak dışa aktarabiliyor. Kalan iş bu çıktıyı otomatik model kalite izleme ve toplu threshold önerisi üretimine bağlamak.
-- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride ve örnekleme genişliği gösteriliyor. Kalan iş inference süresi, CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
+- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi ve hareketli ortalama inference süresi gösteriliyor. Kalan iş CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
 
 ### P1 - Güvenlik ve Operasyon
 
