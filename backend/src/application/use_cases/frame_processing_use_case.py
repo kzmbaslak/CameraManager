@@ -249,23 +249,27 @@ class ProcessFrameUseCase:
             in_cooldown = self._is_in_cooldown(camera_id, AlarmType.HUMAN_DETECTED)
             self.cooldown_seconds = original_cooldown
             if not in_cooldown:
-                snapshot_path, snapshot_sha256, snapshot_annotated_path, snapshot_annotated_sha256 = self._save_alarm_snapshots(frame, camera_id, detections)
-                alarm = Alarm(
-                    id=None,
-                    camera_id=camera_id,
-                    alarm_type=AlarmType.HUMAN_DETECTED,
-                    status=AlarmStatus.NEW,
-                    confidence=best_detection.confidence,
-                    bounding_box=best_detection.bounding_box,
-                    snapshot_path=snapshot_path,
-                    snapshot_sha256=snapshot_sha256,
-                    snapshot_annotated_path=snapshot_annotated_path,
-                    snapshot_annotated_sha256=snapshot_annotated_sha256,
-                    severity=AlarmSeverity.HIGH,
-                    message=f"Insan tespit edildi! Guven (Confidence): %{int(best_detection.confidence * 100)}",
-                    created_at=detected_at,
-                )
-                saved_alarm = self.alarm_repository.add(alarm)
+                open_alarm = self.alarm_repository.get_latest_open(camera_id, AlarmType.HUMAN_DETECTED)
+                if open_alarm is None:
+                    snapshot_path, snapshot_sha256, snapshot_annotated_path, snapshot_annotated_sha256 = self._save_alarm_snapshots(frame, camera_id, detections)
+                    alarm = Alarm(
+                        id=None,
+                        camera_id=camera_id,
+                        alarm_type=AlarmType.HUMAN_DETECTED,
+                        status=AlarmStatus.NEW,
+                        confidence=best_detection.confidence,
+                        bounding_box=best_detection.bounding_box,
+                        snapshot_path=snapshot_path,
+                        snapshot_sha256=snapshot_sha256,
+                        snapshot_annotated_path=snapshot_annotated_path,
+                        snapshot_annotated_sha256=snapshot_annotated_sha256,
+                        severity=AlarmSeverity.HIGH,
+                        message=f"Insan tespit edildi! Guven (Confidence): %{int(best_detection.confidence * 100)}",
+                        created_at=detected_at,
+                    )
+                    saved_alarm = self.alarm_repository.add(alarm)
+                else:
+                    saved_alarm = open_alarm
                 self._last_alarms[(camera_id, AlarmType.HUMAN_DETECTED)] = detected_at
 
         return DetectionAnalysisResult(

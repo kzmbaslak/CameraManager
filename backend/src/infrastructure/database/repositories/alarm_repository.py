@@ -93,6 +93,21 @@ class SqlAlchemyAlarmRepository(IAlarmRepository):
         models = self._db.query(AlarmModel).filter(AlarmModel.status == status).order_by(AlarmModel.created_at.desc()).limit(limit).all()
         return [self._to_entity(m) for m in models]
 
+    def get_latest_open(self, camera_id: int, alarm_type: AlarmType) -> Alarm | None:
+        model = (
+            self._db.query(AlarmModel)
+            .filter(
+                AlarmModel.camera_id == camera_id,
+                AlarmModel.alarm_type == alarm_type,
+                AlarmModel.status.in_([AlarmStatus.NEW, AlarmStatus.ACKNOWLEDGED]),
+            )
+            .order_by(AlarmModel.created_at.desc())
+            .first()
+        )
+        if model:
+            return self._to_entity(model)
+        return None
+
     def list_all(
         self,
         camera_id: Optional[int] = None,

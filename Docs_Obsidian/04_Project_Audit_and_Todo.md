@@ -60,7 +60,7 @@ Riskler:
 - Vite build kökü açıkça sabitlendi; Windows path çözümleme kaynaklı HTML emit hatası giderildi ve frontend build tekrar kararlı.
 - Detection ayarları kamera bazlı: confidence, IoU, cooldown, frame stride, AI örnekleme genişliği, aktif saatler ve ROI/poligon operatör kontrollü hale geldi. Kamera düzenleme modalında Hassas/Dengeli/Sıkı hazır AI profilleri bu temel eşikleri birlikte ayarlar. Kalan iş bu profilleri çoklu kamera toplu uygulama ve rol bazlı şablon paylaşımına bağlamak.
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
-- Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
+- Alarm tekrari azaltildi: ayni kamera icin acik insan alarmlari yeni kayit uretmek yerine mevcut alarmi yeniden kullaniyor; bu, alarm spam'ini dusuruyor. Gercek tracker/event aggregation ve kimlik bazli izleme hala sonraki adim.
 - False positive yönetimi büyük ölçüde tamamlandı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor, DB/audit kaydı oluşuyor ve operatör/admin bu örnekleri dosya yolu veya görsel içerik sızdırmadan AI geri bildirim CSV'si olarak dışa aktarabiliyor. Kalan iş bu çıktıyı otomatik model kalite izleme ve toplu threshold önerisi üretimine bağlamak.
 - AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi, hareketli ortalama inference süresi ve efektif yayın FPS'i gösteriliyor. Kalan iş CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
 

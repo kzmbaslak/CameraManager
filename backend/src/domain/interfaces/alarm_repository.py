@@ -18,6 +18,9 @@ class IAlarmRepository(Protocol):
     def list_by_status(self, status: AlarmStatus, limit: int = 100) -> Sequence[Alarm]:
         ...
 
+    def get_latest_open(self, camera_id: int, alarm_type: AlarmType) -> Alarm | None:
+        ...
+
     def list_all(
         self,
         camera_id: Optional[int] = None,
