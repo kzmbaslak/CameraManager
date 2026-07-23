@@ -419,12 +419,14 @@ function DiscoverModal({
   const showToast = useToastStore((state) => state.showToast)
   const [activeTab, setActiveTab] = useState<'onvif' | 'range'>('range')
   const [results, setResults] = useState<DiscoveredNVRRow[]>([])
+  const [rowErrors, setRowErrors] = useState<Record<number, Partial<Record<'name' | 'host' | 'onvif_port', string>>>>({})
 
   // ONVIF Discovery
   const { isLoading: isOnvifLoading, refetch: refetchOnvif, isFetching: isOnvifFetching } = useQuery({
     queryKey: ['discovered_devices'],
     queryFn: async () => {
       const data = await nvrsApi.discover()
+      setRowErrors({})
       setResults(
         data.map((item) => ({
           host: item.host,
@@ -458,6 +460,7 @@ function DiscoverModal({
       return nvrsApi.scan({ ip_range: ipRange, rtsp_port: rtspPort, username, password }, rangeAbortRef.current.signal)
     },
     onSuccess: (data) => {
+      setRowErrors({})
       setResults(
         data.map((item) => ({
           host: item.host,
@@ -486,6 +489,7 @@ function DiscoverModal({
       showToast({ variant: 'success', title: 'NVR kayitlari eklendi', description: `${results.filter((r) => r.selected).length} kayit cihazi kaydedildi.` })
       onClose()
       setResults([])
+      setRowErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'NVR kayitlari eklenemedi', description: getNvrErrorMessage(err, 'Toplu NVR ekleme sirasinda hata olustu.') }),
   })
@@ -495,10 +499,16 @@ function DiscoverModal({
     if (!open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([])
+      setRowErrors({})
     }
   }, [open])
 
   const toggleSelect = (index: number) => {
+    setRowErrors((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
     setResults((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, selected: !item.selected } : item))
     )
@@ -506,16 +516,53 @@ function DiscoverModal({
 
   const toggleSelectAll = () => {
     const allSelected = results.every((r) => r.selected)
+    setRowErrors({})
     setResults((prev) => prev.map((item) => ({ ...item, selected: !allSelected })))
   }
 
   const handleFieldChange = (index: number, field: keyof DiscoveredNVRRow, value: string | number | boolean) => {
+    setRowErrors((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
     setResults((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
     )
   }
 
+  const validateSelectedRows = () => {
+    const errors: Record<number, Partial<Record<'name' | 'host' | 'onvif_port', string>>> = {}
+    const seen = new Map<string, number>()
+    results.forEach((row, index) => {
+      if (!row.selected) return
+      const rowError: Partial<Record<'name' | 'host' | 'onvif_port', string>> = {}
+      const name = row.name.trim()
+      const host = row.host.trim()
+      if (!name) rowError.name = 'NVR adi zorunludur.'
+      if (!host) rowError.host = 'Host zorunludur.'
+      const portError = validatePort(row.onvif_port, 'ONVIF port')
+      if (portError) rowError.onvif_port = portError
+      if (name) {
+        const key = name.toLocaleLowerCase('tr-TR')
+        if (seen.has(key)) {
+          rowError.name = 'Ayni isimle birden fazla NVR eklenemez.'
+          errors[seen.get(key) as number] = {
+            ...errors[seen.get(key) as number],
+            name: 'Ayni isimle birden fazla NVR eklenemez.',
+          }
+        } else {
+          seen.set(key, index)
+        }
+      }
+      if (Object.keys(rowError).length > 0) errors[index] = { ...errors[index], ...rowError }
+    })
+    setRowErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSave = () => {
+    if (!validateSelectedRows()) return
     const selectedList = results
       .filter((r) => r.selected)
       .map((r) => ({
@@ -543,7 +590,7 @@ function DiscoverModal({
                 ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
-            onClick={() => { setActiveTab('range'); setResults([]); }}
+            onClick={() => { setActiveTab('range'); setResults([]); setRowErrors({}); }}
           >
             IP Aralığı ile NVR Tara (VideoEdge / Diğerleri)
           </button>
@@ -554,7 +601,7 @@ function DiscoverModal({
                 ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
-            onClick={() => { setActiveTab('onvif'); setResults([]); refetchOnvif(); }}
+            onClick={() => { setActiveTab('onvif'); setResults([]); setRowErrors({}); refetchOnvif(); }}
           >
             Otomatik ONVIF Keşfi
           </button>
@@ -648,7 +695,9 @@ function DiscoverModal({
               {results.map((row, index) => (
                 <div
                   key={index}
-                  className="flex flex-col gap-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors"
+                  className={`flex flex-col gap-2 p-3 rounded-lg border bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors ${
+                    rowErrors[index] ? 'border-[var(--danger)]' : 'border-[var(--border)]'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -658,7 +707,12 @@ function DiscoverModal({
                         onChange={() => toggleSelect(index)}
                         className="rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)] h-4 w-4 cursor-pointer"
                       />
-                      <span className="text-sm font-semibold text-[var(--text-primary)]">{row.host}</span>
+                      <span className="flex flex-col">
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">{row.host || 'Host yok'}</span>
+                        {rowErrors[index]?.host && (
+                          <span className="text-[10px] text-[var(--danger)]">{rowErrors[index]?.host}</span>
+                        )}
+                      </span>
                       <Badge variant="neutral">{row.brand}</Badge>
                     </div>
                     <span className="text-[10px] text-[var(--text-secondary)]">{row.model}</span>
@@ -669,12 +723,14 @@ function DiscoverModal({
                       placeholder="Cihaz Adı"
                       value={row.name}
                       onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                      error={rowErrors[index]?.name}
                     />
                     <Input
                       placeholder="ONVIF Port"
                       type="number"
                       value={row.onvif_port}
                       onChange={(e) => handleFieldChange(index, 'onvif_port', Number(e.target.value))}
+                      error={rowErrors[index]?.onvif_port}
                     />
                     <Input
                       placeholder="Kullanıcı Adı"

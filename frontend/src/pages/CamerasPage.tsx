@@ -246,6 +246,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('admin123')
   const [results, setResults] = useState<(CameraScanResult & { name: string; selected: boolean })[]>([])
+  const [rowErrors, setRowErrors] = useState<Record<number, string>>({})
   const abortRef = useRef<AbortController | null>(null)
 
   const { mutate: startScan, isPending: isScanning, error: scanError, reset: resetScan } = useMutation({
@@ -257,6 +258,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
       )
     },
     onSuccess: (data) => {
+      setRowErrors({})
       setResults(
         data.map((item) => ({
           ...item,
@@ -282,11 +284,17 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
       showToast({ variant: 'success', title: 'Kameralar eklendi', description: `${results.filter((r) => r.selected).length} kamera kaydedildi.` })
       onClose()
       setResults([])
+      setRowErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kameralar eklenemedi', description: getCameraErrorMessage(err, 'Toplu ekleme sirasinda hata olustu.') }),
   })
 
   const toggleSelect = (index: number) => {
+    setRowErrors((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
     setResults((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, selected: !item.selected } : item))
     )
@@ -294,16 +302,45 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
 
   const toggleSelectAll = () => {
     const allSelected = results.every((r) => r.selected)
+    setRowErrors({})
     setResults((prev) => prev.map((item) => ({ ...item, selected: !allSelected })))
   }
 
   const handleNameChange = (index: number, newName: string) => {
+    setRowErrors((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
     setResults((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, name: newName } : item))
     )
   }
 
+  const validateSelectedRows = () => {
+    const errors: Record<number, string> = {}
+    const seen = new Map<string, number>()
+    results.forEach((row, index) => {
+      if (!row.selected) return
+      const name = row.name.trim()
+      if (!name) {
+        errors[index] = 'Kamera adi zorunludur.'
+        return
+      }
+      const key = name.toLocaleLowerCase('tr-TR')
+      if (seen.has(key)) {
+        errors[index] = 'Ayni isimle birden fazla kamera eklenemez.'
+        errors[seen.get(key) as number] = 'Ayni isimle birden fazla kamera eklenemez.'
+      } else {
+        seen.set(key, index)
+      }
+    })
+    setRowErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSave = () => {
+    if (!validateSelectedRows()) return
     const selectedList = results
       .filter((r) => r.selected)
       .map((r) => ({
@@ -417,7 +454,9 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
               {results.map((row, index) => (
                 <div
                   key={index}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors"
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] transition-colors ${
+                    rowErrors[index] ? 'border-[var(--danger)]' : 'border-[var(--border)]'
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     <input
@@ -434,12 +473,15 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
                     </div>
                   </div>
                   <div className="sm:w-1/2 flex items-center">
-                    <Input
-                      placeholder="Kamera Adı"
-                      value={row.name}
-                      onChange={(e) => handleNameChange(index, e.target.value)}
-                      className="w-full"
-                    />
+                    <div className="w-full">
+                      <Input
+                        placeholder="Kamera Adı"
+                        value={row.name}
+                        onChange={(e) => handleNameChange(index, e.target.value)}
+                        className="w-full"
+                        error={rowErrors[index]}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
