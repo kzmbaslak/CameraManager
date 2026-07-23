@@ -284,8 +284,12 @@ export interface CameraOnvifPreviewResponse {
 export interface CameraStreamDiagnostics {
   camera_id: number
   producer_running: boolean
+  producer_started_at: string | null
+  producer_uptime_seconds: number | null
+  producer_start_count: number
   subscriber_count: number
   active_profile: string
+  current_broadcast_fps: number | null
   ai_task_running: boolean
   ai_provider: string | null
   ai_frame_stride: number
@@ -297,6 +301,7 @@ export interface CameraStreamDiagnostics {
   last_frame_age_seconds: number | null
   open_attempts: number
   open_failures: number
+  reconnects: number
   failure_count: number
   retry_cooldown_seconds: number
   warmup_reads: number

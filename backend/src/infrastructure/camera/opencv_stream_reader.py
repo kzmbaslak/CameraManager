@@ -179,6 +179,7 @@ class OpenCVStreamReader(IFrameSource):
             telemetry = {
                 "open_attempts": 0,
                 "open_failures": 0,
+                "reconnects": 0,
                 "last_success_at": None,
                 "last_failure_at": None,
                 "last_frame_at": None,
@@ -203,6 +204,10 @@ class OpenCVStreamReader(IFrameSource):
         telemetry["last_success_at"] = now
         telemetry["last_frame_at"] = now
 
+    def _mark_reconnect(self, camera_id: int) -> None:
+        telemetry = self._ensure_telemetry(camera_id)
+        telemetry["reconnects"] += 1
+
     def read_frame(self, camera: Camera) -> np.ndarray | None:
         """Kameradan bir kare okur; bağlantı kesilmişse yeniden açar."""
         if camera.id is None:
@@ -224,6 +229,8 @@ class OpenCVStreamReader(IFrameSource):
 
         # Capture yoksa aç; son başarısız denemeden bu yana cooldown süresi geçmediyse atla
         if camera.id not in self._caps:
+            if telemetry.get("last_success_at") is not None:
+                self._mark_reconnect(camera.id)
             last_fail = self._last_fail_time.get(camera.id, 0)
             if time.monotonic() - last_fail < self._current_retry_cooldown(camera.id, profile):
                 return None  # Cooldown: bağlantı henüz yeniden denenmeyecek
@@ -247,6 +254,8 @@ class OpenCVStreamReader(IFrameSource):
 
         cap = self._caps[camera.id]
         if not cap.isOpened():
+            if telemetry.get("last_success_at") is not None:
+                self._mark_reconnect(camera.id)
             last_fail = self._last_fail_time.get(camera.id, 0)
             if time.monotonic() - last_fail < self._current_retry_cooldown(camera.id, profile):
                 self._caps.pop(camera.id, None)
@@ -286,6 +295,8 @@ class OpenCVStreamReader(IFrameSource):
 
         ret, frame = cap.read()
         if not ret:
+            if telemetry.get("last_success_at") is not None:
+                self._mark_reconnect(camera.id)
             logger.warning(f"[RTSP] Kamera {camera.id} frame read başarısız — bağlantı yenileniyor")
             cap.release()
             self._caps.pop(camera.id, None)
@@ -358,6 +369,7 @@ class OpenCVStreamReader(IFrameSource):
             "profile": telemetry.get("profile", self._select_profile_name(camera)),
             "open_attempts": telemetry.get("open_attempts", 0),
             "open_failures": telemetry.get("open_failures", 0),
+            "reconnects": telemetry.get("reconnects", 0),
             "failure_count": self._failure_counts.get(camera.id, 0),
             "retry_cooldown_seconds": self._current_retry_cooldown(camera.id, profile),
             "warmup_reads": profile.warmup_reads,

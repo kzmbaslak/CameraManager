@@ -47,7 +47,7 @@ Riskler:
 
 - ONVIF yetenek keşfi kısmen var: NVR kanal keşfi ve kamera formunda kaydetmeden GetDeviceInformation/stream URI profil testi çalışıyor. Kamera ONVIF önizleme paneli GetCapabilities üzerinden Media, Events, PTZ, Imaging ve Analytics servis desteklerini; GetProfiles/GetStreamUri/GetSnapshotUri üzerinden profil token/ad, codec, çözünürlük, FPS, bitrate, maskeli RTSP URI ve maskeli snapshot URI bilgilerini gösterir. Kalan iş Profile S/T/G/M uyumluluk bilgisi ve event subscription detaylarını ayrıntılı okumak.
 - PTZ desteği yok: pan/tilt/zoom, preset, patrol ve yetkiye bağlı PTZ kontrolü eklenmeli.
-- Kamera sağlık metrikleri yetersiz: son frame zamanı, reconnect sayısı, FPS, latency, hata nedeni ve uptime gösterilmeli.
+- Kamera sağlık metrikleri kısmen tamamlandı: son frame zamanı, producer uptime, producer start sayısı, son 10 saniyelik efektif yayın FPS'i, RTSP reconnect/open hata sayıları, TCP latency, hata nedeni ve erişilebilirlik geçmişi operatör ekranında görülebiliyor. Kalan iş bu metrikleri kalıcı trend/uyarı eşiklerine ve kamera listesi üst seviye sağlık özetine bağlamak.
 - NVR import deneyimi geliştirilmeli: daha önce eklenen kanallar işaretlenmeli, kanal ismi düzenlenebilmeli, toplu profil seçimi ve duplicate raporu sunulmalı.
 - Kamera bağlantı testi büyük ölçüde tamamlandı: kamera listesinde kayıtlı RTSP bağlantısı; kamera ekleme ve düzenleme modallarında kaydetmeden RTSP TCP/DESCRIBE/frame ve ONVIF cihaz/profil/capability testi açıklayıcı sonuçlarla çalışıyor. Düzenleme formunda yeni şifre boşsa backend kayıtlı şifreyi güvenli şekilde kullanıyor. ONVIF profil codec/çözünürlük/FPS/bitrate ve snapshot URI ayrıntıları aynı sonuca eklendi. Kalan iş event subscription ayrıntılarını aynı sonuca eklemek.
 - Çoklu saha/konum modeli yok: site, bina, kat, bölge gibi hiyerarşi ve ileride harita/floorplan görünümü için domain alanları eklenmeli.
@@ -55,13 +55,13 @@ Riskler:
 ### P1 - AI ve Olay Tespiti
 
 - AI pipeline ayrıştırıldı: canlı yayın capture hattı artık ayrı çalışıyor, AI tespiti ise arka planda bağımsız görev olarak tetikleniyor. Kamera bazlı frame stride ve düşük çözünürlüklü AI örnekleme ayarları eklendi; bounding box koordinatları orijinal kareye geri ölçekleniyor. Kalan iş bu ayarları otomatik yük/adaptif kalite politikasına bağlamak.
-- RTSP açılış optimizasyonu ve kalıcı sağlık geçmişi eklendi: `OpenCVStreamReader` ilk başarılı frame'i cache'ler, cihaz bazlı warm-up/backoff uygular; health checker TCP erişilebilirlik, latency ve hata nedenini kaydeder. Kalan iyileştirme, FPS/reconnect/uptime gibi daha derin akış kalite metriklerini aynı geçmiş grafiğine bağlamak.
+- RTSP açılış optimizasyonu ve sağlık görünürlüğü genişletildi: `OpenCVStreamReader` ilk başarılı frame'i cache'ler, cihaz bazlı warm-up/backoff uygular; health checker TCP erişilebilirlik, latency ve hata nedenini kaydeder. Canlı stream diagnostics son 10 saniyelik FPS, producer uptime/start sayısı ve RTSP reconnect sayısını gösterir. Kalan iyileştirme, bu stream kalite metriklerini kalıcı geçmiş grafiğine ve eşik tabanlı uyarılara bağlamak.
 - Vite build kökü açıkça sabitlendi; Windows path çözümleme kaynaklı HTML emit hatası giderildi ve frontend build tekrar kararlı.
 - Detection ayarları kamera bazlı: confidence, IoU, cooldown, frame stride, AI örnekleme genişliği, aktif saatler ve ROI/poligon operatör kontrollü hale geldi. Kamera düzenleme modalında Hassas/Dengeli/Sıkı hazır AI profilleri bu temel eşikleri birlikte ayarlar. Kalan iş bu profilleri çoklu kamera toplu uygulama ve rol bazlı şablon paylaşımına bağlamak.
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Tracking yok: aynı kişinin ardışık frame'lerde tek olay olarak izlenmesi için tracker ve event aggregation eklenmeli.
 - False positive yönetimi büyük ölçüde tamamlandı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor, DB/audit kaydı oluşuyor ve operatör/admin bu örnekleri dosya yolu veya görsel içerik sızdırmadan AI geri bildirim CSV'si olarak dışa aktarabiliyor. Kalan iş bu çıktıyı otomatik model kalite izleme ve toplu threshold önerisi üretimine bağlamak.
-- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi ve hareketli ortalama inference süresi gösteriliyor. Kalan iş CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
+- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi, hareketli ortalama inference süresi ve efektif yayın FPS'i gösteriliyor. Kalan iş CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
 
 ### P1 - Güvenlik ve Operasyon
 

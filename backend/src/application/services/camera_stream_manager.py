@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict, Optional, Set, Tuple
@@ -65,6 +66,10 @@ class CameraStreamManager:
         self._subscribers: Dict[int, Set[asyncio.Queue]] = {}
         self._subscriber_profiles: Dict[int, Dict[asyncio.Queue, str]] = {}
         self._latest_messages: Dict[int, Tuple[float, dict]] = {}
+        self._frame_broadcast_times: Dict[int, deque[float]] = {}
+        self._producer_started_at: Dict[int, datetime] = {}
+        self._producer_started_at_monotonic: Dict[int, float] = {}
+        self._producer_start_counts: Dict[int, int] = {}
         self._last_alarm_times: Dict[int, Dict[Tuple[int, AlarmType], datetime]] = {}
         self._last_ai_time: Dict[int, float] = {}
         self._active_ai_tasks: Dict[int, asyncio.Task] = {}
@@ -158,6 +163,7 @@ class CameraStreamManager:
         self._subscribers.pop(camera_id, None)
         self._subscriber_profiles.pop(camera_id, None)
         self._latest_messages.pop(camera_id, None)
+        self._frame_broadcast_times.pop(camera_id, None)
         self._stop_flags[camera_id] = True
         ai_task = self._active_ai_tasks.pop(camera_id, None)
         if ai_task and not ai_task.done():
@@ -265,6 +271,9 @@ class CameraStreamManager:
             self._stop_flags[camera_id] = False
             return
         self._stop_flags[camera_id] = False
+        self._producer_started_at[camera_id] = datetime.utcnow()
+        self._producer_started_at_monotonic[camera_id] = time.monotonic()
+        self._producer_start_counts[camera_id] = self._producer_start_counts.get(camera_id, 0) + 1
         self._producers[camera_id] = asyncio.create_task(
             self._producer_loop(camera_id), name=f"cam_stream_{camera_id}"
         )
@@ -410,6 +419,8 @@ class CameraStreamManager:
 
     def _broadcast(self, camera_id: int, message: dict) -> None:
         self._latest_messages[camera_id] = (time.monotonic(), message)
+        if message.get("frame") is not None:
+            self._mark_frame_broadcast(camera_id)
         for q in list(self._subscribers.get(camera_id, ())):
             if q.full():
                 try:
@@ -420,6 +431,25 @@ class CameraStreamManager:
                 q.put_nowait(message)
             except asyncio.QueueFull:
                 pass
+
+    def _mark_frame_broadcast(self, camera_id: int) -> None:
+        """Son yayinlanan kare zamanlarini kisa pencere FPS hesabi icin tutar."""
+        now = time.monotonic()
+        samples = self._frame_broadcast_times.setdefault(camera_id, deque())
+        samples.append(now)
+        cutoff = now - 10.0
+        while samples and samples[0] < cutoff:
+            samples.popleft()
+
+    def _current_broadcast_fps(self, camera_id: int) -> float | None:
+        """Son 10 saniyelik yayin penceresinden efektif FPS degerini hesaplar."""
+        samples = self._frame_broadcast_times.get(camera_id)
+        if not samples or len(samples) < 2:
+            return None
+        elapsed = samples[-1] - samples[0]
+        if elapsed <= 0:
+            return None
+        return (len(samples) - 1) / elapsed
 
     def _recent_detection_payload(self, camera_id: int) -> dict:
         """Son tespit kutularini kisa sure canli kare mesajlarina ekler."""
@@ -501,10 +531,15 @@ class CameraStreamManager:
         producer_task = self._producers.get(camera_id)
         ai_task = self._active_ai_tasks.get(camera_id)
         subscriber_count = len(self._subscribers.get(camera_id, ()))
+        producer_started_at_monotonic = self._producer_started_at_monotonic.get(camera_id)
         return {
             "producer_running": bool(producer_task and not producer_task.done()),
+            "producer_started_at": self._producer_started_at.get(camera_id),
+            "producer_uptime_seconds": (now - producer_started_at_monotonic) if producer_started_at_monotonic else None,
+            "producer_start_count": self._producer_start_counts.get(camera_id, 0),
             "subscriber_count": subscriber_count,
             "active_profile": self._effective_profile_name(camera_id),
+            "current_broadcast_fps": self._current_broadcast_fps(camera_id),
             "ai_task_running": bool(ai_task and not ai_task.done()),
             "ai_provider": getattr(self._ai_service, "active_provider", None),
             "ai_frame_stride": self._ai_frame_stride_cache.get(camera_id, 1),

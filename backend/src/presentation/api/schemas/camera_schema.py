@@ -308,8 +308,12 @@ class CameraStreamDiagnostics(BaseModel):
 
     camera_id: int
     producer_running: bool
+    producer_started_at: Optional[datetime] = None
+    producer_uptime_seconds: Optional[float] = None
+    producer_start_count: int = 0
     subscriber_count: int
     active_profile: str
+    current_broadcast_fps: Optional[float] = None
     ai_task_running: bool
     ai_provider: Optional[str] = None
     ai_frame_stride: int
@@ -321,6 +325,7 @@ class CameraStreamDiagnostics(BaseModel):
     last_frame_age_seconds: Optional[float] = None
     open_attempts: int
     open_failures: int
+    reconnects: int = 0
     failure_count: int
     retry_cooldown_seconds: float
     warmup_reads: int

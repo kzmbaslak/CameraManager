@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Canli akis kalite telemetrisi derinlestirildi. Kamera stream diagnostics artik producer uptime, producer start sayisi, son 10 saniyelik efektif yayin FPS'i ve RTSP reconnect sayisini dondurur; Kamera RTSP test modalinda bu metrikler operatorun kopma/FPS/yeniden baglanma durumunu tek ekranda gormesi icin gosterilir.
 - 2026-07-23: Admin sistem yedegi indirme akisi eklendi. Backup mantigi `src.infrastructure.backup.system_backup` modulune tasindi; `/api/backup/system` endpoint'i yalnizca `backup.manage` iznine sahip admin icin SHA-256 manifestli zip arsivi uretir, indirme olayini audit log'a yazar ve Sistem/Kullanicilar ekraninda hassas veri uyarili "Yedek Indir" aksiyonu sunar.
 - 2026-07-23: Cihaz parola rotasyonu hatirlatma politikasi eklendi. Genel Ayarlar'da rotasyon periyodu 30-365 gun araliginda belirlenir; Kamera ve Kayit Cihazi listeleri son parola rotasyonuna gore Guncel/Rotasyon gerekli/Kayit yok durumunu gosterir.
 - 2026-07-23: Kamera/NVR parola rotasyonu izleme eklendi. Cihaz parolasi ilk kaydedildiginde veya degistirildiginde `password_updated_at` alani guncellenir; kamera/NVR update audit olaylari `password_rotated` ve rotasyon zamanini parolayi loglamadan yazar. Duzenleme modallari son rotasyon zamanini gosterir.

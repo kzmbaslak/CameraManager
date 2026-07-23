@@ -1230,6 +1230,9 @@ export function CamerasPage() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
                   <span>Profil: <strong className="text-[var(--text-primary)]">{streamDiagnostic.active_profile}</strong></span>
+                  <span>FPS: <strong className="text-[var(--text-primary)]">{streamDiagnostic.current_broadcast_fps !== null ? streamDiagnostic.current_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
+                  <span>Uptime: <strong className="text-[var(--text-primary)]">{streamDiagnostic.producer_uptime_seconds !== null ? `${Math.round(streamDiagnostic.producer_uptime_seconds)} sn` : 'Yok'}</strong></span>
+                  <span>Producer Start: <strong className="text-[var(--text-primary)]">{streamDiagnostic.producer_start_count}</strong></span>
                   <span>Subscriber: <strong className="text-[var(--text-primary)]">{streamDiagnostic.subscriber_count}</strong></span>
                   <span>AI Görevi: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_task_running ? 'Açık' : 'Kapalı'}</strong></span>
                   <span>AI Provider: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_provider ?? 'Yok'}</strong></span>
@@ -1240,6 +1243,7 @@ export function CamerasPage() {
                   <span>Cache: <strong className="text-[var(--text-primary)]">{streamDiagnostic.cached_frame_available ? 'Var' : 'Yok'}</strong></span>
                   <span>Open Deneme: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_attempts}</strong></span>
                   <span>Open Hata: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_failures}</strong></span>
+                  <span>Reconnect: <strong className="text-[var(--text-primary)]">{streamDiagnostic.reconnects}</strong></span>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
                   <span>Son Frame: <strong className="text-[var(--text-primary)]">{streamDiagnostic.last_frame_age_seconds !== null ? `${streamDiagnostic.last_frame_age_seconds.toFixed(1)} sn önce` : 'Yok'}</strong></span>
