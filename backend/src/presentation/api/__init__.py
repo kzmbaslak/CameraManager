@@ -35,6 +35,11 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
         if origin.strip()
     ]
+    trusted_hosts = [
+        host.strip()
+        for host in os.environ.get("TRUSTED_HOSTS", "").split(",")
+        if host.strip()
+    ]
 
     jwt_ok = True
     encryption_ok = True
@@ -53,6 +58,9 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         findings.append({"severity": "high", "message": "CORS_ALLOWED_ORIGINS wildcard (*) icermemeli."})
     if not cors_origins:
         findings.append({"severity": "medium", "message": "CORS_ALLOWED_ORIGINS acikca tanimlanmali."})
+    trusted_hosts_configured = bool(trusted_hosts) and "*" not in trusted_hosts
+    if not trusted_hosts_configured:
+        findings.append({"severity": "medium", "message": "TRUSTED_HOSTS uretim host/IP listesiyle sinirlandirilmali."})
 
     https_enabled = os.environ.get("HTTPS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
     if not https_enabled:
@@ -89,6 +97,7 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         "jwt_secret_configured": jwt_ok,
         "camera_encryption_key_configured": encryption_ok,
         "cors_origins_configured": bool(cors_origins) and "*" not in cors_origins,
+        "trusted_hosts_configured": trusted_hosts_configured,
         "https_enabled": https_enabled,
         "secure_cookie_auth": secure_cookie_auth,
         "audit_chain_secret_configured": audit_chain_secret_configured,

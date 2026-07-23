@@ -277,8 +277,8 @@ function OperatorAssistPanel({
           <p className="truncate text-sm text-text-primary">
             {security
               ? security.findings.length > 0
-                ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · audit ${security.audit_chain_secret_configured ? 'HMAC' : 'zayif'} · baslik ${security.security_headers_enabled ? 'aktif' : 'eksik'}`
-                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · CSP ${security.content_security_policy_enabled ? 'aktif' : 'eksik'}`
+                ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · host ${security.trusted_hosts_configured ? 'sinirli' : 'acik'} · baslik ${security.security_headers_enabled ? 'aktif' : 'eksik'}`
+                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · CSP ${security.content_security_policy_enabled ? 'aktif' : 'eksik'} · host sinirli`
               : 'Guvenlik durusu okunuyor'}
           </p>
         </div>

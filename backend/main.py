@@ -21,6 +21,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from src.presentation.api import router as api_router
 from src.infrastructure.database.database import (
     engine,
@@ -91,6 +92,11 @@ def create_app() -> FastAPI:
         for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
         if origin.strip()
     ]
+    trusted_hosts = [
+        host.strip()
+        for host in os.environ.get("TRUSTED_HOSTS", "*").split(",")
+        if host.strip()
+    ] or ["*"]
     app = FastAPI(
         title="Güvenlik Kamera İzleme ve İnsan Tespiti",
         description="Local NVR ve AI Destekli İnsan Tespiti Sistemi",
@@ -137,6 +143,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
 
     app.include_router(api_router, prefix="/api")
 

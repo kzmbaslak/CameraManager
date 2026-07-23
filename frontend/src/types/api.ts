@@ -378,6 +378,7 @@ export interface SecurityPosture {
   jwt_secret_configured: boolean
   camera_encryption_key_configured: boolean
   cors_origins_configured: boolean
+  trusted_hosts_configured: boolean
   https_enabled: boolean
   secure_cookie_auth: boolean
   audit_chain_secret_configured: boolean
