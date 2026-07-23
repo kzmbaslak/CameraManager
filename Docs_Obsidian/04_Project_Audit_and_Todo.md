@@ -68,7 +68,7 @@ Riskler:
 - WebSocket artık ana JWT yerine kısa ömürlü kamera bazlı stream token kullanıyor ve token URL query yerine ilk WebSocket mesajında taşınıyor. Kalan risk: production proxy loglarında `/api/streams/{camera_id}?profile=...` gibi hassas olmayan query parametreleri yine de standart log maskesiyle yönetilmeli.
 - HTTPS/TLS, secure cookie ve token refresh eksik. Frontend tarafinda JWT expiry UX eklendi: sure dolmadan operator uyarilir, suresi dolmus token istek oncesi temizlenir ve login ekraninda oturum suresi mesaji gosterilir.
 - Kamera/NVR şifre rotasyonu ve parola değiştirme akışı tamamlanmalı.
-- RBAC daha granüler olmalı: canlı izleme, kayıt izleme, export, kullanıcı yönetimi, PTZ, alarm kapatma ayrı izinlere ayrılmalı.
+- RBAC kısmen granülerleşti: frontend izin matrisi backend ile hizalandı; izleyici alarm mutasyonu/kanıt indirme/CSV export aksiyonlarını görmez, alarm operasyonları ve dışa aktarım operator/admin ile sınırlıdır. Kalan iş canlı izleme, kayıt izleme, export, kullanıcı yönetimi, PTZ ve alarm kapatma için backend'de politika tabanlı ayrı izin kayıtlarına geçmek.
 - Backup/restore kısmen eklendi: SQLite DB, `.env`, `backend/data`, YOLO modeli ve snapshot dosyaları SHA-256 manifestli zip arşivine alınabiliyor; restore script'i manifest/hash doğrulaması, path sınırı, `--dry-run` ve `--force` koruması kullanıyor. Kalan iş bunu admin arayüzüne, zamanlanmış yedekleme politikasına ve ileride video kayıt klasörlerine bağlamak.
 - Servis/daemon paketleme yok: Windows service veya systemd benzeri üretim çalıştırma, log rotation ve health endpoint derinleştirilmeli.
 

@@ -12,6 +12,10 @@ interface Permissions {
   canManageUsers: boolean
   /** Alarm onaylama */
   canAcknowledgeAlarms: boolean
+  /** Alarm notu, cozum ve yanlis alarm operasyonlari */
+  canOperateAlarms: boolean
+  /** Kanit ve rapor disa aktarma */
+  canExportEvidence: boolean
   /** Mevcut rol */
   role: string | null
   isAdmin: boolean
@@ -24,7 +28,7 @@ interface Permissions {
  *
  * - admin: tam yetki
  * - operator: kamera/NVR yönetimi + alarm onaylama; kullanıcı yönetimi yok
- * - viewer: yalnızca okuma + alarm onaylama
+ * - viewer: yalnizca okuma/canli izleme
  */
 export function usePermissions(): Permissions {
   const role = useAuthStore((s) => s.role)
@@ -38,7 +42,9 @@ export function usePermissions(): Permissions {
     canEditCameras: isAdmin || isOperator,
     canManageNVRs: isAdmin || isOperator,
     canManageUsers: isAdmin,
-    canAcknowledgeAlarms: isAdmin || isOperator || isViewer,
+    canAcknowledgeAlarms: isAdmin || isOperator,
+    canOperateAlarms: isAdmin || isOperator,
+    canExportEvidence: isAdmin || isOperator,
     role,
     isAdmin,
     isOperator,

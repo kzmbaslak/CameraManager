@@ -7,6 +7,7 @@ import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
+import { usePermissions } from '../hooks/usePermissions'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -213,6 +214,8 @@ function AlarmDetailDrawer({
   rawSnapshotUrl,
   rawSnapshotSha256,
   snapshotLoading,
+  canOperateAlarms,
+  canExportEvidence,
   onClose,
   onOpenLive,
   onAcknowledge,
@@ -231,6 +234,8 @@ function AlarmDetailDrawer({
   rawSnapshotUrl: string | null
   rawSnapshotSha256: string | null
   snapshotLoading: boolean
+  canOperateAlarms: boolean
+  canExportEvidence: boolean
   onClose: () => void
   onOpenLive: () => void
   onAcknowledge: () => void
@@ -313,28 +318,30 @@ function AlarmDetailDrawer({
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 flex-col gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                icon={<Download size={14} />}
-                disabled={!snapshotUrl || snapshotLoading}
-                onClick={handleDownloadSnapshot}
-              >
-                Kaniti Indir
-              </Button>
-              {rawSnapshotUrl && rawSnapshotUrl !== snapshotUrl && (
+            {canExportEvidence && (
+              <div className="flex shrink-0 flex-col gap-2">
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="secondary"
                   icon={<Download size={14} />}
-                  disabled={snapshotLoading}
-                  onClick={handleDownloadRawSnapshot}
+                  disabled={!snapshotUrl || snapshotLoading}
+                  onClick={handleDownloadSnapshot}
                 >
-                  Ham Kanit
+                  Kaniti Indir
                 </Button>
-              )}
-            </div>
+                {rawSnapshotUrl && rawSnapshotUrl !== snapshotUrl && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Download size={14} />}
+                    disabled={snapshotLoading}
+                    onClick={handleDownloadRawSnapshot}
+                  >
+                    Ham Kanit
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -362,90 +369,94 @@ function AlarmDetailDrawer({
             </p>
           )}
 
-          <div className="mt-4 flex flex-col gap-3 rounded-md border border-border bg-bg-secondary p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Operasyon</p>
-            <label className="flex flex-col gap-1 text-sm text-text-primary">
-              Atanan kisi
-              <input
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                placeholder="Operator veya ekip"
-                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-text-primary">
-              Onem seviyesi
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value as AlarmSeverity)}
-                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-              >
-                {SEVERITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-text-primary">
-              Operator notu
-              <textarea
-                value={operatorNote}
-                onChange={(e) => setOperatorNote(e.target.value)}
-                placeholder="Olay inceleme notu"
-                className="min-h-24 rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-              />
-            </label>
-            <Button
-              size="sm"
-              variant="secondary"
-              loading={saving}
-              onClick={() => onSave({
-                assigned_to: assignedTo.trim() || null,
-                operator_note: operatorNote.trim() || null,
-                severity,
-              })}
-            >
-              Notu Kaydet
-            </Button>
-          </div>
-
-          <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-bg-secondary p-3">
-            <label className="flex flex-col gap-1 text-sm text-text-primary">
-              Cozum nedeni
-              <input
-                value={resolutionReason}
-                onChange={(e) => setResolutionReason(e.target.value)}
-                placeholder="Gercek alarm, yanlis alarm, test, vb."
-                className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-              />
-            </label>
-            {alarm.status !== 'resolved' && (
-              <div className="grid grid-cols-2 gap-2">
+          {canOperateAlarms && (
+            <>
+              <div className="mt-4 flex flex-col gap-3 rounded-md border border-border bg-bg-secondary p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Operasyon</p>
+                <label className="flex flex-col gap-1 text-sm text-text-primary">
+                  Atanan kisi
+                  <input
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    placeholder="Operator veya ekip"
+                    className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-text-primary">
+                  Onem seviyesi
+                  <select
+                    value={severity}
+                    onChange={(e) => setSeverity(e.target.value as AlarmSeverity)}
+                    className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+                  >
+                    {SEVERITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-text-primary">
+                  Operator notu
+                  <textarea
+                    value={operatorNote}
+                    onChange={(e) => setOperatorNote(e.target.value)}
+                    placeholder="Olay inceleme notu"
+                    className="min-h-24 rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+                  />
+                </label>
                 <Button
                   size="sm"
                   variant="secondary"
-                  loading={resolving}
-                  onClick={() => onResolve({ resolution_reason: resolutionReason.trim() || null })}
+                  loading={saving}
+                  onClick={() => onSave({
+                    assigned_to: assignedTo.trim() || null,
+                    operator_note: operatorNote.trim() || null,
+                    severity,
+                  })}
                 >
-                  Kapat
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  loading={falsePositiveSaving}
-                  onClick={onFalsePositive}
-                >
-                  Yanlis Alarm
+                  Notu Kaydet
                 </Button>
               </div>
-            )}
-          </div>
+
+              <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-bg-secondary p-3">
+                <label className="flex flex-col gap-1 text-sm text-text-primary">
+                  Cozum nedeni
+                  <input
+                    value={resolutionReason}
+                    onChange={(e) => setResolutionReason(e.target.value)}
+                    placeholder="Gercek alarm, yanlis alarm, test, vb."
+                    className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+                  />
+                </label>
+                {alarm.status !== 'resolved' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={resolving}
+                      onClick={() => onResolve({ resolution_reason: resolutionReason.trim() || null })}
+                    >
+                      Kapat
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      loading={falsePositiveSaving}
+                      onClick={onFalsePositive}
+                    >
+                      Yanlis Alarm
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex shrink-0 gap-2 border-t border-border p-4">
           <Button variant="secondary" icon={<Play size={14} />} onClick={onOpenLive} className="flex-1">
             Canli Ac
           </Button>
-          {alarm.status === 'new' && (
+          {canOperateAlarms && alarm.status === 'new' && (
             <Button variant="danger" icon={<CheckCircle size={14} />} loading={acknowledging} onClick={onAcknowledge} className="flex-1">
               Onayla
             </Button>
@@ -457,6 +468,7 @@ function AlarmDetailDrawer({
 }
 
 export function AlarmsPage() {
+  const { canAcknowledgeAlarms, canOperateAlarms, canExportEvidence } = usePermissions()
   const [cameraFilter, setCameraFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
@@ -632,16 +644,18 @@ export function AlarmsPage() {
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<Download size={14} />}
-            disabled={filtered.length === 0}
-            onClick={handleExportCsv}
-          >
-            CSV Rapor
-          </Button>
-          {filteredNewAlarmIds.length > 0 && (
+          {canExportEvidence && (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Download size={14} />}
+              disabled={filtered.length === 0}
+              onClick={handleExportCsv}
+            >
+              CSV Rapor
+            </Button>
+          )}
+          {canAcknowledgeAlarms && filteredNewAlarmIds.length > 0 && (
             <Button
               size="sm"
               variant="danger"
@@ -727,7 +741,7 @@ export function AlarmsPage() {
                     key={alarm.id}
                     alarm={alarm}
                     cameraName={cameraNameMap[alarm.camera_id]}
-                    onAcknowledge={(id) => acknowledge.mutate(id)}
+                    onAcknowledge={canAcknowledgeAlarms ? (id) => acknowledge.mutate(id) : undefined}
                     onInspect={setSelectedAlarm}
                     acknowledging={acknowledge.isPending && acknowledge.variables === alarm.id}
                   />
@@ -747,6 +761,8 @@ export function AlarmsPage() {
           rawSnapshotUrl={rawSnapshotUrl}
           rawSnapshotSha256={rawSnapshotSha256}
           snapshotLoading={snapshotLoading}
+          canOperateAlarms={canOperateAlarms}
+          canExportEvidence={canExportEvidence}
           onClose={() => setSelectedAlarm(null)}
           onOpenLive={() => {
             setExpandedCamera(selectedAlarm.camera_id, selectedAlarm.id)

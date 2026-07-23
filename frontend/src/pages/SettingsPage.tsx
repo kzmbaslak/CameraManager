@@ -157,7 +157,7 @@ function RoleSelect({ value, onChange }: { value: string; onChange: (role: strin
       >
         <option value="admin">Admin — Tam yetki</option>
         <option value="operator">Operatör — Kamera/NVR yönetimi, alarm onaylama</option>
-        <option value="viewer">İzleyici — Yalnızca görüntüleme ve alarm onaylama</option>
+        <option value="viewer">İzleyici — Yalnızca görüntüleme ve inceleme</option>
       </select>
     </div>
   )
