@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Download, Moon, Plus, Pencil, Sun, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Archive, Download, Moon, Plus, Pencil, Sun, Trash2, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -432,6 +432,64 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
   )
 }
 
+function BackupPanel({ enabled }: { enabled: boolean }) {
+  const showToast = useToastStore((state) => state.showToast)
+  const backupMutation = useMutation({
+    mutationFn: systemApi.createSystemBackup,
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      showToast({
+        variant: 'success',
+        title: 'Yedek indirildi',
+        description: 'Dosya hassas kamera ve sistem verileri icerir.',
+      })
+    },
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'Yedek olusturulamadi',
+      description: getApiErrorMessage(err, 'Sadece admin yetkisiyle sistem yedegi indirilebilir.'),
+    }),
+  })
+
+  if (!enabled) return null
+
+  return (
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <Archive size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Sistem Yedegi</h2>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              Veritabani, konfigurasyon, model ve manifest SHA-256 ozetleriyle zip arsivi olusturur.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="secondary"
+          icon={<Download size={14} />}
+          loading={backupMutation.isPending}
+          onClick={() => backupMutation.mutate()}
+        >
+          Yedek Indir
+        </Button>
+      </div>
+      <p className="mt-3 rounded-md border border-[var(--warning)]/35 bg-[var(--warning)]/10 px-3 py-2 text-xs text-[var(--text-secondary)]">
+        Yedek dosyasi sifrelenmis kamera kimlik bilgileri ve ortam ayarlarini icerebilir; sadece kurumsal kasada saklayin.
+      </p>
+    </section>
+  )
+}
+
 export function SettingsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
@@ -568,6 +626,8 @@ export function SettingsPage() {
 
       <GeneralSettingsPanel />
 
+      <BackupPanel enabled={canManageUsers} />
+
       <AuditEventsPanel enabled={canManageUsers} />
 
       <div>
@@ -649,6 +709,7 @@ export function SettingsPage() {
               <li>✓ Tüm kamera işlemleri</li>
               <li>✓ Tüm NVR işlemleri</li>
               <li>✓ Kullanıcı yönetimi</li>
+              <li>✓ Sistem yedeği indirme</li>
               <li>✓ Alarm onaylama</li>
             </ul>
           </div>
@@ -658,6 +719,7 @@ export function SettingsPage() {
               <li>✓ Kamera yönetimi</li>
               <li>✓ NVR yönetimi</li>
               <li>✗ Kullanıcı yönetimi</li>
+              <li>✗ Sistem yedeği indirme</li>
               <li>✓ Alarm onaylama</li>
             </ul>
           </div>
@@ -667,6 +729,7 @@ export function SettingsPage() {
               <li>✗ Kamera yönetimi</li>
               <li>✗ NVR yönetimi</li>
               <li>✗ Kullanıcı yönetimi</li>
+              <li>✗ Sistem yedeği indirme</li>
               <li>✓ Alarm onaylama</li>
             </ul>
           </div>

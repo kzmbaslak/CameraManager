@@ -143,6 +143,7 @@ _bearer = HTTPBearer(auto_error=False)
 ROLE_PERMISSIONS = {
     "admin": {
         "audit.read",
+        "backup.manage",
         "camera.diagnostics",
         "camera.manage",
         "evidence.export",
@@ -228,6 +229,7 @@ def get_operator_user(current_user: dict = Depends(get_current_user)) -> dict:
 
 
 get_audit_read_user = require_permission("audit.read")
+get_backup_manage_user = require_permission("backup.manage")
 get_camera_diagnostics_user = require_permission("camera.diagnostics")
 get_camera_manage_user = require_permission("camera.manage")
 get_evidence_export_user = require_permission("evidence.export")

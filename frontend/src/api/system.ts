@@ -2,6 +2,12 @@
 import client from './client'
 import type { AuditEvent, SecurityPermissions, SecurityPosture, SetupStatus } from '../types/api'
 
+const filenameFromDisposition = (disposition: string | undefined, fallback: string) => {
+  if (!disposition) return fallback
+  const match = disposition.match(/filename="?([^"]+)"?/i)
+  return match?.[1] ?? fallback
+}
+
 export const systemApi = {
   /** Uygulamanin temel guvenlik durusunu getirir. */
   securityPosture: async (): Promise<SecurityPosture> => {
@@ -25,5 +31,14 @@ export const systemApi = {
   auditEvents: async (limit = 50): Promise<AuditEvent[]> => {
     const { data } = await client.get<AuditEvent[]>('/audit/events', { params: { limit } })
     return data
+  },
+
+  /** Admin tarafindan hassas sistem yedegini zip olarak indirir. */
+  createSystemBackup: async (): Promise<{ blob: Blob; filename: string }> => {
+    const response = await client.post<Blob>('/backup/system', undefined, { responseType: 'blob' })
+    return {
+      blob: response.data,
+      filename: filenameFromDisposition(response.headers['content-disposition'], 'kamera-backup.zip'),
+    }
   },
 }
