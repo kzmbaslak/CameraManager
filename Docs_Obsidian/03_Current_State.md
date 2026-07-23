@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Cihaz parola rotasyonu hatirlatma politikasi eklendi. Genel Ayarlar'da rotasyon periyodu 30-365 gun araliginda belirlenir; Kamera ve Kayit Cihazi listeleri son parola rotasyonuna gore Guncel/Rotasyon gerekli/Kayit yok durumunu gosterir.
 - 2026-07-23: Kamera/NVR parola rotasyonu izleme eklendi. Cihaz parolasi ilk kaydedildiginde veya degistirildiginde `password_updated_at` alani guncellenir; kamera/NVR update audit olaylari `password_rotated` ve rotasyon zamanini parolayi loglamadan yazar. Duzenleme modallari son rotasyon zamanini gosterir.
 - 2026-07-23: Backend RBAC izin politikasi adlandirilmis yetkilere ayrildi. `audit.read`, `camera.manage`, `camera.diagnostics`, `evidence.export`, `live.view`, `nvr.manage`, `security.status`, `user.manage` ve `alarm.operate` izinleri rol matrisinden uretilir; kritik route'lar bu izin dependency'leriyle korunur ve `/api/security/permissions` mevcut kullanicinin izinlerini dondurur.
 - 2026-07-23: Tema kontrast kontrolu eklendi. `frontend/scripts/check-theme-contrast.mjs` koyu/acik tema CSS token'larini okuyup kritik metin ve durum renkleri icin WCAG kontrast oranlarini dogrular; `npm run test:contrast` ile calisir.

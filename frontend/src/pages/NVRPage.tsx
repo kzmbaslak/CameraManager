@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
+import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateHost, validateNewPassword, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
@@ -22,6 +23,14 @@ type NVRBulkAddPayload = NVRCreate[]
 const EMPTY_NVRS: NVR[] = []
 const formatRotationDate = (value: string | null) =>
   value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
+const passwordRotationState = (value: string | null, policyDays: number) => {
+  if (!value) return { variant: 'warning' as const, label: 'Kayit yok', detail: 'Ilk rotasyon tarihi yok' }
+  const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000))
+  if (elapsedDays >= policyDays) {
+    return { variant: 'danger' as const, label: 'Rotasyon gerekli', detail: `${elapsedDays} gun once` }
+  }
+  return { variant: 'success' as const, label: 'Guncel', detail: `${elapsedDays} gun once` }
+}
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 const nvrNetworkError =
@@ -121,6 +130,7 @@ function AddNVRModal({
 function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
+  const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
   const [form, setForm] = useState<NVRUpdate>({})
   const [lastId, setLastId] = useState<number | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -172,7 +182,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
         <p className="text-xs text-[var(--text-secondary)]">
-          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(nvr.password_updated_at)}</span>. Yeni sifre bos birakilirsa kayitli sifre korunur.
+          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(nvr.password_updated_at)}</span>. Politika: {rotationDays} gun. Yeni sifre bos birakilirsa kayitli sifre korunur.
         </p>
         {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
@@ -806,6 +816,7 @@ export function NVRPage() {
   const [deleteTarget, setDeleteTarget] = useState<NVR | null>(null)
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
+  const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
   const showToast = useToastStore((state) => state.showToast)
 
   const { data: nvrPageData, isLoading } = useQuery({
@@ -884,6 +895,19 @@ export function NVRPage() {
       <span className="font-mono text-xs text-[var(--text-secondary)]">{n.host}:{n.onvif_port}</span>
     )},
     { key: 'brand', header: 'Marka', render: (n: NVR) => n.brand ?? '—' },
+    {
+      key: 'password_rotation',
+      header: 'Sifre',
+      render: (n: NVR) => {
+        const state = passwordRotationState(n.password_updated_at, rotationDays)
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant={state.variant}>{state.label}</Badge>
+            <span className="text-[10px] text-[var(--text-secondary)]">{state.detail}</span>
+          </div>
+        )
+      },
+    },
     {
       key: 'status',
       header: 'Durum',

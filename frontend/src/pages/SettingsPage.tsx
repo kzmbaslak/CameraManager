@@ -184,6 +184,8 @@ const auditEventHashLabel = (event: AuditEvent) => event.event_hash?.slice(0, 12
 function GeneralSettingsPanel() {
   const themeMode = useSystemSettingsStore((s) => s.themeMode)
   const setThemeMode = useSystemSettingsStore((s) => s.setThemeMode)
+  const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
+  const setRotationDays = useSystemSettingsStore((s) => s.setDevicePasswordRotationDays)
   const soundEnabled = useSystemSettingsStore((s) => s.humanDetectionSoundEnabled)
   const soundDuration = useSystemSettingsStore((s) => s.humanDetectionSoundDurationSeconds)
   const setSoundEnabled = useSystemSettingsStore((s) => s.setHumanDetectionSoundEnabled)
@@ -227,6 +229,23 @@ function GeneralSettingsPanel() {
             Acik
           </button>
         </div>
+      </div>
+
+      <div className="mb-5 grid gap-3 border-b border-[var(--border)] pb-4 md:grid-cols-[1fr_220px] md:items-end">
+        <div>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Cihaz Sifre Rotasyonu</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Kamera ve kayit cihazi listelerinde gecikmis parola yenilemelerini isaretler.
+          </p>
+        </div>
+        <Input
+          label="Rotasyon Periyodu (gun)"
+          type="number"
+          min={30}
+          max={365}
+          value={rotationDays}
+          onChange={(e) => setRotationDays(Number(e.target.value))}
+        />
       </div>
 
       <div className="flex items-start justify-between gap-4">

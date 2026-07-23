@@ -16,6 +16,7 @@ import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
+import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateHost, validateNewPassword, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
@@ -25,6 +26,14 @@ const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
 const EMPTY_CAMERAS: Camera[] = []
 const formatRotationDate = (value: string | null) =>
   value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
+const passwordRotationState = (value: string | null, policyDays: number) => {
+  if (!value) return { variant: 'warning' as const, label: 'Kayit yok', detail: 'Ilk rotasyon tarihi yok' }
+  const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000))
+  if (elapsedDays >= policyDays) {
+    return { variant: 'danger' as const, label: 'Rotasyon gerekli', detail: `${elapsedDays} gun once` }
+  }
+  return { variant: 'success' as const, label: 'Guncel', detail: `${elapsedDays} gun once` }
+}
 const AI_PRESETS = [
   {
     key: 'sensitive',
@@ -603,6 +612,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
 function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
+  const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
   const [form, setForm] = useState<CameraUpdate>(() => camera ? {
     name: camera.name,
     host: camera.host,
@@ -723,7 +733,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
         <p className="text-xs text-[var(--text-secondary)]">
-          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(camera.password_updated_at)}</span>. Yeni sifre bos birakilirsa kayitli sifre korunur.
+          Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(camera.password_updated_at)}</span>. Politika: {rotationDays} gun. Yeni sifre bos birakilirsa kayitli sifre korunur.
         </p>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -859,6 +869,7 @@ export function CamerasPage() {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const { canManageCameras, canEditCameras } = usePermissions()
+  const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
   const { setExpandedCamera } = useAlarmStore()
 
   const { data: cameraPageData, isLoading } = useQuery({
@@ -976,6 +987,19 @@ export function CamerasPage() {
     { key: 'host', header: 'Host', render: (c: Camera) => (
       <span className="font-mono text-xs text-[var(--text-secondary)]">{c.host}:{c.rtsp_port}</span>
     )},
+    {
+      key: 'password_rotation',
+      header: 'Sifre',
+      render: (c: Camera) => {
+        const state = passwordRotationState(c.password_updated_at, rotationDays)
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant={state.variant}>{state.label}</Badge>
+            <span className="text-[10px] text-[var(--text-secondary)]">{state.detail}</span>
+          </div>
+        )
+      },
+    },
     {
       key: 'status',
       header: 'İzleme Durumu',
