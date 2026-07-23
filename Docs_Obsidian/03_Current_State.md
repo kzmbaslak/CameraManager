@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Public readiness endpoint eklendi. `/api/health/ready` kimlik gerektirmeden DB semasi, AI modeli ve aktif admin hazirligini hassas mesaj dondurmeden `key/ok/severity` ozetiyle raporlar; high/critical eksikte HTTP 503 verir.
 - 2026-07-23: Security posture ve Dashboard guvenlik karti uygulama log olgunlugunu raporlar. `/api/security/posture` artik `app_log_rotation_configured` ve `app_log_json_format` alanlarini dondurur; rotasyon env'i eksikse sertlestirme bulgusu uretir.
 - 2026-07-23: Uygulama loglari icin opsiyonel JSON format eklendi. `APP_LOG_FORMAT=json` ile root logger konsol ve `application.log` ciktilarini timestamp/level/logger/message/extra/exception alanlariyla tek satir JSON uretir; varsayilan `text` formati korunur.
 - 2026-07-23: Merkezi uygulama log rotasyonu eklendi. `configure_application_logging()` root logger'i konsol ve `APP_LOG_DIR/application.log` icin `RotatingFileHandler` ile kurar; `APP_LOG_LEVEL`, `APP_LOG_MAX_BYTES` ve `APP_LOG_BACKUP_COUNT` env ayarlari `.env.example` ve README'ye eklendi.

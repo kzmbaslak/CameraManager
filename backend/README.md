@@ -94,9 +94,10 @@ Kurulum hazır durumunu API üzerinden görmek için oturum açmış operatör/a
 ```text
 GET /api/setup/status
 GET /api/security/posture
+GET /api/health/ready
 ```
 
-Bu kontroller `.env` varlığı, `backend/models/yolov8n.onnx`, veritabanı şeması ve aktif admin kullanıcısını raporlar.
+Yetkili `setup/status` ve `security/posture` kontrolleri ayrıntılı mesaj döndürür. Kimlik gerektirmeyen `health/ready` ise servis monitörleri için yalnızca hassas olmayan `key/ok/severity` özetini döndürür.
 
 ### 4.1. Yedekleme ve Geri Yükleme
 
@@ -266,7 +267,8 @@ Bağlantı kurulduğunda sunucu:
 
 | Method | Endpoint | Açıklama |
 |---|---|---|
-| `GET` | `/api/health` | Aktif worker sayısı, AI servisi durumu |
+| `GET` | `/api/health` | Liveness: API process ayakta mı |
+| `GET` | `/api/health/ready` | Readiness: DB şeması, AI modeli ve aktif admin hazır mı; kritik eksikte 503 döner |
 
 ---
 

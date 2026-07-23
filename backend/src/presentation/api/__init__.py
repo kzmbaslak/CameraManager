@@ -3,7 +3,7 @@
 import os
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
@@ -24,6 +24,32 @@ router = APIRouter()
 def health_check():
     """Sistemin ayakta olup olmadigini kontrol eder."""
     return {"status": "healthy"}
+
+
+@router.get("/health/ready")
+def readiness_check(response: Response):
+    """Servis monitorleri icin hassas detay sizdirmayan hazirlik kontrolu."""
+    checks = collect_setup_checks()
+    public_checks = [
+        {"key": check.key, "ok": check.ok, "severity": check.severity}
+        for check in checks
+    ]
+    blocking_issues = [
+        check
+        for check in checks
+        if not check.ok and check.severity in {"critical", "high"}
+    ]
+    warnings = [check for check in checks if not check.ok and check.severity not in {"critical", "high"}]
+    ready = len(blocking_issues) == 0
+    if not ready:
+        response.status_code = 503
+    return {
+        "status": "ready" if ready else "degraded",
+        "ready": ready,
+        "blocking_issue_count": len(blocking_issues),
+        "warning_count": len(warnings),
+        "checks": public_checks,
+    }
 
 
 @router.get("/security/posture")
