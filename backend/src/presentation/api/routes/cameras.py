@@ -10,7 +10,7 @@ PATCH  /cameras/{id}/status       — ACTIVE/INACTIVE değiştirir, akış yöne
 PATCH  /cameras/{id}/ai           — AI insan tespitini açar/kapatır, akış yöneticisi buna göre güncellenir
 """
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Request
 from typing import List
 from urllib.parse import unquote, urlparse
 from src.presentation.api.dependencies import (
@@ -32,6 +32,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraScanResult,
     CameraOnvifPreviewRequest,
     CameraOnvifPreviewResponse,
+    CameraPageResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
     CameraHealthSummaryResponse,
@@ -274,12 +275,29 @@ async def add_camera(
         )
 
 
-@router.get("/", response_model=List[CameraResponse])
+@router.get("/", response_model=List[CameraResponse] | CameraPageResponse)
 def list_cameras(
+    paginated: bool = False,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    search: str = "",
+    status: str = "all",
+    ai_filter: str = "all",
+    sort: str = "name_asc",
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     current_user: dict = Depends(get_current_user),
 ):
-    """Sistemdeki tüm kameraları listeler."""
+    """Sistemdeki tum kameralari listeler; paginated=true ise sayfali yanit dondurur."""
+    if paginated:
+        items, total = use_cases.list_cameras_paginated(
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            ai_filter=ai_filter,
+            sort=sort,
+        )
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
     return use_cases.list_cameras()
 
 

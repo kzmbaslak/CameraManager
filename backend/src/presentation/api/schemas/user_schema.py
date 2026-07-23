@@ -31,3 +31,12 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserPageResponse(BaseModel):
+    """Sayfali kullanici liste yaniti."""
+
+    items: list[UserResponse]
+    total: int
+    page: int
+    page_size: int

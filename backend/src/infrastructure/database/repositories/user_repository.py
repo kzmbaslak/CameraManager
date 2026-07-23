@@ -3,6 +3,7 @@
 from typing import Sequence
 from sqlalchemy.orm import Session
 from src.domain.entities.user import User
+from src.domain.entities.user import UserRole
 from src.domain.interfaces.user_repository import IUserRepository
 from src.infrastructure.database.models import UserModel
 
@@ -63,6 +64,44 @@ class SqlAlchemyUserRepository(IUserRepository):
         """Tüm kullanıcıları listeler."""
         models = self._db.query(UserModel).all()
         return [self._to_entity(m) for m in models]
+
+    def list_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 25,
+        search: str = "",
+        role: str = "all",
+        active: str = "all",
+        sort: str = "username_asc",
+    ) -> tuple[Sequence[User], int]:
+        """Filtrelenmis kullanici listesini sayfali dondurur."""
+        query = self._db.query(UserModel)
+        needle = search.strip()
+        if needle:
+            query = query.filter(UserModel.username.ilike(f"%{needle}%"))
+        if role != "all":
+            query = query.filter(UserModel.role == UserRole(role))
+        if active == "active":
+            query = query.filter(UserModel.is_active.is_(True))
+        elif active == "inactive":
+            query = query.filter(UserModel.is_active.is_(False))
+
+        total = query.count()
+        if sort == "username_desc":
+            query = query.order_by(UserModel.username.desc())
+        elif sort == "role":
+            query = query.order_by(UserModel.role.asc(), UserModel.username.asc())
+        elif sort == "status":
+            query = query.order_by(UserModel.is_active.desc(), UserModel.username.asc())
+        elif sort == "id_desc":
+            query = query.order_by(UserModel.id.desc())
+        else:
+            query = query.order_by(UserModel.username.asc())
+
+        offset = max(page - 1, 0) * page_size
+        models = query.offset(offset).limit(page_size).all()
+        return [self._to_entity(m) for m in models], total
 
     def update(self, user: User) -> User:
         """Mevcut kullanıcıyı günceller."""

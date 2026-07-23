@@ -1,4 +1,5 @@
 from typing import Sequence
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from src.domain.entities.nvr import NVR
 from src.domain.interfaces.nvr_repository import INVRRepository
@@ -52,6 +53,47 @@ class SqlAlchemyNVRRepository(INVRRepository):
 
     def list_all(self) -> Sequence[NVR]:
         return [self._to_entity(m) for m in self._db.query(NVRModel).all()]
+
+    def list_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 25,
+        search: str = "",
+        status: str = "all",
+        sort: str = "name_asc",
+    ) -> tuple[Sequence[NVR], int]:
+        query = self._db.query(NVRModel)
+        needle = search.strip()
+        if needle:
+            like = f"%{needle}%"
+            query = query.filter(or_(
+                NVRModel.name.ilike(like),
+                NVRModel.host.ilike(like),
+                NVRModel.brand.ilike(like),
+                NVRModel.model.ilike(like),
+                NVRModel.username.ilike(like),
+            ))
+        if status == "active":
+            query = query.filter(NVRModel.is_active.is_(True))
+        elif status == "inactive":
+            query = query.filter(NVRModel.is_active.is_(False))
+
+        total = query.count()
+        if sort == "name_desc":
+            query = query.order_by(NVRModel.name.desc())
+        elif sort == "host":
+            query = query.order_by(NVRModel.host.asc(), NVRModel.name.asc())
+        elif sort == "status":
+            query = query.order_by(NVRModel.is_active.desc(), NVRModel.name.asc())
+        elif sort == "id_desc":
+            query = query.order_by(NVRModel.id.desc())
+        else:
+            query = query.order_by(NVRModel.name.asc())
+
+        offset = max(page - 1, 0) * page_size
+        models = query.offset(offset).limit(page_size).all()
+        return [self._to_entity(m) for m in models], total
 
     def update(self, nvr: NVR) -> NVR:
         model = self._db.query(NVRModel).filter(NVRModel.id == nvr.id).first()

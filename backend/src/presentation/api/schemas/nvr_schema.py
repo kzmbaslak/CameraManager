@@ -48,6 +48,15 @@ class NVRResponse(BaseModel):
         from_attributes = True
 
 
+class NVRPageResponse(BaseModel):
+    """Sayfali NVR liste yaniti."""
+
+    items: List[NVRResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class NVRUpdate(BaseModel):
     """NVR cihazini kismi olarak gunceller. None alanlar degistirilmez."""
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)

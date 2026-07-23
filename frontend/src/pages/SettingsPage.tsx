@@ -16,6 +16,7 @@ import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -141,6 +142,8 @@ const roleVariant = (role: string) => {
   if (role === 'operator') return 'warning'
   return 'neutral'
 }
+
+const EMPTY_USERS: User[] = []
 
 const roleLabel = { admin: 'Admin', operator: 'Operatör', viewer: 'İzleyici' } as Record<string, string>
 
@@ -351,16 +354,28 @@ export function SettingsPage() {
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'operator' | 'viewer'>('all')
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [userSort, setUserSort] = useState<'username_asc' | 'username_desc' | 'role' | 'status' | 'id_desc'>('username_asc')
+  const [userPage, setUserPage] = useState(1)
+  const [userPageSize, setUserPageSize] = useState(25)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const qc = useQueryClient()
   const { canManageUsers } = usePermissions()
   const currentUsername = useAuthStore((s) => s.username)
   const showToast = useToastStore((state) => state.showToast)
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: usersApi.list,
+  const { data: userPageData, isLoading } = useQuery({
+    queryKey: ['users', 'paginated', userPage, userPageSize, userSearch, roleFilter, activeFilter, userSort],
+    queryFn: () => usersApi.listPaginated({
+      page: userPage,
+      page_size: userPageSize,
+      search: userSearch,
+      role: roleFilter,
+      active: activeFilter,
+      sort: userSort,
+    }),
   })
+
+  const users = userPageData?.items ?? EMPTY_USERS
+  const userTotal = userPageData?.total ?? 0
 
   const filteredUsers = useMemo(() => {
     const needle = userSearch.trim().toLowerCase()
@@ -389,6 +404,7 @@ export function SettingsPage() {
     setRoleFilter('all')
     setActiveFilter('all')
     setUserSort('username_asc')
+    setUserPage(1)
   }
 
   /** Kullanıcıyı sistemden siler */
@@ -474,19 +490,19 @@ export function SettingsPage() {
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Kullanıcılar</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {filteredUsers.length} / {users.length} kullanici
+              {userTotal} kullanici sonucu
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Input
               value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
+              onChange={(e) => { setUserSearch(e.target.value); setUserPage(1) }}
               placeholder="Kullanici adi ara"
               className="w-full sm:w-72"
             />
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'operator' | 'viewer')}
+              onChange={(e) => { setRoleFilter(e.target.value as 'all' | 'admin' | 'operator' | 'viewer'); setUserPage(1) }}
               className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
             >
               <option value="all">Tum Roller</option>
@@ -496,7 +512,7 @@ export function SettingsPage() {
             </select>
             <select
               value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value as 'all' | 'active' | 'inactive')}
+              onChange={(e) => { setActiveFilter(e.target.value as 'all' | 'active' | 'inactive'); setUserPage(1) }}
               className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
             >
               <option value="all">Tum Durumlar</option>
@@ -505,7 +521,7 @@ export function SettingsPage() {
             </select>
             <select
               value={userSort}
-              onChange={(e) => setUserSort(e.target.value as 'username_asc' | 'username_desc' | 'role' | 'status' | 'id_desc')}
+              onChange={(e) => { setUserSort(e.target.value as 'username_asc' | 'username_desc' | 'role' | 'status' | 'id_desc'); setUserPage(1) }}
               aria-label="Kullanici listesini sirala"
               className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
             >
@@ -525,7 +541,16 @@ export function SettingsPage() {
         {isLoading ? (
           <div className="flex justify-center py-16"><Spinner size="lg" /></div>
         ) : (
-          <Table columns={columns} data={filteredUsers} keyFn={(u) => u.id} emptyText={hasUserFilter ? 'Filtrelerle eslesen kullanici bulunamadi.' : 'Kullanıcı bulunamadı.'} caption="Kullanici listesi" />
+          <>
+            <Table columns={columns} data={filteredUsers} keyFn={(u) => u.id} emptyText={hasUserFilter ? 'Filtrelerle eslesen kullanici bulunamadi.' : 'Kullanıcı bulunamadı.'} caption="Kullanici listesi" />
+            <PaginationControls
+              page={userPage}
+              pageSize={userPageSize}
+              total={userTotal}
+              onPageChange={setUserPage}
+              onPageSizeChange={(pageSize) => { setUserPageSize(pageSize); setUserPage(1) }}
+            />
+          </>
         )}
       </div>
 

@@ -119,6 +119,25 @@ class CameraUseCases:
     def list_cameras(self) -> Sequence[Camera]:
         return self.camera_repository.list_all()
 
+    def list_cameras_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 25,
+        search: str = "",
+        status: str = "all",
+        ai_filter: str = "all",
+        sort: str = "name_asc",
+    ) -> tuple[Sequence[Camera], int]:
+        return self.camera_repository.list_paginated(
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            ai_filter=ai_filter,
+            sort=sort,
+        )
+
     def get_camera(self, camera_id: int) -> Optional[Camera]:
         return self.camera_repository.get_by_id(camera_id)
 

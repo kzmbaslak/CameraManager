@@ -3,6 +3,13 @@
 // Backend CameraStatus enum değerleri lowercase
 export type CameraStatus = 'active' | 'inactive' | 'error'
 
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface Camera {
   id: number
   name: string

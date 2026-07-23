@@ -11,12 +11,14 @@ import { Modal } from '../components/ui/Modal'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
+const EMPTY_NVRS: NVR[] = []
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 const nvrNetworkError =
@@ -701,15 +703,26 @@ export function NVRPage() {
   const [nvrSearch, setNvrSearch] = useState('')
   const [nvrStatusFilter, setNvrStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [nvrSort, setNvrSort] = useState<'name_asc' | 'name_desc' | 'host' | 'status' | 'id_desc'>('name_asc')
+  const [nvrPage, setNvrPage] = useState(1)
+  const [nvrPageSize, setNvrPageSize] = useState(25)
   const [deleteTarget, setDeleteTarget] = useState<NVR | null>(null)
   const qc = useQueryClient()
   const { canManageNVRs } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
 
-  const { data: nvrs = [], isLoading } = useQuery({
-    queryKey: ['nvrs'],
-    queryFn: nvrsApi.list,
+  const { data: nvrPageData, isLoading } = useQuery({
+    queryKey: ['nvrs', 'paginated', nvrPage, nvrPageSize, nvrSearch, nvrStatusFilter, nvrSort],
+    queryFn: () => nvrsApi.listPaginated({
+      page: nvrPage,
+      page_size: nvrPageSize,
+      search: nvrSearch,
+      status: nvrStatusFilter,
+      sort: nvrSort,
+    }),
   })
+
+  const nvrs = nvrPageData?.items ?? EMPTY_NVRS
+  const nvrTotal = nvrPageData?.total ?? 0
 
   const filteredNvrs = useMemo(() => {
     const needle = nvrSearch.trim().toLowerCase()
@@ -742,6 +755,7 @@ export function NVRPage() {
     setNvrSearch('')
     setNvrStatusFilter('all')
     setNvrSort('name_asc')
+    setNvrPage(1)
   }
 
   /** NVR aktiflik durumunu değiştirir */
@@ -829,7 +843,7 @@ export function NVRPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Kayit Cihazlari</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
-            {filteredNvrs.length} / {nvrs.length} kayıt cihazı
+            {nvrTotal} kayit cihazi sonucu
           </p>
         </div>
         <div className="flex gap-2">
@@ -849,13 +863,13 @@ export function NVRPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Input
           value={nvrSearch}
-          onChange={(e) => setNvrSearch(e.target.value)}
+          onChange={(e) => { setNvrSearch(e.target.value); setNvrPage(1) }}
           placeholder="Kayit cihazi adi, IP, marka veya model ara"
           className="w-full sm:w-80"
         />
         <select
           value={nvrStatusFilter}
-          onChange={(e) => setNvrStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+          onChange={(e) => { setNvrStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setNvrPage(1) }}
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum Durumlar</option>
@@ -864,7 +878,7 @@ export function NVRPage() {
         </select>
         <select
           value={nvrSort}
-          onChange={(e) => setNvrSort(e.target.value as 'name_asc' | 'name_desc' | 'host' | 'status' | 'id_desc')}
+          onChange={(e) => { setNvrSort(e.target.value as 'name_asc' | 'name_desc' | 'host' | 'status' | 'id_desc'); setNvrPage(1) }}
           aria-label="Kayit cihazi listesini sirala"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
@@ -884,7 +898,16 @@ export function NVRPage() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={filteredNvrs} keyFn={(n) => n.id} emptyText={hasNvrFilter ? 'Filtrelerle eslesen NVR bulunamadi.' : 'Henüz NVR eklenmedi.'} caption="Kayit cihazi listesi" />
+        <>
+          <Table columns={columns} data={filteredNvrs} keyFn={(n) => n.id} emptyText={hasNvrFilter ? 'Filtrelerle eslesen NVR bulunamadi.' : 'Henüz NVR eklenmedi.'} caption="Kayit cihazi listesi" />
+          <PaginationControls
+            page={nvrPage}
+            pageSize={nvrPageSize}
+            total={nvrTotal}
+            onPageChange={setNvrPage}
+            onPageSizeChange={(pageSize) => { setNvrPageSize(pageSize); setNvrPage(1) }}
+          />
+        </>
       )}
 
       <AddNVRModal open={showAdd} onClose={() => { setShowAdd(false); setPrefilledDevice(null); }} initialValues={prefilledDevice} />

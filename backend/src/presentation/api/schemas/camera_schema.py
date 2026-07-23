@@ -163,6 +163,15 @@ class CameraResponse(BaseModel):
         from_attributes = True
 
 
+class CameraPageResponse(BaseModel):
+    """Sayfali kamera liste yaniti."""
+
+    items: list[CameraResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class CameraScanRequest(BaseModel):
     """Kamera tarama istegi."""
 

@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { Spinner } from '../components/ui/Spinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
@@ -20,6 +21,7 @@ import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifP
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
+const EMPTY_CAMERAS: Camera[] = []
 
 /** API hatasını kullanıcıya okunabilir tek cümleye çevirir. */
 const cameraNetworkError =
@@ -643,16 +645,28 @@ export function CamerasPage() {
   const [statusFilter, setStatusFilter] = useState<CameraStatus | 'all'>('all')
   const [aiFilter, setAiFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
   const [cameraSort, setCameraSort] = useState<'name_asc' | 'name_desc' | 'status' | 'id_desc'>('name_asc')
+  const [cameraPage, setCameraPage] = useState(1)
+  const [cameraPageSize, setCameraPageSize] = useState(25)
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const { canManageCameras, canEditCameras } = usePermissions()
   const { setExpandedCamera } = useAlarmStore()
 
-  const { data: cameras = [], isLoading } = useQuery({
-    queryKey: ['cameras'],
-    queryFn: camerasApi.list,
+  const { data: cameraPageData, isLoading } = useQuery({
+    queryKey: ['cameras', 'paginated', cameraPage, cameraPageSize, cameraSearch, statusFilter, aiFilter, cameraSort],
+    queryFn: () => camerasApi.listPaginated({
+      page: cameraPage,
+      page_size: cameraPageSize,
+      search: cameraSearch,
+      status: statusFilter,
+      ai_filter: aiFilter,
+      sort: cameraSort,
+    }),
   })
+
+  const cameras = cameraPageData?.items ?? EMPTY_CAMERAS
+  const cameraTotal = cameraPageData?.total ?? 0
 
   const filteredCameras = useMemo(() => {
     const needle = cameraSearch.trim().toLowerCase()
@@ -687,6 +701,7 @@ export function CamerasPage() {
     setStatusFilter('all')
     setAiFilter('all')
     setCameraSort('name_asc')
+    setCameraPage(1)
   }
 
   /** Kamera durumunu değiştirir; ACTIVE ↔ INACTIVE */
@@ -857,7 +872,7 @@ export function CamerasPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)]">Kameralar</h1>
           <p className="text-sm text-[var(--text-secondary)] mt-0.5">
-            {filteredCameras.length} / {cameras.length} kamera — {cameras.filter((c) => c.ai_detection_enabled).length} AI aktif
+            {cameraTotal} kamera sonucu
           </p>
         </div>
         {canManageCameras && (
@@ -875,13 +890,13 @@ export function CamerasPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Input
           value={cameraSearch}
-          onChange={(e) => setCameraSearch(e.target.value)}
+          onChange={(e) => { setCameraSearch(e.target.value); setCameraPage(1) }}
           placeholder="Kamera adi, IP, marka veya NVR ara"
           className="w-full sm:w-80"
         />
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as CameraStatus | 'all')}
+          onChange={(e) => { setStatusFilter(e.target.value as CameraStatus | 'all'); setCameraPage(1) }}
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum Durumlar</option>
@@ -891,7 +906,7 @@ export function CamerasPage() {
         </select>
         <select
           value={aiFilter}
-          onChange={(e) => setAiFilter(e.target.value as 'all' | 'enabled' | 'disabled')}
+          onChange={(e) => { setAiFilter(e.target.value as 'all' | 'enabled' | 'disabled'); setCameraPage(1) }}
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum AI</option>
@@ -900,7 +915,7 @@ export function CamerasPage() {
         </select>
         <select
           value={cameraSort}
-          onChange={(e) => setCameraSort(e.target.value as 'name_asc' | 'name_desc' | 'status' | 'id_desc')}
+          onChange={(e) => { setCameraSort(e.target.value as 'name_asc' | 'name_desc' | 'status' | 'id_desc'); setCameraPage(1) }}
           aria-label="Kamera listesini sirala"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
@@ -919,7 +934,16 @@ export function CamerasPage() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>
       ) : (
-        <Table columns={columns} data={filteredCameras} keyFn={(c) => c.id} emptyText={hasCameraFilter ? 'Filtrelerle eslesen kamera bulunamadi.' : 'Henüz kamera eklenmedi.'} caption="Kamera listesi" />
+        <>
+          <Table columns={columns} data={filteredCameras} keyFn={(c) => c.id} emptyText={hasCameraFilter ? 'Filtrelerle eslesen kamera bulunamadi.' : 'Henüz kamera eklenmedi.'} caption="Kamera listesi" />
+          <PaginationControls
+            page={cameraPage}
+            pageSize={cameraPageSize}
+            total={cameraTotal}
+            onPageChange={setCameraPage}
+            onPageSizeChange={(pageSize) => { setCameraPageSize(pageSize); setCameraPage(1) }}
+          />
+        </>
       )}
 
       <AddCameraModal open={showAdd} onClose={() => setShowAdd(false)} />

@@ -1,6 +1,6 @@
 // Kullanıcı CRUD API çağrıları — list, add, update, delete
 import client from './client'
-import type { User, UserCreate } from '../types/api'
+import type { PaginatedResponse, User, UserCreate } from '../types/api'
 
 /** Kullanıcı güncelleme için kısmi veri tipi */
 export interface UserUpdate {
@@ -13,6 +13,20 @@ export const usersApi = {
   /** Sistemdeki tüm kullanıcıları listeler. */
   list: async (): Promise<User[]> => {
     const { data } = await client.get<User[]>('/users/')
+    return data
+  },
+
+  listPaginated: async (params: {
+    page: number
+    page_size: number
+    search?: string
+    role?: string
+    active?: 'all' | 'active' | 'inactive'
+    sort?: string
+  }): Promise<PaginatedResponse<User>> => {
+    const { data } = await client.get<PaginatedResponse<User>>('/users/', {
+      params: { paginated: true, ...params },
+    })
     return data
   },
 

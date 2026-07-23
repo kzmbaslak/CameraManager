@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -25,6 +25,20 @@ export const camerasApi = {
   /** Sistemdeki tüm kameraları listeler. */
   list: async (): Promise<Camera[]> => {
     const { data } = await client.get<Camera[]>('/cameras/')
+    return data
+  },
+
+  listPaginated: async (params: {
+    page: number
+    page_size: number
+    search?: string
+    status?: CameraStatus | 'all'
+    ai_filter?: 'all' | 'enabled' | 'disabled'
+    sort?: string
+  }): Promise<PaginatedResponse<Camera>> => {
+    const { data } = await client.get<PaginatedResponse<Camera>>('/cameras/', {
+      params: { paginated: true, ...params },
+    })
     return data
   },
 

@@ -1,6 +1,7 @@
 from typing import Sequence
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from src.domain.entities.camera import Camera
+from src.domain.entities.camera import Camera, CameraStatus
 from src.domain.interfaces.camera_repository import ICameraRepository
 from src.infrastructure.database.models import CameraModel
 
@@ -81,6 +82,48 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             self._to_entity(m)
             for m in self._db.query(CameraModel).order_by(CameraModel.id).all()
         ]
+
+    def list_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 25,
+        search: str = "",
+        status: str = "all",
+        ai_filter: str = "all",
+        sort: str = "name_asc",
+    ) -> tuple[Sequence[Camera], int]:
+        query = self._db.query(CameraModel)
+        needle = search.strip()
+        if needle:
+            like = f"%{needle}%"
+            query = query.filter(or_(
+                CameraModel.name.ilike(like),
+                CameraModel.host.ilike(like),
+                CameraModel.rtsp_path.ilike(like),
+                CameraModel.brand.ilike(like),
+                CameraModel.model.ilike(like),
+            ))
+        if status != "all":
+            query = query.filter(CameraModel.status == CameraStatus(status))
+        if ai_filter == "enabled":
+            query = query.filter(CameraModel.ai_detection_enabled.is_(True))
+        elif ai_filter == "disabled":
+            query = query.filter(CameraModel.ai_detection_enabled.is_(False))
+
+        total = query.count()
+        if sort == "name_desc":
+            query = query.order_by(CameraModel.name.desc())
+        elif sort == "status":
+            query = query.order_by(CameraModel.status.asc(), CameraModel.name.asc())
+        elif sort == "id_desc":
+            query = query.order_by(CameraModel.id.desc())
+        else:
+            query = query.order_by(CameraModel.name.asc())
+
+        offset = max(page - 1, 0) * page_size
+        models = query.offset(offset).limit(page_size).all()
+        return [self._to_entity(m) for m in models], total
 
     def list_by_nvr(self, nvr_id: int) -> Sequence[Camera]:
         return [

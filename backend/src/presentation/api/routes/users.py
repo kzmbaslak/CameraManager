@@ -9,12 +9,12 @@ DELETE /users/{id}    — kullanıcıyı siler (kendi hesabını silemez).
 Şifre hashleme için passlib yerine bcrypt kütüphanesi direkt kullanılır
 (passlib 1.7.x, bcrypt 4.x+ ile uyumsuz).
 """
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import List
 import bcrypt
 from src.presentation.api.dependencies import get_user_repository, get_admin_user
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
-from src.presentation.api.schemas.user_schema import UserCreate, UserUpdate, UserResponse
+from src.presentation.api.schemas.user_schema import UserCreate, UserUpdate, UserResponse, UserPageResponse
 from src.domain.entities.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -42,12 +42,29 @@ def create_user(
     return repo.add(user)
 
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserResponse] | UserPageResponse)
 def list_users(
+    paginated: bool = False,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    search: str = "",
+    role: str = "all",
+    active: str = "all",
+    sort: str = "username_asc",
     repo: SqlAlchemyUserRepository = Depends(get_user_repository),
     current_user: dict = Depends(get_admin_user),
 ):
-    """Sistemdeki tüm kullanıcıları listeler."""
+    """Sistemdeki kullanicilari listeler; paginated=true ise sayfali yanit dondurur."""
+    if paginated:
+        items, total = repo.list_paginated(
+            page=page,
+            page_size=page_size,
+            search=search,
+            role=role,
+            active=active,
+            sort=sort,
+        )
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
     return repo.list_all()
 
 

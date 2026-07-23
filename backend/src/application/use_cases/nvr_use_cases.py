@@ -67,6 +67,23 @@ class NVRUseCases:
     def list_nvrs(self) -> Sequence[NVR]:
         return self._repo.list_all()
 
+    def list_nvrs_paginated(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 25,
+        search: str = "",
+        status: str = "all",
+        sort: str = "name_asc",
+    ) -> tuple[Sequence[NVR], int]:
+        return self._repo.list_paginated(
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            sort=sort,
+        )
+
     def get_nvr(self, nvr_id: int) -> Optional[NVR]:
         return self._repo.get_by_id(nvr_id)
 

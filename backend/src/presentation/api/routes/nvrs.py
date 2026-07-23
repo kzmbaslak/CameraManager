@@ -13,7 +13,7 @@ import logging
 import asyncio
 import re
 from urllib.parse import urlsplit, urlunsplit
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import List
 
 from src.presentation.api.dependencies import (
@@ -30,6 +30,7 @@ from src.application.services.camera_stream_manager import CameraStreamManager
 from src.domain.entities.camera import CameraStatus
 from src.presentation.api.schemas.nvr_schema import (
     NVRCreate,
+    NVRPageResponse,
     NVRUpdate,
     NVRResponse,
     NVRChannelInfo,
@@ -394,12 +395,27 @@ def add_nvr(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/", response_model=List[NVRResponse])
+@router.get("/", response_model=List[NVRResponse] | NVRPageResponse)
 def list_nvrs(
+    paginated: bool = False,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    search: str = "",
+    status: str = "all",
+    sort: str = "name_asc",
     use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     current_user: dict = Depends(get_current_user),
 ):
-    """Kayıtlı tüm NVR cihazlarını listeler."""
+    """Kayitli NVR cihazlarini listeler; paginated=true ise sayfali yanit dondurur."""
+    if paginated:
+        items, total = use_cases.list_nvrs_paginated(
+            page=page,
+            page_size=page_size,
+            search=search,
+            status=status,
+            sort=sort,
+        )
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
     return use_cases.list_nvrs()
 
 
