@@ -382,6 +382,8 @@ export interface SecurityPosture {
   secure_cookie_auth: boolean
   audit_chain_secret_configured: boolean
   audit_webhook_configured: boolean
+  security_headers_enabled: boolean
+  content_security_policy_enabled: boolean
   setup_checks: SetupCheck[]
   stream_token_transport: string
   stream_token_ttl_seconds: number

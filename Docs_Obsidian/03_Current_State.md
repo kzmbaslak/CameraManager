@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Backend HTTP guvenlik basliklari merkezi middleware ile eklendi. API ve production SPA yanitlari `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`, COOP/CORP ve HTTPS aktifken HSTS basliklarini dondurur; `/api/security/posture` ve Dashboard guvenlik karti baslik/CSP durumunu raporlar.
 - 2026-07-23: NVR ONVIF kanal profilleri codec/cozunurluk/FPS/bitrate ve ana/alt akis etiketiyle import onizlemesine tasindi. Operator Ana Akis, Alt Akis veya Profil Bilinmeyen gruplarini tek tusla secebilir; tablo her kanal icin stream detayini gosterir.
 - 2026-07-23: NVR kanal import modalina toplu secim ve ad sablonu kontrolleri eklendi. Operator Tum/Yeni/Zaten Ekli/ONVIF/RTSP secimlerini tek tusla yapabilir; `{nvr}`, `{profile}`, `{index}`, `{source}` ve `{token}` alanlariyla secili kanallara toplu kamera adi uygulayabilir.
 - 2026-07-23: NVR kanal import onizlemesine kamera adi duzenleme eklendi. Operator secili kanallarin sisteme hangi kamera adiyla aktarilacagini import oncesi satir uzerinde degistirebilir; bos veya tekrar eden secili adlar frontend tarafinda engellenir, backend `import_name` alanini kullanir ve bos adi reddeder.

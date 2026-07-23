@@ -93,6 +93,8 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         "secure_cookie_auth": secure_cookie_auth,
         "audit_chain_secret_configured": audit_chain_secret_configured,
         "audit_webhook_configured": audit_webhook_configured,
+        "security_headers_enabled": True,
+        "content_security_policy_enabled": True,
         "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",
         "stream_token_ttl_seconds": 60,

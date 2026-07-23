@@ -98,6 +98,38 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    @app.middleware("http")
+    async def add_security_headers(request, call_next):
+        """Tum HTTP yanitlarina temel tarayici guvenlik basliklarini ekler."""
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        response.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        )
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self'; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' ws: wss:; "
+            "media-src 'self' blob:; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none'",
+        )
+        if os.environ.get("HTTPS_ENABLED", "").strip().lower() in {"1", "true", "yes"}:
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return response
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
