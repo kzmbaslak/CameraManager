@@ -383,6 +383,8 @@ export interface SecurityPosture {
   secure_cookie_auth: boolean
   audit_chain_secret_configured: boolean
   audit_webhook_configured: boolean
+  app_log_rotation_configured: boolean
+  app_log_json_format: boolean
   security_headers_enabled: boolean
   content_security_policy_enabled: boolean
   setup_checks: SetupCheck[]

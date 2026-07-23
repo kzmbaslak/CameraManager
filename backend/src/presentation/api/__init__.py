@@ -74,6 +74,16 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
     if not audit_chain_secret_configured:
         findings.append({"severity": "medium", "message": "Audit zinciri icin AUDIT_CHAIN_SECRET en az 32 karakter olarak tanimlanmali."})
 
+    app_log_dir = os.environ.get("APP_LOG_DIR", "logs").strip()
+    try:
+        app_log_backup_count = int(os.environ.get("APP_LOG_BACKUP_COUNT", "5") or "0")
+    except ValueError:
+        app_log_backup_count = 0
+    app_log_rotation_configured = bool(app_log_dir) and app_log_backup_count > 0
+    app_log_json_format = os.environ.get("APP_LOG_FORMAT", "text").strip().lower() == "json"
+    if not app_log_rotation_configured:
+        findings.append({"severity": "medium", "message": "APP_LOG_DIR ve APP_LOG_BACKUP_COUNT ile uygulama log rotasyonu tanimlanmali."})
+
     audit_webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
     audit_webhook_configured = False
     if audit_webhook_url:
@@ -102,6 +112,8 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         "secure_cookie_auth": secure_cookie_auth,
         "audit_chain_secret_configured": audit_chain_secret_configured,
         "audit_webhook_configured": audit_webhook_configured,
+        "app_log_rotation_configured": app_log_rotation_configured,
+        "app_log_json_format": app_log_json_format,
         "security_headers_enabled": True,
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,
