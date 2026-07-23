@@ -1,3 +1,5 @@
+"""Kamera/NVR kimlik bilgisi envanterini hassas veri sizdirmadan raporlar."""
+
 import sys
 import os
 
@@ -11,44 +13,52 @@ load_dotenv()
 from src.infrastructure.database.database import SessionLocal
 from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
 from src.infrastructure.database.repositories.nvr_repository import SqlAlchemyNVRRepository
-from src.presentation.api.dependencies import password_service
+
+
+def _mask_username(username: str | None) -> str:
+    """Kullanici adini tam degeri sizdirmeden kisa bir ipucuna cevirir."""
+    if not username:
+        return "-"
+    if len(username) <= 2:
+        return "***"
+    return f"{username[:2]}***"
+
+
+def _masked_rtsp_url(camera) -> str:
+    """Kamera RTSP adresini parola veya tam kullanici adi yazmadan uretir."""
+    auth = "user:***@" if camera.username and camera.encrypted_password else ""
+    return f"rtsp://{auth}{camera.host}:{camera.rtsp_port}{camera.rtsp_path}"
+
 
 def debug():
+    """Kamera/NVR kayitlarinda parola varligini ve maskeli baglanti bilgisini listeler."""
     db = SessionLocal()
-    cam_repo = SqlAlchemyCameraRepository(db)
-    nvr_repo = SqlAlchemyNVRRepository(db)
+    try:
+        cam_repo = SqlAlchemyCameraRepository(db)
+        nvr_repo = SqlAlchemyNVRRepository(db)
 
-    print("=== NVRS ===")
-    nvrs = nvr_repo.list_all()
-    for n in nvrs:
-        pw = ""
-        if n.encrypted_password:
-            try:
-                pw = password_service.decrypt(n.encrypted_password)
-            except Exception as e:
-                pw = f"[DECRYPT ERROR: {e}]"
-        print(f"ID: {n.id} | Name: {n.name} | Host: {n.host} | Port: {n.onvif_port} | User: {n.username} | Pass: {pw}")
+        print("=== NVRS ===")
+        nvrs = nvr_repo.list_all()
+        for n in nvrs:
+            password_state = "configured" if n.encrypted_password else "missing"
+            print(
+                f"ID: {n.id} | Name: {n.name} | Host: {n.host} | Port: {n.onvif_port} | "
+                f"User: {_mask_username(n.username)} | Password: {password_state} | "
+                f"RotatedAt: {n.password_updated_at or '-'}"
+            )
 
-    print("\n=== CAMERAS ===")
-    cameras = cam_repo.list_all()
-    for c in cameras:
-        pw = ""
-        if c.encrypted_password:
-            try:
-                pw = password_service.decrypt(c.encrypted_password)
-            except Exception as e:
-                pw = f"[DECRYPT ERROR: {e}]"
-        
-        # Build RTSP URL
-        auth = ""
-        if c.username and c.encrypted_password:
-            auth = f"{c.username}:{pw}@"
-        rtsp_url = f"rtsp://{auth}{c.host}:{c.rtsp_port}{c.rtsp_path}"
-        
-        print(f"ID: {c.id} | Name: {c.name} | Host: {c.host} | Port: {c.rtsp_port} | Path: {c.rtsp_path} | User: {c.username} | Pass: {pw} | NVR_ID: {c.nvr_id}")
-        print(f"  --> Built RTSP URL: {rtsp_url}")
-    
-    db.close()
+        print("\n=== CAMERAS ===")
+        cameras = cam_repo.list_all()
+        for c in cameras:
+            password_state = "configured" if c.encrypted_password else "missing"
+            print(
+                f"ID: {c.id} | Name: {c.name} | Host: {c.host} | Port: {c.rtsp_port} | "
+                f"Path: {c.rtsp_path} | User: {_mask_username(c.username)} | "
+                f"Password: {password_state} | RotatedAt: {c.password_updated_at or '-'} | NVR_ID: {c.nvr_id}"
+            )
+            print(f"  --> Masked RTSP URL: {_masked_rtsp_url(c)}")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     debug()
