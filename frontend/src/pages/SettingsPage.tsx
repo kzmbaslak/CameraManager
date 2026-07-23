@@ -20,6 +20,7 @@ import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
+import { hasErrors, requiredText, validateNewPassword, type FieldErrors } from '../utils/formValidation'
 import type { AuditEvent, User, UserCreate } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
@@ -27,6 +28,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<UserCreate>({ username: '', password: '', role: 'viewer' })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: usersApi.add,
@@ -35,15 +37,27 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
       showToast({ variant: 'success', title: 'Kullanici eklendi', description: form.username })
       onClose()
       setForm({ username: '', password: '', role: 'viewer' })
+      setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kullanici eklenemedi', description: getApiErrorMessage(err, 'Kullanici adi, sifre ve rol bilgisini kontrol edin.') }),
   })
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const usernameError = requiredText(form.username, 'Kullanici adi zorunludur.')
+    const passwordError = validateNewPassword(form.password, true)
+    if (usernameError) errors.username = usernameError
+    if (passwordError) errors.password = passwordError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Kullanıcı Ekle">
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
-        <Input label="Kullanıcı Adı" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
-        <PasswordInput label="Şifre" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <Input label="Kullanıcı Adı" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required error={fieldErrors.username} />
+        <PasswordInput label="Şifre" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required error={fieldErrors.password} />
         <RoleSelect value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} />
         {error && <p className="text-xs text-[var(--danger)]">{getApiErrorMessage(error, 'Kullanici adi, sifre ve rol bilgisini kontrol edin.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
@@ -61,11 +75,13 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
   const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<UserUpdate>({})
   const [lastId, setLastId] = useState<number | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const currentUsername = useAuthStore((s) => s.username)
 
   if (user && user.id !== lastId) {
     setLastId(user.id)
     setForm({ role: user.role, is_active: user.is_active })
+    setFieldErrors({})
   }
 
   const { mutate, isPending, error } = useMutation({
@@ -80,12 +96,21 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
 
   if (!user) return null
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const passwordError = validateNewPassword(form.password, false)
+    if (passwordError) errors.password = passwordError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   // Kendi hesabını devre dışı bırakmasını engelle
   const isSelf = user.username === currentUsername
 
   return (
     <Modal open onClose={onClose} title={`Düzenle — ${user.username}`}>
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <RoleSelect value={form.role ?? user.role} onChange={(role) => setForm((f) => ({ ...f, role }))} />
 
         <div className="flex items-center justify-between py-1">
@@ -104,6 +129,7 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
           label="Yeni Şifre"
           placeholder="Değiştirmek için doldurun"
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))}
+          error={fieldErrors.password}
         />
 
         {isSelf && (

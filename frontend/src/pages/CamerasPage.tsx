@@ -17,6 +17,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
+import { hasErrors, requiredText, validateHost, validateNewPassword, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
@@ -78,6 +79,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: camerasApi.add,
@@ -86,6 +88,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       showToast({ variant: 'success', title: 'Kamera eklendi', description: form.name })
       onClose()
       setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
+      setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
   })
@@ -116,9 +119,26 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
   const set = (field: keyof CameraCreate, value: string | number) =>
     setForm((f) => ({ ...f, [field]: value }))
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const nameError = requiredText(form.name, 'Ad zorunludur.')
+    const hostError = validateHost(form.host)
+    const rtspPortError = validatePort(form.rtsp_port ?? 554, 'RTSP port')
+    const onvifPortError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
+    const passwordError = validateNewPassword(form.password, false)
+    if (nameError) errors.name = nameError
+    if (hostError) errors.host = hostError
+    if (rtspPortError) errors.rtsp_port = rtspPortError
+    if (onvifPortError) errors.onvif_port = onvifPortError
+    if (passwordError) errors.password = passwordError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Kamera Ekle">
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2">
           <p className="text-xs text-[var(--text-secondary)] leading-5">
             RTSP Path boş bırakılırsa sistem yaygın kamera yollarını dener. Illustra/i610 için genelde
@@ -130,11 +150,11 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
             Tam RTSP URL de yapıştırabilirsiniz.
           </p>
         </div>
-        <Input label="Ad" value={form.name} onChange={(e) => set('name', e.target.value)} required />
-        <Input label="IP / Host" value={form.host} onChange={(e) => set('host', e.target.value)} required placeholder="192.168.1.100" />
+        <Input label="Ad" value={form.name} onChange={(e) => set('name', e.target.value)} required error={fieldErrors.name} />
+        <Input label="IP / Host" value={form.host} onChange={(e) => set('host', e.target.value)} required placeholder="192.168.1.100" error={fieldErrors.host} />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="RTSP Port" type="number" defaultValue={554} onChange={(e) => set('rtsp_port', Number(e.target.value))} />
-          <Input label="ONVIF Port" type="number" defaultValue={80} onChange={(e) => set('onvif_port', Number(e.target.value))} />
+          <Input label="RTSP Port" type="number" defaultValue={554} onChange={(e) => set('rtsp_port', Number(e.target.value))} error={fieldErrors.rtsp_port} />
+          <Input label="ONVIF Port" type="number" defaultValue={80} onChange={(e) => set('onvif_port', Number(e.target.value))} error={fieldErrors.onvif_port} />
         </div>
         <label className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
           <input
@@ -147,7 +167,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         </label>
         <Input label="RTSP Path veya tam RTSP URL" placeholder="/videoStreamId=1 veya rtsp://192.168.1.100:554/stream1" value={form.rtsp_path ?? ''} onChange={(e) => set('rtsp_path', e.target.value)} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
-        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} error={fieldErrors.password} />
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -484,6 +504,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     ai_active_end: camera.ai_active_end ?? '',
     ai_roi_polygon: camera.ai_roi_polygon ?? '',
   } : {})
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: (payload: CameraUpdate) => camerasApi.update(camera!.id, payload),
@@ -491,6 +512,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'Kamera guncellendi', description: camera?.name })
       onClose()
+      setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera guncellenemedi', description: getCameraErrorMessage(err, 'Kamera bilgileri kaydedilemedi.') }),
   })
@@ -529,18 +551,45 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
 
   if (!camera) return null
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const nameError = requiredText(form.name, 'Ad zorunludur.')
+    const hostError = validateHost(form.host)
+    const rtspPortError = validatePort(form.rtsp_port ?? 554, 'RTSP port')
+    const onvifPortError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
+    const passwordError = validateNewPassword(form.password, false)
+    const confidenceError = validateNumberRange(form.ai_confidence_threshold ?? 0.5, 'Confidence', 0.05, 0.95)
+    const iouError = validateNumberRange(form.ai_iou_threshold ?? 0.45, 'IoU', 0.05, 0.95)
+    const cooldownError = validateNumberRange(form.ai_alarm_cooldown_seconds ?? 60, 'Cooldown', 5, 3600)
+    const strideError = validateNumberRange(form.ai_frame_stride ?? 1, 'Frame stride', 1, 30)
+    const widthError = validateNumberRange(form.ai_inference_width ?? 640, 'AI genislik', 320, 1280)
+    if (nameError) errors.name = nameError
+    if (hostError) errors.host = hostError
+    if (rtspPortError) errors.rtsp_port = rtspPortError
+    if (onvifPortError) errors.onvif_port = onvifPortError
+    if (passwordError) errors.password = passwordError
+    if (confidenceError) errors.ai_confidence_threshold = confidenceError
+    if (iouError) errors.ai_iou_threshold = iouError
+    if (cooldownError) errors.ai_alarm_cooldown_seconds = cooldownError
+    if (strideError) errors.ai_frame_stride = strideError
+    if (widthError) errors.ai_inference_width = widthError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   return (
     <Modal open onClose={onClose} title={`Düzenle — ${camera.name}`}>
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
-        <Input label="Ad" value={form.name ?? ''} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-        <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required />
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <Input label="Ad" value={form.name ?? ''} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required error={fieldErrors.name} />
+        <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required error={fieldErrors.host} />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="RTSP Port" type="number" value={form.rtsp_port ?? 554} onChange={(e) => setForm((f) => ({ ...f, rtsp_port: Number(e.target.value) }))} />
-          <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} />
+          <Input label="RTSP Port" type="number" value={form.rtsp_port ?? 554} onChange={(e) => setForm((f) => ({ ...f, rtsp_port: Number(e.target.value) }))} error={fieldErrors.rtsp_port} />
+          <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} error={fieldErrors.onvif_port} />
         </div>
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -596,13 +645,13 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">AI Alarm Ayarlari</p>
           <div className="mt-3 grid grid-cols-3 gap-3">
-            <Input label="Confidence" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_confidence_threshold ?? 0.5} onChange={(e) => setForm((f) => ({ ...f, ai_confidence_threshold: Number(e.target.value) }))} />
-            <Input label="IoU" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_iou_threshold ?? 0.45} onChange={(e) => setForm((f) => ({ ...f, ai_iou_threshold: Number(e.target.value) }))} />
-            <Input label="Cooldown sn" type="number" min="5" max="3600" value={form.ai_alarm_cooldown_seconds ?? 60} onChange={(e) => setForm((f) => ({ ...f, ai_alarm_cooldown_seconds: Number(e.target.value) }))} />
+            <Input label="Confidence" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_confidence_threshold ?? 0.5} onChange={(e) => setForm((f) => ({ ...f, ai_confidence_threshold: Number(e.target.value) }))} error={fieldErrors.ai_confidence_threshold} />
+            <Input label="IoU" type="number" step="0.05" min="0.05" max="0.95" value={form.ai_iou_threshold ?? 0.45} onChange={(e) => setForm((f) => ({ ...f, ai_iou_threshold: Number(e.target.value) }))} error={fieldErrors.ai_iou_threshold} />
+            <Input label="Cooldown sn" type="number" min="5" max="3600" value={form.ai_alarm_cooldown_seconds ?? 60} onChange={(e) => setForm((f) => ({ ...f, ai_alarm_cooldown_seconds: Number(e.target.value) }))} error={fieldErrors.ai_alarm_cooldown_seconds} />
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <Input label="Frame Stride" type="number" min="1" max="30" value={form.ai_frame_stride ?? 1} onChange={(e) => setForm((f) => ({ ...f, ai_frame_stride: Number(e.target.value) }))} />
-            <Input label="AI Genislik" type="number" min="320" max="1280" step="32" value={form.ai_inference_width ?? 640} onChange={(e) => setForm((f) => ({ ...f, ai_inference_width: Number(e.target.value) }))} />
+            <Input label="Frame Stride" type="number" min="1" max="30" value={form.ai_frame_stride ?? 1} onChange={(e) => setForm((f) => ({ ...f, ai_frame_stride: Number(e.target.value) }))} error={fieldErrors.ai_frame_stride} />
+            <Input label="AI Genislik" type="number" min="320" max="1280" step="32" value={form.ai_inference_width ?? 640} onChange={(e) => setForm((f) => ({ ...f, ai_inference_width: Number(e.target.value) }))} error={fieldErrors.ai_inference_width} />
           </div>
           <p className="mt-1 text-[10px] text-[var(--text-secondary)]">
             Frame stride AI'nin kac karede bir calisacagini, AI genislik ise tespit icin kullanilan kucuk kare boyutunu belirler.

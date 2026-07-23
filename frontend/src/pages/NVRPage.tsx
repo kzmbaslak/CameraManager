@@ -15,6 +15,7 @@ import { PaginationControls } from '../components/ui/PaginationControls'
 import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
+import { hasErrors, requiredText, validateHost, validateNewPassword, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
@@ -40,6 +41,7 @@ function AddNVRModal({
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<NVRCreate>({ name: '', host: '', onvif_port: 80 })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   // initialValues değiştiğinde veya modal açıldığında formu prefill et
   useEffect(() => {
@@ -53,8 +55,10 @@ function AddNVRModal({
         password: initialValues.password || '',
         brand: initialValues.brand,
       })
+      setFieldErrors({})
     } else {
       setForm({ name: '', host: '', onvif_port: 80, username: '', password: '' })
+      setFieldErrors({})
     }
   }, [initialValues, open])
 
@@ -65,6 +69,7 @@ function AddNVRModal({
       showToast({ variant: 'success', title: 'NVR eklendi', description: form.name })
       onClose()
       setForm({ name: '', host: '', onvif_port: 80, username: '', password: '' })
+      setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'NVR eklenemedi', description: getNvrErrorMessage(err, 'Kayit cihazi eklenemedi.') }),
   })
@@ -72,19 +77,34 @@ function AddNVRModal({
   const set = (field: keyof NVRCreate, value: string | number) =>
     setForm((f) => ({ ...f, [field]: value }))
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const nameError = requiredText(form.name, 'Ad zorunludur.')
+    const hostError = validateHost(form.host)
+    const portError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
+    const passwordError = validateNewPassword(form.password, false)
+    if (nameError) errors.name = nameError
+    if (hostError) errors.host = hostError
+    if (portError) errors.onvif_port = portError
+    if (passwordError) errors.password = passwordError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="NVR Ekle">
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2">
           <p className="text-xs text-[var(--text-secondary)] leading-5">
             NVR kaydı yönetim bağlantısını saklar. Kanal tarama sırasında önce ONVIF profilleri, gerekirse bilinen RTSP kanal yolları denenir.
           </p>
         </div>
-        <Input label="Ad" value={form.name} onChange={(e) => set('name', e.target.value)} required />
-        <Input label="IP / Host" value={form.host} onChange={(e) => set('host', e.target.value)} required placeholder="192.168.1.200" />
-        <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => set('onvif_port', Number(e.target.value))} />
+        <Input label="Ad" value={form.name} onChange={(e) => set('name', e.target.value)} required error={fieldErrors.name} />
+        <Input label="IP / Host" value={form.host} onChange={(e) => set('host', e.target.value)} required placeholder="192.168.1.200" error={fieldErrors.host} />
+        <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => set('onvif_port', Number(e.target.value))} error={fieldErrors.onvif_port} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
-        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} />
+        <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} error={fieldErrors.password} />
         {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'NVR eklenemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
@@ -101,6 +121,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
   const showToast = useToastStore((state) => state.showToast)
   const [form, setForm] = useState<NVRUpdate>({})
   const [lastId, setLastId] = useState<number | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   if (nvr && nvr.id !== lastId) {
     setLastId(nvr.id)
@@ -110,6 +131,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
       onvif_port: nvr.onvif_port,
       username: nvr.username ?? '',
     })
+    setFieldErrors({})
   }
 
   const { mutate, isPending, error } = useMutation({
@@ -124,14 +146,29 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
 
   if (!nvr) return null
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: FieldErrors = {}
+    const nameError = requiredText(form.name, 'Ad zorunludur.')
+    const hostError = validateHost(form.host)
+    const portError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
+    const passwordError = validateNewPassword(form.password, false)
+    if (nameError) errors.name = nameError
+    if (hostError) errors.host = hostError
+    if (portError) errors.onvif_port = portError
+    if (passwordError) errors.password = passwordError
+    setFieldErrors(errors)
+    if (!hasErrors(errors)) mutate(form)
+  }
+
   return (
     <Modal open onClose={onClose} title={`Düzenle — ${nvr.name}`}>
-      <form onSubmit={(e) => { e.preventDefault(); mutate(form) }} className="flex flex-col gap-4">
-        <Input label="Ad" value={form.name ?? ''} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-        <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required />
-        <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} />
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+        <Input label="Ad" value={form.name ?? ''} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required error={fieldErrors.name} />
+        <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required error={fieldErrors.host} />
+        <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} error={fieldErrors.onvif_port} />
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} />
+        <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
         {error && <p className="text-xs text-[var(--danger)]">{getNvrErrorMessage(error, 'Kayit cihazi bilgileri kaydedilemedi.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
