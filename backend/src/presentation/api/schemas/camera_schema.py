@@ -366,3 +366,17 @@ class CameraHealthSummaryResponse(BaseModel):
     latest_latency_ms: Optional[float] = None
     latest_failure_reason: Optional[str] = None
     samples: list[CameraHealthSampleResponse]
+
+
+class CameraHealthListItemResponse(BaseModel):
+    """Kamera listesi icin kompakt saglik ozeti."""
+
+    camera_id: int
+    sample_count: int
+    reachable_count: int
+    availability_percent: Optional[float] = None
+    latest_checked_at: Optional[datetime] = None
+    latest_reachable: Optional[bool] = None
+    latest_status: Optional[str] = None
+    latest_latency_ms: Optional[float] = None
+    latest_failure_reason: Optional[str] = None

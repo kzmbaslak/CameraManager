@@ -52,6 +52,34 @@ class SqlAlchemyCameraHealthRepository:
         )
         return [self._to_entity(model) for model in models]
 
+    def list_latest_by_camera_ids(self, camera_ids: Sequence[int]) -> dict[int, CameraHealthSample]:
+        """Verilen kameralar icin en son saglik olcumunu dondurur."""
+        if not camera_ids:
+            return {}
+        unique_ids = sorted(set(camera_ids))
+        models = (
+            self._db.query(CameraHealthSampleModel)
+            .filter(CameraHealthSampleModel.camera_id.in_(unique_ids))
+            .order_by(CameraHealthSampleModel.camera_id.asc(), CameraHealthSampleModel.checked_at.desc())
+            .all()
+        )
+        latest: dict[int, CameraHealthSample] = {}
+        for model in models:
+            if model.camera_id not in latest:
+                latest[model.camera_id] = self._to_entity(model)
+        return latest
+
+    def count_recent_by_camera_ids(self, camera_ids: Sequence[int], limit_per_camera: int = 120) -> dict[int, tuple[int, int]]:
+        """Her kamera icin son N olcumde toplam ve erisilebilir sayisini dondurur."""
+        if not camera_ids:
+            return {}
+        unique_ids = sorted(set(camera_ids))
+        result: dict[int, tuple[int, int]] = {}
+        for camera_id in unique_ids:
+            samples = self.list_recent(camera_id, limit_per_camera)
+            result[camera_id] = (len(samples), sum(1 for sample in samples if sample.reachable))
+        return result
+
     def prune_older_than(self, days: int = 7) -> int:
         cutoff = datetime.utcnow() - timedelta(days=days)
         query = self._db.query(CameraHealthSampleModel).filter(CameraHealthSampleModel.checked_at < cutoff)

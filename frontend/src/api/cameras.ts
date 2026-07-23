@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -115,6 +115,17 @@ export const camerasApi = {
   diagnoseHealthHistory: async (id: number, limit = 120): Promise<CameraHealthSummary> => {
     const { data } = await client.get<CameraHealthSummary>(`/cameras/${id}/diagnostics/health-history`, {
       params: { limit },
+    })
+    return data
+  },
+
+  /** Kamera listesi icin kompakt saglik ozetlerini dondurur. */
+  healthSummary: async (cameraIds: number[], limit = 120): Promise<CameraHealthListItem[]> => {
+    const params = new URLSearchParams()
+    cameraIds.forEach((id) => params.append('camera_ids', String(id)))
+    params.set('limit', String(limit))
+    const { data } = await client.get<CameraHealthListItem[]>('/cameras/diagnostics/health-summary', {
+      params,
     })
     return data
   },

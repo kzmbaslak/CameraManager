@@ -37,6 +37,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraPageResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
+    CameraHealthListItemResponse,
     CameraHealthSummaryResponse,
     CameraStreamDiagnostics,
 )
@@ -671,6 +672,36 @@ async def diagnose_camera_health_history(
         "latest_failure_reason": latest.failure_reason if latest else None,
         "samples": samples,
     }
+
+
+@router.get("/diagnostics/health-summary", response_model=list[CameraHealthListItemResponse])
+async def diagnose_camera_health_summary(
+    camera_ids: list[int] = Query(default=[]),
+    limit: int = Query(default=120, ge=1, le=500),
+    health_repo=Depends(get_camera_health_repository),
+    current_user: dict = Depends(get_camera_diagnostics_user),
+):
+    """Kamera listesi icin son saglik durumlarini toplu dondurur."""
+    safe_ids = sorted(set(camera_id for camera_id in camera_ids if camera_id > 0))[:100]
+    latest_by_camera = health_repo.list_latest_by_camera_ids(safe_ids)
+    counts_by_camera = health_repo.count_recent_by_camera_ids(safe_ids, limit)
+
+    result = []
+    for camera_id in safe_ids:
+        latest = latest_by_camera.get(camera_id)
+        sample_count, reachable_count = counts_by_camera.get(camera_id, (0, 0))
+        result.append({
+            "camera_id": camera_id,
+            "sample_count": sample_count,
+            "reachable_count": reachable_count,
+            "availability_percent": round((reachable_count / sample_count) * 100, 1) if sample_count else None,
+            "latest_checked_at": latest.checked_at if latest else None,
+            "latest_reachable": latest.reachable if latest else None,
+            "latest_status": latest.status if latest else None,
+            "latest_latency_ms": latest.latency_ms if latest else None,
+            "latest_failure_reason": latest.failure_reason if latest else None,
+        })
+    return result
 
 
 @router.delete("/{camera_id}", status_code=204)

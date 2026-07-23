@@ -334,6 +334,18 @@ export interface CameraHealthSummary {
   samples: CameraHealthSample[]
 }
 
+export interface CameraHealthListItem {
+  camera_id: number
+  sample_count: number
+  reachable_count: number
+  availability_percent: number | null
+  latest_checked_at: string | null
+  latest_reachable: boolean | null
+  latest_status: string | null
+  latest_latency_ms: number | null
+  latest_failure_reason: string | null
+}
+
 export interface SecurityPostureFinding {
   severity: 'critical' | 'high' | 'medium' | 'low' | string
   message: string

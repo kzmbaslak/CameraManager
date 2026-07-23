@@ -19,7 +19,7 @@ import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateHost, validateNewPassword, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
-import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
@@ -33,6 +33,19 @@ const passwordRotationState = (value: string | null, policyDays: number) => {
     return { variant: 'danger' as const, label: 'Rotasyon gerekli', detail: `${elapsedDays} gun once` }
   }
   return { variant: 'success' as const, label: 'Guncel', detail: `${elapsedDays} gun once` }
+}
+const cameraHealthState = (summary: CameraHealthListItem | undefined) => {
+  if (!summary || summary.sample_count === 0 || summary.latest_reachable === null) {
+    return { variant: 'neutral' as const, label: 'Veri yok', detail: 'Saglik olcumu bekleniyor' }
+  }
+  const availability = summary.availability_percent !== null ? `%${summary.availability_percent}` : 'Oran yok'
+  if (!summary.latest_reachable) {
+    return { variant: 'danger' as const, label: 'Erisilemiyor', detail: summary.latest_failure_reason || availability }
+  }
+  if ((summary.availability_percent ?? 100) < 95) {
+    return { variant: 'warning' as const, label: 'Kararsiz', detail: availability }
+  }
+  return { variant: 'success' as const, label: 'Saglikli', detail: summary.latest_latency_ms !== null ? `${Math.round(summary.latest_latency_ms)} ms` : availability }
 }
 const AI_PRESETS = [
   {
@@ -886,6 +899,18 @@ export function CamerasPage() {
 
   const cameras = cameraPageData?.items ?? EMPTY_CAMERAS
   const cameraTotal = cameraPageData?.total ?? 0
+  const visibleCameraIds = useMemo(() => cameras.map((camera) => camera.id), [cameras])
+
+  const { data: healthSummaries = [] } = useQuery({
+    queryKey: ['camera-health-summary', visibleCameraIds.join(',')],
+    queryFn: () => camerasApi.healthSummary(visibleCameraIds),
+    enabled: visibleCameraIds.length > 0,
+    refetchInterval: 30_000,
+  })
+
+  const healthSummaryMap = useMemo(() => {
+    return Object.fromEntries(healthSummaries.map((summary) => [summary.camera_id, summary]))
+  }, [healthSummaries])
 
   const filteredCameras = useMemo(() => {
     const needle = cameraSearch.trim().toLowerCase()
@@ -1012,6 +1037,19 @@ export function CamerasPage() {
           </span>
         </div>
       ),
+    },
+    {
+      key: 'health',
+      header: 'Saglik',
+      render: (c: Camera) => {
+        const state = cameraHealthState(healthSummaryMap[c.id])
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant={state.variant} dot>{state.label}</Badge>
+            <span className="max-w-[150px] truncate text-[10px] text-[var(--text-secondary)]" title={state.detail}>{state.detail}</span>
+          </div>
+        )
+      },
     },
     {
       key: 'ai',
