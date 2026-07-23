@@ -55,6 +55,63 @@ function dateRangeStart(range: DateRange): Date | null {
   return dayjs().subtract(30, 'day').toDate()
 }
 
+const optionLabel = <T extends string>(options: { value: T | 'all'; label: string }[], value: T) =>
+  options.find((item) => item.value === value)?.label ?? value
+
+const severityLabel = (value: AlarmSeverity) =>
+  SEVERITY_OPTIONS.find((item) => item.value === value)?.label ?? value
+
+const csvCell = (value: unknown) => {
+  const text = value == null ? '' : String(value)
+  return `"${text.replace(/"/g, '""')}"`
+}
+
+const resolutionMinutes = (alarm: Alarm) => {
+  if (!alarm.created_at || !alarm.resolved_at) return null
+  const minutes = dayjs(alarm.resolved_at).diff(dayjs(alarm.created_at), 'minute')
+  return Number.isFinite(minutes) && minutes >= 0 ? minutes : null
+}
+
+function buildAlarmCsv(alarms: Alarm[], cameraNames: Record<number, string>) {
+  const headers = [
+    'Alarm ID',
+    'Kamera',
+    'Tip',
+    'Durum',
+    'Onem',
+    'Yanlis Alarm',
+    'Guven',
+    'Atanan',
+    'Operator Notu',
+    'Cozum Nedeni',
+    'Olusturma',
+    'Onaylama',
+    'Cozme',
+    'Cozum Dk',
+    'Snapshot SHA-256',
+    'Kutulu Snapshot SHA-256',
+  ]
+  const rows = alarms.map((alarm) => [
+    alarm.id,
+    cameraNames[alarm.camera_id] ?? `Kamera #${alarm.camera_id}`,
+    optionLabel(TYPE_OPTIONS, alarm.alarm_type),
+    alarm.false_positive ? 'Yanlis Alarm' : optionLabel(STATUS_OPTIONS, alarm.status),
+    severityLabel(alarm.severity),
+    alarm.false_positive ? 'Evet' : 'Hayir',
+    alarm.confidence == null ? '' : `${Math.round(alarm.confidence * 100)}%`,
+    alarm.assigned_to ?? '',
+    alarm.operator_note ?? '',
+    alarm.resolution_reason ?? '',
+    alarm.created_at ? dayjs(alarm.created_at).format('YYYY-MM-DD HH:mm:ss') : '',
+    alarm.acknowledged_at ? dayjs(alarm.acknowledged_at).format('YYYY-MM-DD HH:mm:ss') : '',
+    alarm.resolved_at ? dayjs(alarm.resolved_at).format('YYYY-MM-DD HH:mm:ss') : '',
+    resolutionMinutes(alarm) ?? '',
+    alarm.snapshot_sha256 ?? '',
+    alarm.snapshot_annotated_sha256 ?? '',
+  ])
+  return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
+}
+
 // ────────────────────────────────────────────
 // Filtre çubuğu alt bileşeni
 // ────────────────────────────────────────────
@@ -530,12 +587,37 @@ export function AlarmsPage() {
   const hasActiveFilter =
     cameraFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all' || dateRange !== 'all'
   const filteredNewAlarmIds = filtered.filter((alarm) => alarm.status === 'new').map((alarm) => alarm.id)
+  const filteredHighPriority = filtered.filter((alarm) => alarm.severity === 'high' || alarm.severity === 'critical').length
+  const filteredFalsePositive = filtered.filter((alarm) => alarm.false_positive).length
+  const filteredHumanDetections = filtered.filter((alarm) => alarm.alarm_type === 'human_detected').length
+  const falsePositiveRate = filteredHumanDetections > 0
+    ? Math.round((filteredFalsePositive / filteredHumanDetections) * 100)
+    : 0
+  const resolutionSamples = filtered
+    .map(resolutionMinutes)
+    .filter((value): value is number => value !== null)
+  const averageResolutionMinutes = resolutionSamples.length > 0
+    ? Math.round(resolutionSamples.reduce((sum, value) => sum + value, 0) / resolutionSamples.length)
+    : null
 
   const handleReset = () => {
     setCameraFilter('all')
     setStatusFilter('all')
     setTypeFilter('all')
     setDateRange('all')
+  }
+
+  const handleExportCsv = () => {
+    const csv = buildAlarmCsv(filtered, cameraNameMap)
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `alarm-raporu-${dayjs().format('YYYYMMDD-HHmmss')}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -549,17 +631,28 @@ export function AlarmsPage() {
             {hasActiveFilter && <span className="text-accent ml-1">· Filtre aktif</span>}
           </p>
         </div>
-        {filteredNewAlarmIds.length > 0 && (
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             size="sm"
-            variant="danger"
-            icon={<CheckCircle size={14} />}
-            loading={acknowledgeFiltered.isPending}
-            onClick={() => acknowledgeFiltered.mutate(filteredNewAlarmIds)}
+            variant="secondary"
+            icon={<Download size={14} />}
+            disabled={filtered.length === 0}
+            onClick={handleExportCsv}
           >
-            Görünen Yeni Alarmları Onayla ({filteredNewAlarmIds.length})
+            CSV Rapor
           </Button>
-        )}
+          {filteredNewAlarmIds.length > 0 && (
+            <Button
+              size="sm"
+              variant="danger"
+              icon={<CheckCircle size={14} />}
+              loading={acknowledgeFiltered.isPending}
+              onClick={() => acknowledgeFiltered.mutate(filteredNewAlarmIds)}
+            >
+              Görünen Yeni Alarmları Onayla ({filteredNewAlarmIds.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filtre çubuğu */}
@@ -576,6 +669,27 @@ export function AlarmsPage() {
         onReset={handleReset}
         hasActiveFilter={hasActiveFilter}
       />
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="rounded-md border border-border bg-bg-card px-4 py-3">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Açık Alarm</p>
+          <p className="mt-1 text-2xl font-semibold text-text-primary">{filteredNewAlarmIds.length}</p>
+        </div>
+        <div className="rounded-md border border-border bg-bg-card px-4 py-3">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Yüksek Öncelik</p>
+          <p className="mt-1 text-2xl font-semibold text-danger">{filteredHighPriority}</p>
+        </div>
+        <div className="rounded-md border border-border bg-bg-card px-4 py-3">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Yanlış Alarm Oranı</p>
+          <p className="mt-1 text-2xl font-semibold text-warning">{falsePositiveRate}%</p>
+        </div>
+        <div className="rounded-md border border-border bg-bg-card px-4 py-3">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Ort. Çözüm</p>
+          <p className="mt-1 text-2xl font-semibold text-text-primary">
+            {averageResolutionMinutes == null ? '-' : `${averageResolutionMinutes} dk`}
+          </p>
+        </div>
+      </div>
 
       {/* Tablo */}
       {isLoading ? (
