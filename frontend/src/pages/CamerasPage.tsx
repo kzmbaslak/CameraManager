@@ -1280,6 +1280,9 @@ export function CamerasPage() {
                   <span>AI Genislik: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_inference_width}px</strong></span>
                   <span>Son AI: <strong className="text-[var(--text-primary)]">{streamDiagnostic.last_ai_inference_ms !== null ? `${streamDiagnostic.last_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
                   <span>AI Ortalama: <strong className="text-[var(--text-primary)]">{streamDiagnostic.average_ai_inference_ms !== null ? `${streamDiagnostic.average_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                  <span>Host CPU: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_cpu_load_percent !== null ? `%${streamDiagnostic.host_cpu_load_percent}` : 'Yok'}</strong></span>
+                  <span>Host RAM: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_memory_used_percent !== null ? `%${streamDiagnostic.host_memory_used_percent}` : 'Yok'}</strong></span>
+                  <span>RAM Bos: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_memory_available_mb !== null ? `${streamDiagnostic.host_memory_available_mb.toFixed(0)} MB` : 'Yok'}</strong></span>
                   <span>Cache: <strong className="text-[var(--text-primary)]">{streamDiagnostic.cached_frame_available ? 'Var' : 'Yok'}</strong></span>
                   <span>Open Deneme: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_attempts}</strong></span>
                   <span>Open Hata: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_failures}</strong></span>

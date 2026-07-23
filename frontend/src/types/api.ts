@@ -309,6 +309,9 @@ export interface CameraStreamDiagnostics {
   ai_inference_width: number
   last_ai_inference_ms: number | null
   average_ai_inference_ms: number | null
+  host_cpu_load_percent: number | null
+  host_memory_used_percent: number | null
+  host_memory_available_mb: number | null
   cached_frame_available: boolean
   last_broadcast_age_seconds: number | null
   last_frame_age_seconds: number | null

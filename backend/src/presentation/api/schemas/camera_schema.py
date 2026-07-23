@@ -320,6 +320,9 @@ class CameraStreamDiagnostics(BaseModel):
     ai_inference_width: int
     last_ai_inference_ms: Optional[float] = None
     average_ai_inference_ms: Optional[float] = None
+    host_cpu_load_percent: Optional[float] = None
+    host_memory_used_percent: Optional[float] = None
+    host_memory_available_mb: Optional[float] = None
     cached_frame_available: bool
     last_broadcast_age_seconds: Optional[float] = None
     last_frame_age_seconds: Optional[float] = None

@@ -244,6 +244,8 @@ function OperatorAssistPanel({
   const runningCount = health.filter((item) => item.producer_running).length
   const staleCount = health.filter((item) => (item.last_frame_age_seconds ?? 0) > 10).length
   const aiBusyCount = health.filter((item) => item.ai_task_running).length
+  const hostCpu = health.find((item) => item.host_cpu_load_percent !== null)?.host_cpu_load_percent ?? null
+  const hostMemory = health.find((item) => item.host_memory_used_percent !== null)?.host_memory_used_percent ?? null
   const setupMissingCount = security?.setup_checks.filter((check) => !check.ok).length ?? 0
 
   return (
@@ -264,6 +266,8 @@ function OperatorAssistPanel({
           <p className="text-xs uppercase tracking-wide text-text-secondary">Canli Saglik</p>
           <p className="truncate text-sm text-text-primary">
             {runningCount} / {Math.min(watchedCount, health.length || watchedCount)} uretici aktif
+            {hostCpu !== null ? ` · CPU %${hostCpu}` : ''}
+            {hostMemory !== null ? ` · RAM %${hostMemory}` : ''}
             {aiBusyCount > 0 ? ` · ${aiBusyCount} AI gorevi` : ''}
             {staleCount > 0 ? ` · ${staleCount} geciken kare` : ''}
           </p>

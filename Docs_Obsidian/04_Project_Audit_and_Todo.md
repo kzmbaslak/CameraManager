@@ -62,7 +62,7 @@ Riskler:
 - Sadece insan tespiti var: hareket tespiti, çizgi ihlali, bölgeye giriş/çıkış, loitering, kalabalık, kamera sabotajı gibi kural tipleri modüler hale getirilmeli.
 - Alarm tekrari azaltildi: ayni kamera icin acik insan alarmlari yeni kayit uretmek yerine mevcut alarmi yeniden kullaniyor; bu, alarm spam'ini dusuruyor. Gercek tracker/event aggregation ve kimlik bazli izleme hala sonraki adim.
 - False positive yönetimi büyük ölçüde tamamlandı: alarm tek tuşla "yanlış alarm" olarak kapatılabiliyor, DB/audit kaydı oluşuyor ve operatör/admin bu örnekleri dosya yolu veya görsel içerik sızdırmadan AI geri bildirim CSV'si olarak dışa aktarabiliyor. Kalan iş bu çıktıyı otomatik model kalite izleme ve toplu threshold önerisi üretimine bağlamak.
-- AI performans görünürlüğü kısmen var: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi, hareketli ortalama inference süresi ve efektif yayın FPS'i gösteriliyor. Kalan iş CPU/GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
+- AI performans görünürlüğü genişletildi: kamera stream telemetrisinde AI provider, frame stride, örnekleme genişliği, son AI inference süresi, hareketli ortalama inference süresi, efektif yayın FPS'i ve best-effort host CPU/RAM metrikleri gösteriliyor. Kalan iş GPU kullanımı ve stream başına FPS trendini kalıcı metrik olarak izlemek.
 
 ### P1 - Güvenlik ve Operasyon
 

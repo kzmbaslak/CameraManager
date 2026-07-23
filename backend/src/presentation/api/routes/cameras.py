@@ -52,6 +52,7 @@ from src.infrastructure.camera.camera_scanner import (
     scan_cameras_async,
     validate_rtsp_endpoint_variants_async,
 )
+from src.infrastructure.system_metrics import get_host_resource_metrics
 from src.infrastructure.security.jwt_service import create_stream_token
 from src.infrastructure.security.audit_logger import write_audit_event
 
@@ -645,6 +646,7 @@ async def diagnose_camera_stream(
 
     frame_stats = frame_source.get_camera_telemetry(camera)
     runtime_stats = sm.get_runtime_telemetry(camera_id)
+    host_stats = get_host_resource_metrics()
 
     return {
         "camera_id": camera_id,
@@ -661,6 +663,7 @@ async def diagnose_camera_stream(
         "ai_inference_width": camera.ai_inference_width,
         "last_ai_inference_ms": runtime_stats["last_ai_inference_ms"],
         "average_ai_inference_ms": runtime_stats["average_ai_inference_ms"],
+        **host_stats,
         "cached_frame_available": runtime_stats["cached_frame_available"],
         "last_broadcast_age_seconds": runtime_stats["last_broadcast_age_seconds"],
         "last_frame_age_seconds": frame_stats["last_frame_age_seconds"],
