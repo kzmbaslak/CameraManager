@@ -15,6 +15,17 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: resolve(rootDir, 'index.html'),
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/.test(id)) return 'vendor-react'
+          if (/[\\/]node_modules[\\/]@tanstack[\\/]react-query[\\/]/.test(id)) return 'vendor-data'
+          if (/[\\/]node_modules[\\/](axios|zustand)[\\/]/.test(id)) return 'vendor-data'
+          if (/[\\/]node_modules[\\/](framer-motion|lucide-react)[\\/]/.test(id)) return 'vendor-ui'
+          if (/[\\/]node_modules[\\/]dayjs[\\/]/.test(id)) return 'vendor-time'
+          return 'vendor'
+        },
+      },
     },
   },
   server: {

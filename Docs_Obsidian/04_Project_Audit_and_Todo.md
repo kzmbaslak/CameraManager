@@ -93,7 +93,7 @@ Riskler:
 - Alembic gibi sürümlü migration yapısı yok; script tabanlı migration büyüdükçe riskli olur.
 - Test kapsamı yok: domain/use case unit testleri, repository integration testleri, API auth testleri, frontend component testleri eklenmeli.
 - API sözleşmesi için OpenAPI export ve frontend tiplerinin otomatik üretimi değerlendirilmeli.
-- Frontend code-splitting yapılmalı; route bazlı lazy loading ile build chunk uyarısı düşürülmeli.
+- Frontend code-splitting tamamlandı: router sayfaları `lazy`/`Suspense` ile ayrılır; Vite manualChunks React/Router, data client, UI/motion/icon ve dayjs bağımlılıklarını ayrı vendor chunk'lara böler.
 - Loglama yapılandırması büyük ölçüde sertleştirildi: RTSP URL parolaları, Bearer token'ları ve hassas query parametreleri merkezi uygulama log filtresiyle maskelenir; `backend/check_real_passwords.py` düz metin parola/RTSP dökmek yerine sadece parola varlığı, rotasyon zamanı ve maskeli URL raporlar. Root logger konsol ve `APP_LOG_DIR/application.log` için rotate edilen dosya handler'ı ile yapılandırılır; `APP_LOG_LEVEL`, `APP_LOG_FORMAT`, `APP_LOG_MAX_BYTES` ve `APP_LOG_BACKUP_COUNT` env ayarları vardır. `APP_LOG_FORMAT=json` SIEM uyumlu tek satır JSON log üretir; `/api/security/posture` ve Dashboard log rotasyonu/format/maskeleme durumunu raporlar.
 
 ## Önerilen Yol Haritası
