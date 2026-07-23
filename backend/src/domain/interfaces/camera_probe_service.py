@@ -15,6 +15,12 @@ class CameraProbeResult:
     profile_name: str
     serial_number: Optional[str] = None
     firmware_version: Optional[str] = None
+    encoding: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    fps: Optional[float] = None
+    bitrate_kbps: Optional[int] = None
+    snapshot_uri: Optional[str] = None
     source: str = "onvif"
     diagnostic: Optional[str] = None
 

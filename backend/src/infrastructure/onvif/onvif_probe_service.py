@@ -85,6 +85,8 @@ class ONVIFProbeService(ICameraProbeService):
         for profile in profiles:
             token = profile.get("token") or profile.get("@token", "")
             name = profile.get("Name", token)
+            media_details = self._profile_media_details(profile)
+            snapshot_uri = self._get_snapshot_uri(media, token)
 
             try:
                 stream_req = media.create_type("GetStreamUri")
@@ -111,12 +113,62 @@ class ONVIFProbeService(ICameraProbeService):
                         profile_name=name,
                         serial_number=serial,
                         firmware_version=firmware,
+                        encoding=media_details["encoding"],
+                        width=media_details["width"],
+                        height=media_details["height"],
+                        fps=media_details["fps"],
+                        bitrate_kbps=media_details["bitrate_kbps"],
+                        snapshot_uri=snapshot_uri,
                     )
                 )
 
         return results
 
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _profile_media_details(profile: dict) -> dict:
+        """Profil icindeki video encoder ayarlarini duz alanlara indirger."""
+        encoder = profile.get("VideoEncoderConfiguration") or {}
+        resolution = encoder.get("Resolution") or {}
+        rate_control = encoder.get("RateControl") or {}
+
+        def as_int(value):
+            try:
+                return int(value) if value is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        def as_float(value):
+            try:
+                return float(value) if value is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        return {
+            "encoding": encoder.get("Encoding"),
+            "width": as_int(resolution.get("Width")),
+            "height": as_int(resolution.get("Height")),
+            "fps": as_float(rate_control.get("FrameRateLimit")),
+            "bitrate_kbps": as_int(rate_control.get("BitrateLimit")),
+        }
+
+    @staticmethod
+    def _get_snapshot_uri(media, profile_token: str) -> str | None:
+        """Profil icin ONVIF snapshot URI'sini okur; desteklenmiyorsa sessizce bos doner."""
+        if not profile_token:
+            return None
+        try:
+            snapshot_req = media.create_type("GetSnapshotUri")
+            snapshot_req.ProfileToken = profile_token
+            raw_snapshot = media.GetSnapshotUri(snapshot_req)
+            if hasattr(raw_snapshot, "Uri"):
+                return raw_snapshot.Uri
+            if isinstance(raw_snapshot, dict):
+                return raw_snapshot.get("Uri")
+        except Exception as exc:
+            logger.debug(f"Profil {profile_token} icin snapshot URI alinamadi: {exc}")
+        return None
 
     @staticmethod
     def _connect(host: str, port: int, username: str, password: str):

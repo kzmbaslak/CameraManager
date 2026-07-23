@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-23: Kamera ONVIF onizleme profil detaylari genisletildi. `GetProfiles`, `GetStreamUri` ve desteklenirse `GetSnapshotUri` sonucundan profil adi/token, codec, cozunurluk, FPS, bitrate, maskeli RTSP URI ve maskeli snapshot URI operator panelinde gosterilir.
 - 2026-07-23: Alarm AI geri bildirim export'u eklendi. Operator/admin, Alarmlar ekranindan yanlis alarm olarak kapatilmis insan tespiti orneklerini bbox, confidence, operator notu, cozum nedeni ve snapshot SHA-256 izleriyle CSV olarak indirebilir; backend `/api/alarms/training-feedback` endpoint'i dosya yolu veya goruntu icerigi dondurmeden audit log'a `alarm.training_feedback.export` olayi yazar.
 - 2026-07-23: Kamera ONVIF onizleme sonucu capability ozetiyle genisletildi. Backend GetCapabilities sonucundan Media, Events, PTZ, Imaging ve Analytics servis desteklerini okur; kamera ekleme/duzenleme ONVIF test paneli bu kabiliyetleri rozetlerle gosterir.
 - 2026-07-23: Kamera AI ayarlari icin hazir hassasiyet profilleri eklendi. Kamera duzenleme modalinda Hassas, Dengeli ve Siki profilleri confidence, IoU, cooldown, frame stride ve AI genislik degerlerini birlikte ayarlar; operator profili sectikten sonra alanlari elle ince ayarlayabilir.

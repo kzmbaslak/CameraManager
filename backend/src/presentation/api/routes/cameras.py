@@ -398,6 +398,20 @@ async def preview_camera_onvif(
     except Exception as exc:
         streams = []
         stream_error = str(exc)
+    profiles = [
+        {
+            "profile_token": stream.profile_token,
+            "profile_name": stream.profile_name,
+            "encoding": stream.encoding,
+            "width": stream.width,
+            "height": stream.height,
+            "fps": stream.fps,
+            "bitrate_kbps": stream.bitrate_kbps,
+            "rtsp_uri_masked": _mask_rtsp_url(stream.rtsp_url) if stream.rtsp_url else None,
+            "snapshot_uri_masked": _mask_rtsp_url(stream.snapshot_uri) if stream.snapshot_uri else None,
+        }
+        for stream in streams
+    ]
 
     return {
         "camera_id": camera.id if camera else 0,
@@ -412,6 +426,7 @@ async def preview_camera_onvif(
         "stream_uri_count": sum(1 for stream in streams if stream.rtsp_url),
         **capability_summary,
         "first_stream_uri_masked": _mask_rtsp_url(streams[0].rtsp_url) if streams else None,
+        "profiles": profiles,
         "message": (
             "ONVIF cihaz bilgisi ve stream profilleri okundu."
             if streams

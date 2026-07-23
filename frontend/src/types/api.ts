@@ -245,6 +245,18 @@ export interface CameraOnvifPreviewRequest {
   password?: string
 }
 
+export interface CameraOnvifProfileInfo {
+  profile_token: string
+  profile_name: string
+  encoding: string | null
+  width: number | null
+  height: number | null
+  fps: number | null
+  bitrate_kbps: number | null
+  rtsp_uri_masked: string | null
+  snapshot_uri_masked: string | null
+}
+
 export interface CameraOnvifPreviewResponse {
   camera_id: number
   host: string
@@ -262,6 +274,7 @@ export interface CameraOnvifPreviewResponse {
   imaging_supported: boolean
   analytics_supported: boolean
   first_stream_uri_masked: string | null
+  profiles: CameraOnvifProfileInfo[]
   message: string
 }
 

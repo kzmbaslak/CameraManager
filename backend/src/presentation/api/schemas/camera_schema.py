@@ -234,6 +234,20 @@ class CameraOnvifPreviewRequest(BaseModel):
         return validate_port(value, 80) if value is not None else value
 
 
+class CameraOnvifProfileInfo(BaseModel):
+    """ONVIF profil video/snapshot ozeti."""
+
+    profile_token: str
+    profile_name: str
+    encoding: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    fps: Optional[float] = None
+    bitrate_kbps: Optional[int] = None
+    rtsp_uri_masked: Optional[str] = None
+    snapshot_uri_masked: Optional[str] = None
+
+
 class CameraOnvifPreviewResponse(BaseModel):
     """ONVIF cihaz/profil onizleme testi sonucu."""
 
@@ -253,6 +267,7 @@ class CameraOnvifPreviewResponse(BaseModel):
     imaging_supported: bool = False
     analytics_supported: bool = False
     first_stream_uri_masked: Optional[str] = None
+    profiles: list[CameraOnvifProfileInfo] = Field(default_factory=list)
     message: str
 
 

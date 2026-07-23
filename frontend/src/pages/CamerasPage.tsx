@@ -89,6 +89,7 @@ function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }
 }
 
 function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResponse }) {
+  const profiles = result.profiles ?? []
   return (
     <div className="mt-3 flex flex-col gap-2">
       <p className={result.ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
@@ -115,6 +116,31 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
         <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
           {result.first_stream_uri_masked}
         </p>
+      )}
+      {profiles.length > 0 && (
+        <div className="max-h-36 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg-secondary)]">
+          {profiles.slice(0, 4).map((profile) => {
+            const resolution = profile.width && profile.height ? `${profile.width}x${profile.height}` : 'Cozunurluk yok'
+            const fps = profile.fps ? `${profile.fps} FPS` : 'FPS yok'
+            const bitrate = profile.bitrate_kbps ? `${profile.bitrate_kbps} kbps` : 'Bitrate yok'
+            return (
+              <div key={profile.profile_token || profile.profile_name} className="border-b border-[var(--border)] px-2 py-1.5 last:border-b-0">
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="truncate font-medium text-[var(--text-primary)]">{profile.profile_name || profile.profile_token}</span>
+                  <span className="shrink-0 text-[var(--text-secondary)]">{profile.encoding ?? 'Codec yok'}</span>
+                </div>
+                <p className="text-[10px] text-[var(--text-secondary)]">
+                  {resolution} / {fps} / {bitrate}
+                </p>
+                {profile.snapshot_uri_masked && (
+                  <p className="truncate font-mono text-[10px] text-[var(--text-muted)]" title={profile.snapshot_uri_masked}>
+                    Snapshot: {profile.snapshot_uri_masked}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )
