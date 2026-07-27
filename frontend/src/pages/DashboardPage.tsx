@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Activity, Bell, Check, CheckCircle, Gauge, MapPinned, PanelRight, Search, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { Activity, Bell, Check, CheckCircle, Gauge, LayoutGrid, MapPinned, PanelRight, Search, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { systemApi } from '../api/system'
@@ -11,11 +11,18 @@ import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
 import { Toggle } from '../components/ui/Toggle'
 import { useAlarmStore } from '../stores/alarmStore'
+import { useAuthStore } from '../stores/authStore'
 import type { Alarm, Camera, CameraStreamDiagnostics, SecurityPosture } from '../types/api'
 
 const DASHBOARD_GRID_KEY = 'dashboard-grid'
 const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
 const DASHBOARD_CAMERA_ORDER_KEY = 'dashboard-camera-order'
+
+const layoutPresets: { key: string; label: string; description: string; cols: GridCols; lowBandwidth: boolean }[] = [
+  { key: 'operations', label: 'Operasyon', description: 'Dengeli 2x2 canlı izleme', cols: 2, lowBandwidth: false },
+  { key: 'focus', label: 'Odak', description: 'Tek kamera odak görünümü', cols: 1, lowBandwidth: false },
+  { key: 'dense', label: 'Yoğun', description: 'Düşük bant 3x3 filo tarama', cols: 3, lowBandwidth: true },
+]
 
 function loadGridPref(): GridCols {
   try {
@@ -27,12 +34,26 @@ function loadGridPref(): GridCols {
   return 2
 }
 
+function hasDashboardLayoutPreference() {
+  try {
+    return localStorage.getItem(DASHBOARD_GRID_KEY) !== null || localStorage.getItem(DASHBOARD_LOW_BANDWIDTH_KEY) !== null
+  } catch {
+    return true
+  }
+}
+
 function loadLowBandwidthPref() {
   try {
     return localStorage.getItem(DASHBOARD_LOW_BANDWIDTH_KEY) === 'true'
   } catch {
     return false
   }
+}
+
+function preferredPresetForRole(role: string | null) {
+  if (role === 'viewer') return layoutPresets.find((preset) => preset.key === 'dense') ?? layoutPresets[0]
+  if (role === 'operator' || role === 'admin') return layoutPresets.find((preset) => preset.key === 'operations') ?? layoutPresets[0]
+  return layoutPresets[0]
 }
 
 function loadCameraOrderPref() {
@@ -304,9 +325,13 @@ function OperatorAssistPanel({
 }
 
 export function DashboardPage() {
-  const [cols, setCols] = useState<GridCols>(loadGridPref)
+  const role = useAuthStore((state) => state.role)
+  const defaultLayoutPreset = preferredPresetForRole(role)
+  const [cols, setCols] = useState<GridCols>(() => (hasDashboardLayoutPreference() ? loadGridPref() : defaultLayoutPreset.cols))
   const [cameraSearch, setCameraSearch] = useState('')
-  const [lowBandwidth, setLowBandwidth] = useState(loadLowBandwidthPref)
+  const [lowBandwidth, setLowBandwidth] = useState(() => (
+    hasDashboardLayoutPreference() ? loadLowBandwidthPref() : defaultLayoutPreset.lowBandwidth
+  ))
   const [cameraOrder, setCameraOrder] = useState<number[]>(loadCameraOrderPref)
   const [panelOpen, setPanelOpen] = useState(false)
   const qc = useQueryClient()
@@ -328,6 +353,11 @@ export function DashboardPage() {
     } catch {
       // Keep the in-memory selection when storage is unavailable.
     }
+  }
+
+  const applyLayoutPreset = (preset: typeof layoutPresets[number]) => {
+    handleColsChange(preset.cols)
+    handleLowBandwidthChange(preset.lowBandwidth)
   }
 
   const { data: cameras = [], isLoading } = useQuery({
@@ -380,6 +410,7 @@ export function DashboardPage() {
     () => orderedWatchedCameras.filter((camera) => matchesCameraSearch(camera, normalizedCameraSearch)),
     [orderedWatchedCameras, normalizedCameraSearch],
   )
+  const activeLayoutPresetKey = layoutPresets.find((preset) => preset.cols === cols && preset.lowBandwidth === lowBandwidth)?.key ?? null
   const healthQueries = useQueries({
     queries: watchedCameras.slice(0, 8).map((camera) => ({
       queryKey: ['camera-stream-diagnostics', camera.id],
@@ -477,6 +508,26 @@ export function DashboardPage() {
 
           <GridSizeSelector value={cols} onChange={handleColsChange} />
 
+          <div className="hidden items-center gap-1 rounded-md border border-border bg-bg-secondary p-1 xl:flex" aria-label="Canli grid yerlesim presetleri">
+            <LayoutGrid size={14} className="mx-1 text-text-secondary" />
+            {layoutPresets.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                title={preset.description}
+                aria-pressed={activeLayoutPresetKey === preset.key}
+                onClick={() => applyLayoutPreset(preset)}
+                className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
+                  activeLayoutPresetKey === preset.key
+                    ? 'bg-accent text-white'
+                    : 'text-text-secondary hover:bg-bg-card hover:text-text-primary'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={() => setPanelOpen((value) => !value)}
             title="Kamera izleme listesini aç/kapat"
@@ -534,6 +585,24 @@ export function DashboardPage() {
                 <Gauge size={14} />
                 <Toggle checked={lowBandwidth} onChange={handleLowBandwidthChange} label="Düşük bant modu" />
               </div>
+            </div>
+            <div className="mb-2 flex gap-1 overflow-x-auto xl:hidden" aria-label="Canli grid yerlesim presetleri">
+              {layoutPresets.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  title={preset.description}
+                  aria-pressed={activeLayoutPresetKey === preset.key}
+                  onClick={() => applyLayoutPreset(preset)}
+                  className={`shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    activeLayoutPresetKey === preset.key
+                      ? 'border-accent bg-accent text-white'
+                      : 'border-border bg-bg-secondary text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
             {visibleWatchedCameras.length === 0 && watchedCameras.length > 0 ? (
               <div className="flex h-64 flex-col items-center justify-center rounded-md border border-dashed border-border bg-bg-secondary text-text-secondary">
