@@ -30,6 +30,17 @@ assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshol
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
+assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
+assertContains(
+  backendAlarmRoutes,
+  '"previous_confidence_threshold"',
+  'threshold apply audit previous threshold',
+)
+assertContains(
+  backendAlarmRoutes,
+  '"applied_confidence_threshold"',
+  'threshold apply audit applied threshold',
+)
 
 assertMatches(
   backendAlarmRoutes,

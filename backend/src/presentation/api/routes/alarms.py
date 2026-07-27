@@ -264,6 +264,16 @@ async def apply_threshold_suggestions(
             "applied_count": len(applied_items),
             "skipped_count": skipped_count,
             "camera_ids": [item.camera_id for item in applied_items],
+            "changes": [
+                {
+                    "camera_id": item.camera_id,
+                    "previous_confidence_threshold": item.previous_confidence_threshold,
+                    "applied_confidence_threshold": item.applied_confidence_threshold,
+                    "sample_count": item.sample_count,
+                    "false_positive_rate": item.false_positive_rate,
+                }
+                for item in applied_items
+            ],
         },
     )
     return AlarmThresholdSuggestionApplyResponse(
