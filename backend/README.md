@@ -70,6 +70,7 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `CORS_ALLOWED_ORIGINS` | Virgülle ayrılmış izinli frontend origin listesi |
 | `TRUSTED_HOSTS` | Virgülle ayrılmış izinli HTTP Host/DNS/IP listesi |
 | `DEVICE_PASSWORD_ROTATION_DAYS` | Kamera/NVR parolaları için zorunlu rotasyon günü; güvenlik duruşu geciken cihazları raporlar |
+| `STREAM_METRIC_RETENTION_DAYS` | Canlı stream performans trendi örneklerinin saklanacağı gün sayısı |
 | `APP_LOG_LEVEL` | Uygulama log seviyesi (`INFO`, `WARNING`, `ERROR` vb.) |
 | `APP_LOG_FORMAT` | Uygulama log formatı: `text` veya SIEM uyumlu tek satır `json` |
 | `APP_LOG_DIR` | `application.log` dosyasının yazılacağı klasör; göreli değerler backend köküne göre çözülür |

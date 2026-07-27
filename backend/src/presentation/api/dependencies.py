@@ -26,6 +26,7 @@ from src.infrastructure.database.repositories.alarm_repository import SqlAlchemy
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.database.repositories.nvr_repository import SqlAlchemyNVRRepository
 from src.infrastructure.database.repositories.camera_health_repository import SqlAlchemyCameraHealthRepository
+from src.infrastructure.database.repositories.camera_stream_metric_repository import SqlAlchemyCameraStreamMetricRepository
 from src.application.use_cases.camera_use_cases import CameraUseCases
 from src.application.use_cases.nvr_use_cases import NVRUseCases
 from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
@@ -85,6 +86,10 @@ def get_nvr_repository(db: Session = Depends(get_db)) -> SqlAlchemyNVRRepository
 def get_camera_health_repository(db: Session = Depends(get_db)) -> SqlAlchemyCameraHealthRepository:
     """Kamera saglik gecmisi repository'sini dondurur."""
     return SqlAlchemyCameraHealthRepository(db)
+
+def get_camera_stream_metric_repository(db: Session = Depends(get_db)) -> SqlAlchemyCameraStreamMetricRepository:
+    """Kamera stream performans gecmisi repository'sini dondurur."""
+    return SqlAlchemyCameraStreamMetricRepository(db)
 
 
 # ---------------------------------------------------------------------------

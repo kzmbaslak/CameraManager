@@ -10,12 +10,14 @@ PATCH  /cameras/{id}/status       — ACTIVE/INACTIVE değiştirir, akış yöne
 PATCH  /cameras/{id}/ai           — AI insan tespitini açar/kapatır, akış yöneticisi buna göre güncellenir
 """
 import asyncio
+import os
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Request
 from typing import List
 from urllib.parse import unquote, urlparse
 from src.presentation.api.dependencies import (
     get_camera_health_repository,
+    get_camera_stream_metric_repository,
     get_camera_use_cases,
     get_nvr_probe_service,
     get_stream_manager,
@@ -41,7 +43,9 @@ from src.presentation.api.schemas.camera_schema import (
     CameraHealthListItemResponse,
     CameraHealthSummaryResponse,
     CameraStreamDiagnostics,
+    CameraStreamMetricSummaryResponse,
 )
+from src.domain.entities.camera_stream_metric import CameraStreamMetric
 from src.domain.entities.camera import CameraStatus
 from src.infrastructure.onvif.onvif_probe_service import ONVIFProbeService
 from src.infrastructure.camera.camera_scanner import (
@@ -126,6 +130,19 @@ def _camera_health_level(
         if latest_latency_ms is not None
         else "Son olcum erisilebilir."
     )
+
+
+def _average(values: list[float]) -> float | None:
+    return round(sum(values) / len(values), 2) if values else None
+
+
+def _metric_values(samples, field: str) -> list[float]:
+    values: list[float] = []
+    for sample in samples:
+        value = getattr(sample, field)
+        if value is not None:
+            values.append(float(value))
+    return values
 
 
 async def _build_rtsp_diagnostics(
@@ -637,6 +654,7 @@ async def diagnose_camera_stream(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
     sm: CameraStreamManager = Depends(get_stream_manager),
+    stream_metric_repo=Depends(get_camera_stream_metric_repository),
     current_user: dict = Depends(get_camera_diagnostics_user),
 ):
     """Kayıtlı kameranın canlı akış ve üretici sağlık metriklerini döner."""
@@ -648,7 +666,7 @@ async def diagnose_camera_stream(
     runtime_stats = sm.get_runtime_telemetry(camera_id)
     host_stats = get_host_resource_metrics()
 
-    return {
+    payload = {
         "camera_id": camera_id,
         "producer_running": runtime_stats["producer_running"],
         "producer_started_at": runtime_stats["producer_started_at"],
@@ -678,6 +696,67 @@ async def diagnose_camera_stream(
         "last_success_at": frame_stats["last_success_at"],
         "last_failure_at": frame_stats["last_failure_at"],
         "last_broadcast_at": frame_stats["last_success_at"],
+    }
+    try:
+        stream_metric_repo.add(CameraStreamMetric(
+            id=None,
+            camera_id=camera_id,
+            sampled_at=datetime.utcnow(),
+            producer_running=payload["producer_running"],
+            subscriber_count=payload["subscriber_count"],
+            current_broadcast_fps=payload["current_broadcast_fps"],
+            average_ai_inference_ms=payload["average_ai_inference_ms"],
+            host_cpu_load_percent=payload["host_cpu_load_percent"],
+            host_memory_used_percent=payload["host_memory_used_percent"],
+            reconnects=payload["reconnects"],
+            open_failures=payload["open_failures"],
+            failure_count=payload["failure_count"],
+        ))
+        retention_days = int(os.environ.get("STREAM_METRIC_RETENTION_DAYS", "7") or "7")
+        stream_metric_repo.prune_older_than(min(max(retention_days, 1), 365))
+    except Exception:
+        # Diagnostics okumasi metrik yazma hatasindan etkilenmemeli.
+        pass
+    return payload
+
+
+@router.get("/{camera_id}/diagnostics/stream-history", response_model=CameraStreamMetricSummaryResponse)
+async def diagnose_camera_stream_history(
+    camera_id: int,
+    limit: int = 120,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    stream_metric_repo=Depends(get_camera_stream_metric_repository),
+    current_user: dict = Depends(get_camera_diagnostics_user),
+):
+    """Kameranin kalici stream performans gecmisi ve trend ozetini dondurur."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    safe_limit = min(max(limit, 1), 500)
+    samples = list(stream_metric_repo.list_recent(camera_id, safe_limit))
+    latest = samples[0] if samples else None
+    fps_values = _metric_values(samples, "current_broadcast_fps")
+    ai_values = _metric_values(samples, "average_ai_inference_ms")
+    cpu_values = _metric_values(samples, "host_cpu_load_percent")
+    memory_values = _metric_values(samples, "host_memory_used_percent")
+
+    return {
+        "camera_id": camera_id,
+        "sample_count": len(samples),
+        "producer_running_count": sum(1 for sample in samples if sample.producer_running),
+        "average_broadcast_fps": _average(fps_values),
+        "minimum_broadcast_fps": round(min(fps_values), 2) if fps_values else None,
+        "average_ai_inference_ms": _average(ai_values),
+        "average_host_cpu_load_percent": _average(cpu_values),
+        "average_host_memory_used_percent": _average(memory_values),
+        "latest_sampled_at": latest.sampled_at if latest else None,
+        "latest_broadcast_fps": latest.current_broadcast_fps if latest else None,
+        "latest_ai_inference_ms": latest.average_ai_inference_ms if latest else None,
+        "total_reconnects": sum(sample.reconnects for sample in samples),
+        "total_open_failures": sum(sample.open_failures for sample in samples),
+        "total_failure_count": sum(sample.failure_count for sample in samples),
+        "samples": samples,
     }
 
 

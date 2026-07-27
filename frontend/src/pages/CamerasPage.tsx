@@ -1000,6 +1000,13 @@ export function CamerasPage() {
     enabled: diagnosticResult !== null && diagnosticError === null,
   })
 
+  const { data: streamHistory } = useQuery({
+    queryKey: ['camera-stream-history', diagnosticResult?.camera_id],
+    queryFn: () => camerasApi.diagnoseStreamHistory(diagnosticResult!.camera_id),
+    enabled: diagnosticResult !== null && diagnosticError === null,
+    refetchInterval: 15000,
+  })
+
   const { data: healthHistory } = useQuery({
     queryKey: ['camera-health-history', diagnosticResult?.camera_id],
     queryFn: () => camerasApi.diagnoseHealthHistory(diagnosticResult!.camera_id),
@@ -1296,6 +1303,19 @@ export function CamerasPage() {
                   <span>Open Timeout: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_timeout_ms} ms</strong></span>
                   <span>Read Timeout: <strong className="text-[var(--text-primary)]">{streamDiagnostic.read_timeout_ms} ms</strong></span>
                 </div>
+                {streamHistory && (
+                  <div className="mt-3 border-t border-[var(--border)] pt-3">
+                    <p className="text-xs font-medium text-[var(--text-primary)]">Kalici Trend ({streamHistory.sample_count} ornek)</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
+                      <span>Ort. FPS: <strong className="text-[var(--text-primary)]">{streamHistory.average_broadcast_fps !== null ? streamHistory.average_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
+                      <span>Min FPS: <strong className="text-[var(--text-primary)]">{streamHistory.minimum_broadcast_fps !== null ? streamHistory.minimum_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
+                      <span>Ort. AI: <strong className="text-[var(--text-primary)]">{streamHistory.average_ai_inference_ms !== null ? `${streamHistory.average_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                      <span>Producer Aktif: <strong className="text-[var(--text-primary)]">{streamHistory.producer_running_count}/{streamHistory.sample_count}</strong></span>
+                      <span>Toplam Reconnect: <strong className="text-[var(--text-primary)]">{streamHistory.total_reconnects}</strong></span>
+                      <span>Toplam Open Hata: <strong className="text-[var(--text-primary)]">{streamHistory.total_open_failures}</strong></span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {healthHistory && (

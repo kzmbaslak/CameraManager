@@ -114,3 +114,20 @@ class CameraHealthSampleModel(Base):
     status = Column(String, default="unknown")
     latency_ms = Column(Float, nullable=True)
     failure_reason = Column(String, nullable=True)
+
+
+class CameraStreamMetricModel(Base):
+    __tablename__ = "camera_stream_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
+    sampled_at = Column(DateTime, default=datetime.utcnow, index=True)
+    producer_running = Column(Boolean, default=False)
+    subscriber_count = Column(Integer, default=0)
+    current_broadcast_fps = Column(Float, nullable=True)
+    average_ai_inference_ms = Column(Float, nullable=True)
+    host_cpu_load_percent = Column(Float, nullable=True)
+    host_memory_used_percent = Column(Float, nullable=True)
+    reconnects = Column(Integer, default=0)
+    open_failures = Column(Integer, default=0)
+    failure_count = Column(Integer, default=0)

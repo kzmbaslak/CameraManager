@@ -61,6 +61,20 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
     },
     "users": {"id", "username", "password_hash", "role", "is_active"},
     "camera_health_samples": {"id", "camera_id", "checked_at", "reachable", "status", "latency_ms", "failure_reason"},
+    "camera_stream_metrics": {
+        "id",
+        "camera_id",
+        "sampled_at",
+        "producer_running",
+        "subscriber_count",
+        "current_broadcast_fps",
+        "average_ai_inference_ms",
+        "host_cpu_load_percent",
+        "host_memory_used_percent",
+        "reconnects",
+        "open_failures",
+        "failure_count",
+    },
 }
 
 

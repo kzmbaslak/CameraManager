@@ -342,6 +342,46 @@ class CameraStreamDiagnostics(BaseModel):
         from_attributes = True
 
 
+class CameraStreamMetricResponse(BaseModel):
+    """Tek kamera stream performans gecmisi olcumu."""
+
+    id: int
+    camera_id: int
+    sampled_at: datetime
+    producer_running: bool
+    subscriber_count: int
+    current_broadcast_fps: Optional[float] = None
+    average_ai_inference_ms: Optional[float] = None
+    host_cpu_load_percent: Optional[float] = None
+    host_memory_used_percent: Optional[float] = None
+    reconnects: int = 0
+    open_failures: int = 0
+    failure_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class CameraStreamMetricSummaryResponse(BaseModel):
+    """Kamera stream performans gecmisi ozet ve trend yaniti."""
+
+    camera_id: int
+    sample_count: int
+    producer_running_count: int
+    average_broadcast_fps: Optional[float] = None
+    minimum_broadcast_fps: Optional[float] = None
+    average_ai_inference_ms: Optional[float] = None
+    average_host_cpu_load_percent: Optional[float] = None
+    average_host_memory_used_percent: Optional[float] = None
+    latest_sampled_at: Optional[datetime] = None
+    latest_broadcast_fps: Optional[float] = None
+    latest_ai_inference_ms: Optional[float] = None
+    total_reconnects: int = 0
+    total_open_failures: int = 0
+    total_failure_count: int = 0
+    samples: list[CameraStreamMetricResponse]
+
+
 class CameraHealthSampleResponse(BaseModel):
     """Tek kamera saglik gecmisi olcumu."""
 

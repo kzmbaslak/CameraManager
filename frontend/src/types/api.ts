@@ -328,6 +328,39 @@ export interface CameraStreamDiagnostics {
   last_broadcast_at: string | null
 }
 
+export interface CameraStreamMetric {
+  id: number
+  camera_id: number
+  sampled_at: string
+  producer_running: boolean
+  subscriber_count: number
+  current_broadcast_fps: number | null
+  average_ai_inference_ms: number | null
+  host_cpu_load_percent: number | null
+  host_memory_used_percent: number | null
+  reconnects: number
+  open_failures: number
+  failure_count: number
+}
+
+export interface CameraStreamMetricSummary {
+  camera_id: number
+  sample_count: number
+  producer_running_count: number
+  average_broadcast_fps: number | null
+  minimum_broadcast_fps: number | null
+  average_ai_inference_ms: number | null
+  average_host_cpu_load_percent: number | null
+  average_host_memory_used_percent: number | null
+  latest_sampled_at: string | null
+  latest_broadcast_fps: number | null
+  latest_ai_inference_ms: number | null
+  total_reconnects: number
+  total_open_failures: number
+  total_failure_count: number
+  samples: CameraStreamMetric[]
+}
+
 export interface CameraHealthSample {
   id: number
   camera_id: number

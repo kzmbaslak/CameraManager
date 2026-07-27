@@ -123,6 +123,42 @@ def ensure_device_password_rotation_columns() -> None:
         conn.close()
 
 
+def ensure_camera_stream_metrics_table() -> None:
+    """Eski SQLite kurulumlarinda stream metrikleri tablosunu idempotent olusturur."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS camera_stream_metrics (
+                id INTEGER PRIMARY KEY,
+                camera_id INTEGER,
+                sampled_at DATETIME,
+                producer_running BOOLEAN DEFAULT 0,
+                subscriber_count INTEGER DEFAULT 0,
+                current_broadcast_fps REAL,
+                average_ai_inference_ms REAL,
+                host_cpu_load_percent REAL,
+                host_memory_used_percent REAL,
+                reconnects INTEGER DEFAULT 0,
+                open_failures INTEGER DEFAULT 0,
+                failure_count INTEGER DEFAULT 0,
+                FOREIGN KEY(camera_id) REFERENCES cameras(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_stream_metrics_id ON camera_stream_metrics (id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_stream_metrics_camera_id ON camera_stream_metrics (camera_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_stream_metrics_sampled_at ON camera_stream_metrics (sampled_at)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_db():
     """FastAPI dependency — request başına bir DB session açar, biter bitmez kapatır."""
     db = SessionLocal()
