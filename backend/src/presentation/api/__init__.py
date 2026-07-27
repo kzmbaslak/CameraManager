@@ -1,7 +1,7 @@
 """API ana router'i, saglik ve guvenlik durusu endpoint'leri."""
 
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Response
@@ -12,6 +12,7 @@ from src.infrastructure.database.database import get_db
 from src.infrastructure.database.models import CameraModel, NVRModel
 from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
+from src.infrastructure.time_utils import utc_now
 from src.presentation.api.dependencies import get_current_user, get_role_permissions, get_security_status_user
 from src.presentation.api.routes.alarms import router as alarms_router
 from src.presentation.api.routes.audit import router as audit_router
@@ -125,7 +126,7 @@ def security_posture(
         device_password_rotation_days = 90
         findings.append({"severity": "medium", "message": "DEVICE_PASSWORD_ROTATION_DAYS sayisal olmali."})
     device_password_rotation_days = min(max(device_password_rotation_days, 30), 365)
-    password_cutoff = datetime.utcnow() - timedelta(days=device_password_rotation_days)
+    password_cutoff = utc_now() - timedelta(days=device_password_rotation_days)
     camera_password_filter = CameraModel.encrypted_password.isnot(None) & (CameraModel.encrypted_password != "")
     nvr_password_filter = NVRModel.encrypted_password.isnot(None) & (NVRModel.encrypted_password != "")
     camera_password_device_count = db.query(CameraModel).filter(camera_password_filter).count()

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Sequence
 
 from sqlalchemy.orm import Session
 
 from src.domain.entities.camera_stream_metric import CameraStreamMetric
 from src.infrastructure.database.models import CameraStreamMetricModel
+from src.infrastructure.time_utils import utc_now
 
 
 class SqlAlchemyCameraStreamMetricRepository:
@@ -63,7 +64,7 @@ class SqlAlchemyCameraStreamMetricRepository:
         return [self._to_entity(model) for model in models]
 
     def prune_older_than(self, days: int = 7) -> int:
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utc_now() - timedelta(days=days)
         query = self._db.query(CameraStreamMetricModel).filter(CameraStreamMetricModel.sampled_at < cutoff)
         count = query.count()
         query.delete(synchronize_session=False)

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Sequence
 
 from sqlalchemy.orm import Session
 
 from src.domain.entities.camera_health import CameraHealthSample
 from src.infrastructure.database.models import CameraHealthSampleModel
+from src.infrastructure.time_utils import utc_now
 
 
 class SqlAlchemyCameraHealthRepository:
@@ -81,7 +82,7 @@ class SqlAlchemyCameraHealthRepository:
         return result
 
     def prune_older_than(self, days: int = 7) -> int:
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utc_now() - timedelta(days=days)
         query = self._db.query(CameraHealthSampleModel).filter(CameraHealthSampleModel.checked_at < cutoff)
         count = query.count()
         query.delete(synchronize_session=False)

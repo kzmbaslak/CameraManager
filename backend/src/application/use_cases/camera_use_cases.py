@@ -1,7 +1,7 @@
-from datetime import datetime
 from typing import Optional, Sequence
 from src.domain.entities.camera import Camera, CameraStatus
 from src.domain.interfaces.camera_repository import ICameraRepository
+from src.infrastructure.time_utils import utc_now
 
 
 class CameraUseCases:
@@ -87,7 +87,7 @@ class CameraUseCases:
             existing.ai_roi_polygon = ai_roi_polygon
             if encrypted_password is not None:
                 existing.encrypted_password = self._encrypt_password(encrypted_password)
-                existing.password_updated_at = datetime.utcnow()
+                existing.password_updated_at = utc_now()
             if brand is not None:
                 existing.brand = brand
             if model is not None:
@@ -102,7 +102,7 @@ class CameraUseCases:
             onvif_port=onvif_port,
             username=username,
             encrypted_password=self._encrypt_password(encrypted_password),
-            password_updated_at=datetime.utcnow() if encrypted_password else None,
+            password_updated_at=utc_now() if encrypted_password else None,
             rtsp_path=rtsp_path,
             status=CameraStatus.INACTIVE,
             nvr_id=nvr_id,
@@ -150,7 +150,7 @@ class CameraUseCases:
     def update_camera(self, camera: Camera, plain_password: Optional[str] = None) -> Camera:
         if plain_password is not None:
             camera.encrypted_password = self._encrypt_password(plain_password)
-            camera.password_updated_at = datetime.utcnow()
+            camera.password_updated_at = utc_now()
         return self.camera_repository.update(camera)
 
     def update_camera_status(self, camera_id: int, status: CameraStatus) -> Camera:
@@ -214,7 +214,7 @@ class CameraUseCases:
                     existing.username = username
                     if password is not None:
                         existing.encrypted_password = self._encrypt_password(password)
-                        existing.password_updated_at = datetime.utcnow()
+                        existing.password_updated_at = utc_now()
                     if brand is not None:
                         existing.brand = brand
                     if model is not None:
@@ -230,7 +230,7 @@ class CameraUseCases:
                         onvif_port=onvif_port,
                         username=username,
                         encrypted_password=self._encrypt_password(password),
-                        password_updated_at=datetime.utcnow() if password else None,
+                        password_updated_at=utc_now() if password else None,
                         rtsp_path=rtsp_path,
                         status=CameraStatus.INACTIVE,
                         brand=brand,
@@ -251,7 +251,7 @@ class CameraUseCases:
                     existing.username = username
                     if password is not None:
                         existing.encrypted_password = self._encrypt_password(password)
-                        existing.password_updated_at = datetime.utcnow()
+                        existing.password_updated_at = utc_now()
                     if brand is not None:
                         existing.brand = brand
                     if model is not None:
@@ -267,7 +267,7 @@ class CameraUseCases:
                         onvif_port=onvif_port,
                         username=username,
                         encrypted_password=self._encrypt_password(password),
-                        password_updated_at=datetime.utcnow() if password else None,
+                        password_updated_at=utc_now() if password else None,
                         rtsp_path=rtsp_path,
                         status=CameraStatus.INACTIVE,
                         nvr_id=nvr_id,
