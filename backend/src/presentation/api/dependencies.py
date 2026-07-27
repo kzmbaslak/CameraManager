@@ -167,6 +167,7 @@ ROLE_PERMISSIONS = {
         "live.view",
         "nvr.manage",
         "ptz.control",
+        "recording.manage",
         "recording.view",
         "security.status",
         "user.manage",
@@ -257,6 +258,7 @@ get_evidence_export_user = require_permission("evidence.export")
 get_live_view_user = require_permission("live.view")
 get_nvr_manage_user = require_permission("nvr.manage")
 get_ptz_control_user = require_permission("ptz.control")
+get_recording_manage_user = require_permission("recording.manage")
 get_recording_view_user = require_permission("recording.view")
 get_security_status_user = require_permission("security.status")
 get_user_manage_user = require_permission("user.manage")

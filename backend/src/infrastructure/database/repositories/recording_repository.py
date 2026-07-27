@@ -80,3 +80,36 @@ class SqlAlchemyRecordingSegmentRepository:
             .all()
         )
         return [self._to_entity(model) for model in models]
+
+    def list_completed_before(self, cutoff: datetime, limit: int = 1000) -> Sequence[RecordingSegment]:
+        models = (
+            self._db.query(RecordingSegmentModel)
+            .filter(RecordingSegmentModel.ended_at.isnot(None))
+            .filter(RecordingSegmentModel.ended_at < cutoff)
+            .order_by(RecordingSegmentModel.ended_at.asc(), RecordingSegmentModel.id.asc())
+            .limit(limit)
+            .all()
+        )
+        return [self._to_entity(model) for model in models]
+
+    def list_completed_oldest(self, limit: int = 5000) -> Sequence[RecordingSegment]:
+        models = (
+            self._db.query(RecordingSegmentModel)
+            .filter(RecordingSegmentModel.ended_at.isnot(None))
+            .order_by(RecordingSegmentModel.ended_at.asc(), RecordingSegmentModel.id.asc())
+            .limit(limit)
+            .all()
+        )
+        return [self._to_entity(model) for model in models]
+
+    def delete_by_ids(self, segment_ids: list[int]) -> int:
+        safe_ids = [segment_id for segment_id in segment_ids if segment_id > 0]
+        if not safe_ids:
+            return 0
+        count = (
+            self._db.query(RecordingSegmentModel)
+            .filter(RecordingSegmentModel.id.in_(safe_ids))
+            .delete(synchronize_session=False)
+        )
+        self._db.commit()
+        return int(count)

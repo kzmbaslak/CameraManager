@@ -54,9 +54,13 @@ assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint
 assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(camerasApi, '/ptz/patrol', 'camera PTZ patrol endpoint')
 assertContains(recordingsApi, '/recordings/', 'recording segment list endpoint')
+assertContains(recordingsApi, '/recordings/maintenance/prune', 'recording prune endpoint')
 assertContains(frontendApiTypes, 'RecordingSegmentListResponse', 'frontend recording list type')
+assertContains(frontendApiTypes, 'RecordingPruneResult', 'frontend recording prune type')
 assertContains(backendRecordingRoutes, 'Depends(get_recording_view_user)', 'backend recording list permission')
+assertContains(backendRecordingRoutes, 'Depends(get_recording_manage_user)', 'backend recording prune permission')
 assertContains(permissionsHook, 'canViewRecordings: isAdmin || isOperator', 'frontend recording view permission contract')
+assertContains(permissionsHook, 'canManageRecordings: isAdmin', 'frontend recording manage permission contract')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
@@ -98,6 +102,7 @@ assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/patrol', 'generated OpenAPI PTZ patrol path')
 assertContains(generatedOpenApiTypes, '/api/recordings/', 'generated OpenAPI recording list path')
+assertContains(generatedOpenApiTypes, '/api/recordings/maintenance/prune', 'generated OpenAPI recording prune path')
 
 assertMatches(
   backendAlarmRoutes,
@@ -123,6 +128,11 @@ assertMatches(
   backendDependencies,
   /"operator":\s*{[\s\S]*"recording\.view"[\s\S]*}/,
   'backend operator recording permission contract',
+)
+assertMatches(
+  backendDependencies,
+  /"admin":\s*{[\s\S]*"recording\.manage"[\s\S]*}/,
+  'backend admin recording manage permission contract',
 )
 assertMatches(
   backendDependencies,

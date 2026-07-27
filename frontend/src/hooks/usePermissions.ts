@@ -20,6 +20,8 @@ interface Permissions {
   canControlPtz: boolean
   /** Kayit segmenti ve playback goruntuleme */
   canViewRecordings: boolean
+  /** Kayit retention ve disk kotasi bakimi */
+  canManageRecordings: boolean
   /** Mevcut rol */
   role: string | null
   isAdmin: boolean
@@ -51,6 +53,7 @@ export function usePermissions(): Permissions {
     canExportEvidence: isAdmin || isOperator,
     canControlPtz: isAdmin || isOperator,
     canViewRecordings: isAdmin || isOperator,
+    canManageRecordings: isAdmin,
     role,
     isAdmin,
     isOperator,

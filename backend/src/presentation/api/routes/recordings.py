@@ -9,9 +9,20 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 
 from src.application.use_cases.recording_use_cases import RecordingUseCases
-from src.presentation.api.dependencies import get_recording_use_cases, get_recording_view_user
 from src.domain.entities.recording_segment import RecordingSegment
-from src.presentation.api.schemas.recording_schema import RecordingSegmentListResponse, RecordingSegmentResponse
+from src.infrastructure.recording.retention import RecordingRetentionService
+from src.infrastructure.security.audit_logger import write_audit_event
+from src.presentation.api.dependencies import (
+    get_recording_manage_user,
+    get_recording_segment_repository,
+    get_recording_use_cases,
+    get_recording_view_user,
+)
+from src.presentation.api.schemas.recording_schema import (
+    RecordingPruneResponse,
+    RecordingSegmentListResponse,
+    RecordingSegmentResponse,
+)
 
 
 router = APIRouter(prefix="/recordings", tags=["Recordings"])
@@ -56,4 +67,37 @@ def list_recording_segments(
         items=[_segment_response(segment) for segment in segments],
         total=len(segments),
         limit=limit,
+    )
+
+
+@router.post("/maintenance/prune", response_model=RecordingPruneResponse)
+def prune_recording_segments(
+    retention_days: Optional[int] = Query(default=None, ge=1, le=3650),
+    quota_mb: Optional[int] = Query(default=None, ge=0, le=10_000_000),
+    repository=Depends(get_recording_segment_repository),
+    current_user: dict = Depends(get_recording_manage_user),
+):
+    """Kayit retention/disk kotasi temizligini admin yetkisiyle calistirir."""
+    result = RecordingRetentionService(repository).prune(retention_days=retention_days, quota_mb=quota_mb)
+    write_audit_event(
+        "recording.prune",
+        actor=current_user.get("sub"),
+        metadata={
+            "retention_days": result.retention_days,
+            "quota_mb": result.quota_mb,
+            "removed_count": result.removed_count,
+            "removed_bytes": result.removed_bytes,
+            "deleted_db_count": result.deleted_db_count,
+            "skipped_count": result.skipped_count,
+        },
+    )
+    return RecordingPruneResponse(
+        retention_days=result.retention_days,
+        quota_mb=result.quota_mb,
+        removed_count=result.removed_count,
+        removed_bytes=result.removed_bytes,
+        deleted_db_count=result.deleted_db_count,
+        skipped_count=result.skipped_count,
+        removed_filenames=result.removed_filenames,
+        skipped_reasons=result.skipped_reasons,
     )

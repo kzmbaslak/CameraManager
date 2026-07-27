@@ -34,3 +34,16 @@ class RecordingSegmentListResponse(BaseModel):
     items: list[RecordingSegmentResponse]
     total: int
     limit: int
+
+
+class RecordingPruneResponse(BaseModel):
+    """Kayit retention/kota temizligi sonucu."""
+
+    retention_days: int
+    quota_mb: int
+    removed_count: int
+    removed_bytes: int
+    deleted_db_count: int
+    skipped_count: int
+    removed_filenames: list[str]
+    skipped_reasons: list[str]

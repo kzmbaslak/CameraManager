@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from src.infrastructure.database.database import get_db
 from src.infrastructure.database.models import CameraModel, NVRModel
+from src.infrastructure.recording.retention import recording_quota_mb, recording_retention_days, recording_storage_dir
 from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
 from src.infrastructure.time_utils import utc_now
@@ -167,6 +168,12 @@ def security_posture(
             ),
         })
 
+    recording_dir = recording_storage_dir()
+    recording_retention = recording_retention_days()
+    recording_quota = recording_quota_mb()
+    if recording_quota == 0:
+        findings.append({"severity": "medium", "message": "RECORDING_MAX_STORAGE_MB tanimlanmali; kayit disk kotasi kapali."})
+
     audit_webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
     audit_webhook_configured = False
     if audit_webhook_url:
@@ -206,6 +213,9 @@ def security_posture(
         "overdue_camera_password_count": overdue_camera_password_count,
         "overdue_nvr_password_count": overdue_nvr_password_count,
         "security_headers_enabled": True,
+        "recording_storage_dir_configured": bool(str(recording_dir)),
+        "recording_retention_days": recording_retention,
+        "recording_max_storage_mb": recording_quota,
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",

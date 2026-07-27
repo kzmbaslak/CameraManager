@@ -547,6 +547,17 @@ export interface RecordingSegmentListResponse {
   limit: number
 }
 
+export interface RecordingPruneResult {
+  retention_days: number
+  quota_mb: number
+  removed_count: number
+  removed_bytes: number
+  deleted_db_count: number
+  skipped_count: number
+  removed_filenames: string[]
+  skipped_reasons: string[]
+}
+
 export interface SecurityPostureFinding {
   severity: 'critical' | 'high' | 'medium' | 'low' | string
   message: string
@@ -584,6 +595,9 @@ export interface SecurityPosture {
   setup_checks: SetupCheck[]
   stream_token_transport: string
   stream_token_ttl_seconds: number
+  recording_storage_dir_configured: boolean
+  recording_retention_days: number
+  recording_max_storage_mb: number
   findings: SecurityPostureFinding[]
 }
 

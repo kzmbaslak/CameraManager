@@ -277,6 +277,11 @@ export const openApiOperations = [
     "operationId": "list_recording_segments_api_recordings__get"
   },
   {
+    "method": "post",
+    "path": "/api/recordings/maintenance/prune",
+    "operationId": "prune_recording_segments_api_recordings_maintenance_prune_post"
+  },
+  {
     "method": "get",
     "path": "/api/security/permissions",
     "operationId": "security_permissions_api_security_permissions_get"
@@ -363,6 +368,7 @@ export type OpenApiPath =
   | "/api/nvrs/discover"
   | "/api/nvrs/scan"
   | "/api/recordings/"
+  | "/api/recordings/maintenance/prune"
   | "/api/security/permissions"
   | "/api/security/posture"
   | "/api/setup/status"
@@ -431,6 +437,7 @@ export type OpenApiOperation =
   | { method: "post"; path: "/api/nvrs/discover"; operationId: "discover_nvrs_api_nvrs_discover_post" }
   | { method: "post"; path: "/api/nvrs/scan"; operationId: "scan_nvrs_api_nvrs_scan_post" }
   | { method: "get"; path: "/api/recordings/"; operationId: "list_recording_segments_api_recordings__get" }
+  | { method: "post"; path: "/api/recordings/maintenance/prune"; operationId: "prune_recording_segments_api_recordings_maintenance_prune_post" }
   | { method: "get"; path: "/api/security/permissions"; operationId: "security_permissions_api_security_permissions_get" }
   | { method: "get"; path: "/api/security/posture"; operationId: "security_posture_api_security_posture_get" }
   | { method: "get"; path: "/api/setup/status"; operationId: "setup_status_api_setup_status_get" }
