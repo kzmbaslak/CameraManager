@@ -34,6 +34,7 @@ from src.infrastructure.database.database import (
     ensure_camera_onvif_capability_columns,
     ensure_camera_stream_metrics_table,
     ensure_device_password_rotation_columns,
+    ensure_recording_segments_table,
 )
 from src.infrastructure.database import models
 from src.infrastructure.security.runtime_config import validate_security_environment
@@ -47,6 +48,7 @@ ensure_device_password_rotation_columns()
 ensure_camera_location_columns()
 ensure_camera_onvif_capability_columns()
 ensure_camera_stream_metrics_table()
+ensure_recording_segments_table()
 
 
 def _seed_admin_user() -> None:

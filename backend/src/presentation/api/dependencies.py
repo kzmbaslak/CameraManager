@@ -27,8 +27,10 @@ from src.infrastructure.database.repositories.user_repository import SqlAlchemyU
 from src.infrastructure.database.repositories.nvr_repository import SqlAlchemyNVRRepository
 from src.infrastructure.database.repositories.camera_health_repository import SqlAlchemyCameraHealthRepository
 from src.infrastructure.database.repositories.camera_stream_metric_repository import SqlAlchemyCameraStreamMetricRepository
+from src.infrastructure.database.repositories.recording_repository import SqlAlchemyRecordingSegmentRepository
 from src.application.use_cases.camera_use_cases import CameraUseCases
 from src.application.use_cases.nvr_use_cases import NVRUseCases
+from src.application.use_cases.recording_use_cases import RecordingUseCases
 from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
 from src.infrastructure.camera.opencv_stream_reader import OpenCVStreamReader
 from src.infrastructure.ai.onnx_inference_service import ONNXInferenceService
@@ -91,6 +93,10 @@ def get_camera_stream_metric_repository(db: Session = Depends(get_db)) -> SqlAlc
     """Kamera stream performans gecmisi repository'sini dondurur."""
     return SqlAlchemyCameraStreamMetricRepository(db)
 
+def get_recording_segment_repository(db: Session = Depends(get_db)) -> SqlAlchemyRecordingSegmentRepository:
+    """Kayit segmentleri repository'sini dondurur."""
+    return SqlAlchemyRecordingSegmentRepository(db)
+
 
 # ---------------------------------------------------------------------------
 # Use case factory'leri
@@ -111,6 +117,12 @@ def get_nvr_use_cases(
 ) -> NVRUseCases:
     """NVR iş mantığı use case'ini, password_service ile birlikte döner."""
     return NVRUseCases(repo, password_service=password_service)
+
+def get_recording_use_cases(
+    repo: SqlAlchemyRecordingSegmentRepository = Depends(get_recording_segment_repository),
+) -> RecordingUseCases:
+    """Kayit segmentleri use case'ini dondurur."""
+    return RecordingUseCases(repo)
 
 def get_frame_processing_use_case(
     camera_repo: SqlAlchemyCameraRepository = Depends(get_camera_repository),
@@ -155,6 +167,7 @@ ROLE_PERMISSIONS = {
         "live.view",
         "nvr.manage",
         "ptz.control",
+        "recording.view",
         "security.status",
         "user.manage",
         "alarm.operate",
@@ -166,6 +179,7 @@ ROLE_PERMISSIONS = {
         "live.view",
         "nvr.manage",
         "ptz.control",
+        "recording.view",
         "security.status",
         "alarm.operate",
     },
@@ -243,6 +257,7 @@ get_evidence_export_user = require_permission("evidence.export")
 get_live_view_user = require_permission("live.view")
 get_nvr_manage_user = require_permission("nvr.manage")
 get_ptz_control_user = require_permission("ptz.control")
+get_recording_view_user = require_permission("recording.view")
 get_security_status_user = require_permission("security.status")
 get_user_manage_user = require_permission("user.manage")
 get_alarm_operate_user = require_permission("alarm.operate")

@@ -205,6 +205,48 @@ def ensure_camera_stream_metrics_table() -> None:
         conn.close()
 
 
+def ensure_recording_segments_table() -> None:
+    """Eski SQLite kurulumlarinda kayit segmentleri tablosunu idempotent olusturur."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS recording_segments (
+                id INTEGER PRIMARY KEY,
+                camera_id INTEGER,
+                started_at DATETIME,
+                ended_at DATETIME,
+                recording_type TEXT DEFAULT 'continuous',
+                status TEXT DEFAULT 'complete',
+                file_path TEXT,
+                file_sha256 TEXT,
+                size_bytes INTEGER,
+                codec TEXT,
+                width INTEGER,
+                height INTEGER,
+                fps REAL,
+                alarm_id INTEGER,
+                created_at DATETIME,
+                FOREIGN KEY(camera_id) REFERENCES cameras(id) ON DELETE CASCADE,
+                FOREIGN KEY(alarm_id) REFERENCES alarms(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_recording_segments_id ON recording_segments (id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_recording_segments_camera_id ON recording_segments (camera_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_recording_segments_started_at ON recording_segments (started_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_recording_segments_ended_at ON recording_segments (ended_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_recording_segments_alarm_id ON recording_segments (alarm_id)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def get_db():
     """FastAPI dependency — request başına bir DB session açar, biter bitmez kapatır."""
     db = SessionLocal()

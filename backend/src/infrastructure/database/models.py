@@ -137,3 +137,23 @@ class CameraStreamMetricModel(Base):
     reconnects = Column(Integer, default=0)
     open_failures = Column(Integer, default=0)
     failure_count = Column(Integer, default=0)
+
+
+class RecordingSegmentModel(Base):
+    __tablename__ = "recording_segments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
+    started_at = Column(DateTime, index=True)
+    ended_at = Column(DateTime, nullable=True, index=True)
+    recording_type = Column(String, default="continuous")
+    status = Column(String, default="complete")
+    file_path = Column(String)
+    file_sha256 = Column(String, nullable=True)
+    size_bytes = Column(Integer, nullable=True)
+    codec = Column(String, nullable=True)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    fps = Column(Float, nullable=True)
+    alarm_id = Column(Integer, ForeignKey("alarms.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime, default=utc_now)

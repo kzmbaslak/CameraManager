@@ -20,6 +20,7 @@ from src.presentation.api.routes.auth import router as auth_router
 from src.presentation.api.routes.backups import router as backups_router
 from src.presentation.api.routes.cameras import router as cameras_router
 from src.presentation.api.routes.nvrs import router as nvrs_router
+from src.presentation.api.routes.recordings import router as recordings_router
 from src.presentation.api.routes.streams import router as streams_router
 from src.presentation.api.routes.users import router as users_router
 
@@ -243,4 +244,5 @@ router.include_router(backups_router)
 router.include_router(users_router)
 router.include_router(streams_router)
 router.include_router(nvrs_router)
+router.include_router(recordings_router)
 router.include_router(auth_router)

@@ -33,6 +33,7 @@ function assertMatches(source, pattern, label) {
 
 const alarmsApi = read('src/api/alarms.ts')
 const camerasApi = read('src/api/cameras.ts')
+const recordingsApi = read('src/api/recordings.ts')
 const camerasPage = read('src/pages/CamerasPage.tsx')
 const cameraFullscreenModal = read('src/components/camera/CameraFullscreenModal.tsx')
 const frontendApiTypes = read('src/types/api.ts')
@@ -42,6 +43,7 @@ const generatedOpenApiTypes = read('src/types/openapi.generated.ts')
 const backendAlarmRoutes = read('../backend/src/presentation/api/routes/alarms.py')
 const backendCameraSchema = read('../backend/src/presentation/api/schemas/camera_schema.py')
 const backendDependencies = read('../backend/src/presentation/api/dependencies.py')
+const backendRecordingRoutes = read('../backend/src/presentation/api/routes/recordings.py')
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
@@ -51,6 +53,10 @@ assertContains(camerasApi, '/ptz/presets', 'camera PTZ preset list endpoint')
 assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint')
 assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(camerasApi, '/ptz/patrol', 'camera PTZ patrol endpoint')
+assertContains(recordingsApi, '/recordings/', 'recording segment list endpoint')
+assertContains(frontendApiTypes, 'RecordingSegmentListResponse', 'frontend recording list type')
+assertContains(backendRecordingRoutes, 'Depends(get_recording_view_user)', 'backend recording list permission')
+assertContains(permissionsHook, 'canViewRecordings: isAdmin || isOperator', 'frontend recording view permission contract')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
@@ -91,6 +97,7 @@ assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets', 'g
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto', 'generated OpenAPI PTZ goto preset path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/patrol', 'generated OpenAPI PTZ patrol path')
+assertContains(generatedOpenApiTypes, '/api/recordings/', 'generated OpenAPI recording list path')
 
 assertMatches(
   backendAlarmRoutes,
@@ -111,6 +118,11 @@ assertMatches(
   backendDependencies,
   /"operator":\s*{[\s\S]*"ptz\.control"[\s\S]*}/,
   'backend operator PTZ permission contract',
+)
+assertMatches(
+  backendDependencies,
+  /"operator":\s*{[\s\S]*"recording\.view"[\s\S]*}/,
+  'backend operator recording permission contract',
 )
 assertMatches(
   backendDependencies,

@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: Kayit segment envanteri ilk fazi eklendi. `recording_segments` tablosu, domain/repository/use-case zinciri ve `GET /api/recordings/` liste endpoint'i eklendi; endpoint admin/operator `recording.view` izniyle korunur ve dosya yolu yerine dosya adi, sure, boyut, hash, codec ve zaman araligini dondurur.
 - 2026-07-27: ONVIF PTZ preset patrol ilk fazi eklendi. `POST /api/cameras/{id}/ptz/patrol`, 2-12 preset token'ini sirayla gezer, dwell suresini 0.2-10 saniye araliginda sinirlar ve audit log'a patrol sonucunu yazar; tam ekran PTZ panelinde en az iki preset varsa tek tuslu Patrol aksiyonu gorunur.
 - 2026-07-27: ONVIF PTZ home pozisyonu eklendi. `POST /api/cameras/{id}/ptz/home`, admin/operator `ptz.control` izniyle kamerayi ONVIF home pozisyonuna gonderir, audit log'a yazar ve tam ekran PTZ panelinde tek tuslu Home aksiyonu olarak gorunur.
 - 2026-07-27: ONVIF PTZ capability cache eklendi. Kamera kaydinda `onvif_ptz_supported` ve `onvif_capabilities_checked_at` tutulur; kayitli kamera ONVIF testi basarili capability sonucu dondurdugunde cache guncellenir, baglanti ayarlari degisince cache temizlenir. Tam ekran PTZ paneli artik sadece PTZ destegi dogrulanmis kameralarda gorunur.

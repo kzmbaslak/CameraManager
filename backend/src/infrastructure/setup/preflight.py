@@ -81,6 +81,23 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "open_failures",
         "failure_count",
     },
+    "recording_segments": {
+        "id",
+        "camera_id",
+        "started_at",
+        "ended_at",
+        "recording_type",
+        "status",
+        "file_path",
+        "file_sha256",
+        "size_bytes",
+        "codec",
+        "width",
+        "height",
+        "fps",
+        "alarm_id",
+        "created_at",
+    },
 }
 
 

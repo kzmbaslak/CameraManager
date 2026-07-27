@@ -522,6 +522,31 @@ export interface CameraHealthListItem {
   latest_failure_reason: string | null
 }
 
+export interface RecordingSegment {
+  id: number
+  camera_id: number
+  started_at: string
+  ended_at: string | null
+  recording_type: string
+  status: string
+  filename: string
+  duration_seconds: number | null
+  file_sha256: string | null
+  size_bytes: number | null
+  codec: string | null
+  width: number | null
+  height: number | null
+  fps: number | null
+  alarm_id: number | null
+  created_at: string | null
+}
+
+export interface RecordingSegmentListResponse {
+  items: RecordingSegment[]
+  total: number
+  limit: number
+}
+
 export interface SecurityPostureFinding {
   severity: 'critical' | 'high' | 'medium' | 'low' | string
   message: string
