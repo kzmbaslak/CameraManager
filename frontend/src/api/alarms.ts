@@ -4,6 +4,7 @@ import type {
   Alarm,
   AlarmSeverity,
   AlarmStatus,
+  AlarmThresholdSuggestionApplyResponse,
   AlarmThresholdSuggestionItem,
   AlarmTrainingFeedbackItem,
   AlarmType,
@@ -77,6 +78,16 @@ export const alarmsApi = {
     minimum_samples?: number
   }): Promise<AlarmThresholdSuggestionItem[]> => {
     const { data } = await client.get<AlarmThresholdSuggestionItem[]>('/alarms/threshold-suggestions', { params })
+    return data
+  },
+
+  /** Onerilen confidence esiklerini secili kameralara uygular. */
+  applyThresholdSuggestions: async (payload: {
+    camera_ids?: number[]
+    limit?: number
+    minimum_samples?: number
+  }): Promise<AlarmThresholdSuggestionApplyResponse> => {
+    const { data } = await client.post<AlarmThresholdSuggestionApplyResponse>('/alarms/threshold-suggestions/apply', payload)
     return data
   },
 

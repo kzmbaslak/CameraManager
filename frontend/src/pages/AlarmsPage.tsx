@@ -516,7 +516,7 @@ function AlarmDetailDrawer({
 }
 
 export function AlarmsPage() {
-  const { canAcknowledgeAlarms, canOperateAlarms, canExportEvidence } = usePermissions()
+  const { canAcknowledgeAlarms, canOperateAlarms, canExportEvidence, canEditCameras } = usePermissions()
   const [cameraFilter, setCameraFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
@@ -660,7 +660,28 @@ export function AlarmsPage() {
     onError: (err) => showToast({ variant: 'danger', title: 'Threshold onerisi alinamadi', description: getApiErrorMessage(err, 'Oneri verisi getirilemedi.') }),
   })
 
+  const applyThresholdSuggestions = useMutation({
+    mutationFn: (cameraIds: number[]) => alarmsApi.applyThresholdSuggestions({
+      camera_ids: cameraIds,
+      limit: 5000,
+      minimum_samples: 3,
+    }),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({
+        variant: result.applied_count > 0 ? 'success' : 'info',
+        title: result.applied_count > 0 ? 'Threshold uygulandi' : 'Uygulanacak degisiklik yok',
+        description: `${result.applied_count} kamera guncellendi, ${result.skipped_count} kayit atlandi.`,
+      })
+      thresholdSuggestions.mutate()
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'Threshold uygulanamadi', description: getApiErrorMessage(err, 'Kamera AI esikleri guncellenemedi.') }),
+  })
+
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))
+  const applicableThresholdSuggestionIds = thresholdSuggestionItems
+    .filter((item) => item.suggested_confidence_threshold !== null)
+    .map((item) => item.camera_id)
 
   const hasActiveFilter =
     cameraFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all' || dateRange !== 'all'
@@ -719,6 +740,14 @@ export function AlarmsPage() {
     } catch (err) {
       showToast({ variant: 'danger', title: 'AI geri bildirimi alinamadi', description: getApiErrorMessage(err, 'Geri bildirim verisi indirilemedi.') })
     }
+  }
+
+  const handleApplyThresholdSuggestions = () => {
+    if (applicableThresholdSuggestionIds.length === 0) {
+      showToast({ variant: 'info', title: 'Uygulanacak oneri yok', description: 'Listede confidence esigi onerilen kamera bulunmuyor.' })
+      return
+    }
+    applyThresholdSuggestions.mutate(applicableThresholdSuggestionIds)
   }
 
   return (
@@ -825,14 +854,28 @@ export function AlarmsPage() {
                 Yanlis alarm geri bildirimlerine gore kamera bazli confidence esigi
               </p>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={<X size={14} />}
-              onClick={() => setThresholdSuggestionItems([])}
-            >
-              Kapat
-            </Button>
+            <div className="flex items-center gap-2">
+              {canEditCameras && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<SlidersHorizontal size={14} />}
+                  disabled={applicableThresholdSuggestionIds.length === 0}
+                  loading={applyThresholdSuggestions.isPending}
+                  onClick={handleApplyThresholdSuggestions}
+                >
+                  Onerilenleri Uygula ({applicableThresholdSuggestionIds.length})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<X size={14} />}
+                onClick={() => setThresholdSuggestionItems([])}
+              >
+                Kapat
+              </Button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

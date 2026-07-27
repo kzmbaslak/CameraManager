@@ -7,14 +7,22 @@ from typing import List, Optional
 from src.presentation.api.dependencies import (
     get_alarm_operate_user,
     get_alarm_repository,
+    get_camera_manage_user,
+    get_camera_repository,
     get_current_user,
     get_evidence_export_user,
+    get_stream_manager,
 )
+from src.application.services.camera_stream_manager import CameraStreamManager
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
+from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.presentation.api.schemas.alarm_schema import (
     AlarmResolveRequest,
     AlarmResponse,
+    AlarmThresholdSuggestionApplyItem,
+    AlarmThresholdSuggestionApplyRequest,
+    AlarmThresholdSuggestionApplyResponse,
     AlarmThresholdSuggestionItem,
     AlarmTrainingFeedbackItem,
     AlarmUpdate,
@@ -75,6 +83,77 @@ def _snapshot_file_response(
         media_type="image/jpeg",
         headers={"X-Snapshot-SHA256": snapshot_sha256, "X-Snapshot-Variant": variant},
     )
+
+
+def _build_threshold_suggestions(
+    repo: SqlAlchemyAlarmRepository,
+    limit: int = 1000,
+    minimum_samples: int = 3,
+) -> list[AlarmThresholdSuggestionItem]:
+    safe_limit = max(1, min(limit, 5000))
+    safe_minimum_samples = max(1, min(minimum_samples, 50))
+    alarms = repo.list_all(alarm_type=AlarmType.HUMAN_DETECTED, limit=safe_limit)
+
+    grouped: dict[int, list] = {}
+    for alarm in alarms:
+        grouped.setdefault(alarm.camera_id, []).append(alarm)
+
+    suggestions: list[AlarmThresholdSuggestionItem] = []
+    for camera_id, camera_alarms in grouped.items():
+        sample_count = len(camera_alarms)
+        if sample_count < safe_minimum_samples:
+            continue
+
+        false_positive_count = sum(1 for alarm in camera_alarms if alarm.false_positive)
+        false_positive_rate = false_positive_count / sample_count
+        confidence_values = [
+            alarm.confidence
+            for alarm in camera_alarms
+            if alarm.confidence is not None
+        ]
+        average_confidence = (
+            round(sum(confidence_values) / len(confidence_values), 3)
+            if confidence_values
+            else None
+        )
+        suggested_threshold = None
+        if false_positive_count >= 2 and average_confidence is not None:
+            if false_positive_rate >= 0.5:
+                suggested_threshold = min(0.95, max(0.05, average_confidence + 0.1))
+            elif false_positive_rate >= 0.3:
+                suggested_threshold = min(0.95, max(0.05, average_confidence + 0.05))
+
+        if suggested_threshold is not None:
+            recommendation = (
+                "Yanlis alarm orani yuksek; insan tespiti confidence esigini "
+                f"{round(suggested_threshold * 100)}% seviyesine cikarmayi degerlendirin."
+            )
+        elif false_positive_count == 0 and sample_count >= 10:
+            recommendation = "Yanlis alarm baskisi dusuk; mevcut esik korunabilir."
+        else:
+            recommendation = "Otomatik esik degisikligi icin daha fazla operator geri bildirimi toplayin."
+
+        suggestions.append(
+            AlarmThresholdSuggestionItem(
+                camera_id=camera_id,
+                sample_count=sample_count,
+                false_positive_count=false_positive_count,
+                false_positive_rate=round(false_positive_rate, 3),
+                average_confidence=average_confidence,
+                suggested_confidence_threshold=(
+                    round(suggested_threshold, 3)
+                    if suggested_threshold is not None
+                    else None
+                ),
+                recommendation=recommendation,
+            )
+        )
+
+    suggestions.sort(
+        key=lambda item: (item.false_positive_rate, item.false_positive_count, item.sample_count),
+        reverse=True,
+    )
+    return suggestions
 
 
 @router.get("/", response_model=List[AlarmResponse])
@@ -164,67 +243,7 @@ def get_threshold_suggestions(
     """Yanlis alarm geri bildirimlerinden kamera bazli confidence esigi onerir."""
     safe_limit = max(1, min(limit, 5000))
     safe_minimum_samples = max(1, min(minimum_samples, 50))
-    alarms = repo.list_all(alarm_type=AlarmType.HUMAN_DETECTED, limit=safe_limit)
-
-    grouped: dict[int, list] = {}
-    for alarm in alarms:
-        grouped.setdefault(alarm.camera_id, []).append(alarm)
-
-    suggestions: list[AlarmThresholdSuggestionItem] = []
-    for camera_id, camera_alarms in grouped.items():
-        sample_count = len(camera_alarms)
-        if sample_count < safe_minimum_samples:
-            continue
-
-        false_positive_count = sum(1 for alarm in camera_alarms if alarm.false_positive)
-        false_positive_rate = false_positive_count / sample_count
-        confidence_values = [
-            alarm.confidence
-            for alarm in camera_alarms
-            if alarm.confidence is not None
-        ]
-        average_confidence = (
-            round(sum(confidence_values) / len(confidence_values), 3)
-            if confidence_values
-            else None
-        )
-        suggested_threshold = None
-        if false_positive_count >= 2 and average_confidence is not None:
-            if false_positive_rate >= 0.5:
-                suggested_threshold = min(0.95, max(0.05, average_confidence + 0.1))
-            elif false_positive_rate >= 0.3:
-                suggested_threshold = min(0.95, max(0.05, average_confidence + 0.05))
-
-        if suggested_threshold is not None:
-            recommendation = (
-                "Yanlis alarm orani yuksek; insan tespiti confidence esigini "
-                f"{round(suggested_threshold * 100)}% seviyesine cikarmayi degerlendirin."
-            )
-        elif false_positive_count == 0 and sample_count >= 10:
-            recommendation = "Yanlis alarm baskisi dusuk; mevcut esik korunabilir."
-        else:
-            recommendation = "Otomatik esik degisikligi icin daha fazla operator geri bildirimi toplayin."
-
-        suggestions.append(
-            AlarmThresholdSuggestionItem(
-                camera_id=camera_id,
-                sample_count=sample_count,
-                false_positive_count=false_positive_count,
-                false_positive_rate=round(false_positive_rate, 3),
-                average_confidence=average_confidence,
-                suggested_confidence_threshold=(
-                    round(suggested_threshold, 3)
-                    if suggested_threshold is not None
-                    else None
-                ),
-                recommendation=recommendation,
-            )
-        )
-
-    suggestions.sort(
-        key=lambda item: (item.false_positive_rate, item.false_positive_count, item.sample_count),
-        reverse=True,
-    )
+    suggestions = _build_threshold_suggestions(repo, safe_limit, safe_minimum_samples)
     write_audit_event(
         "alarm.threshold_suggestions.view",
         actor=current_user.get("sub"),
@@ -236,6 +255,68 @@ def get_threshold_suggestions(
         },
     )
     return suggestions
+
+
+@router.post("/threshold-suggestions/apply", response_model=AlarmThresholdSuggestionApplyResponse)
+async def apply_threshold_suggestions(
+    data: AlarmThresholdSuggestionApplyRequest,
+    request: Request,
+    alarm_repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    camera_repo: SqlAlchemyCameraRepository = Depends(get_camera_repository),
+    sm: CameraStreamManager = Depends(get_stream_manager),
+    current_user: dict = Depends(get_camera_manage_user),
+):
+    """Secili kamera onerilerini confidence esigi olarak uygular."""
+    selected_ids = set(data.camera_ids or [])
+    suggestions = _build_threshold_suggestions(alarm_repo, data.limit, data.minimum_samples)
+    applicable = [
+        suggestion
+        for suggestion in suggestions
+        if suggestion.suggested_confidence_threshold is not None
+        and (not selected_ids or suggestion.camera_id in selected_ids)
+    ]
+
+    applied_items: list[AlarmThresholdSuggestionApplyItem] = []
+    skipped_count = len(suggestions) - len(applicable)
+    for suggestion in applicable:
+        camera = camera_repo.get_by_id(suggestion.camera_id)
+        if not camera:
+            skipped_count += 1
+            continue
+        previous_threshold = camera.ai_confidence_threshold
+        next_threshold = suggestion.suggested_confidence_threshold
+        if next_threshold is None or abs(previous_threshold - next_threshold) < 0.001:
+            skipped_count += 1
+            continue
+
+        camera.ai_confidence_threshold = next_threshold
+        camera_repo.update(camera)
+        await sm.ensure_running_state(camera.id)
+        applied_items.append(
+            AlarmThresholdSuggestionApplyItem(
+                camera_id=camera.id,
+                previous_confidence_threshold=round(previous_threshold, 3),
+                applied_confidence_threshold=round(next_threshold, 3),
+                sample_count=suggestion.sample_count,
+                false_positive_rate=suggestion.false_positive_rate,
+            )
+        )
+
+    write_audit_event(
+        "alarm.threshold_suggestions.apply",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "applied_count": len(applied_items),
+            "skipped_count": skipped_count,
+            "camera_ids": [item.camera_id for item in applied_items],
+        },
+    )
+    return AlarmThresholdSuggestionApplyResponse(
+        applied_count=len(applied_items),
+        skipped_count=skipped_count,
+        items=applied_items,
+    )
 
 
 @router.get("/{alarm_id}/snapshot")

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from src.domain.entities.alarm import AlarmSeverity, AlarmStatus, AlarmType
 
@@ -60,6 +60,32 @@ class AlarmThresholdSuggestionItem(BaseModel):
     average_confidence: Optional[float] = None
     suggested_confidence_threshold: Optional[float] = None
     recommendation: str
+
+
+class AlarmThresholdSuggestionApplyRequest(BaseModel):
+    """Onerilen confidence esiklerini secili kameralara uygular."""
+
+    camera_ids: Optional[List[int]] = None
+    limit: int = Field(default=1000, ge=1, le=5000)
+    minimum_samples: int = Field(default=3, ge=1, le=50)
+
+
+class AlarmThresholdSuggestionApplyItem(BaseModel):
+    """Tek kamera icin uygulanan threshold degisikligi."""
+
+    camera_id: int
+    previous_confidence_threshold: float
+    applied_confidence_threshold: float
+    sample_count: int
+    false_positive_rate: float
+
+
+class AlarmThresholdSuggestionApplyResponse(BaseModel):
+    """Toplu threshold uygulama sonucu."""
+
+    applied_count: int
+    skipped_count: int
+    items: List[AlarmThresholdSuggestionApplyItem]
 
 
 class AlarmUpdate(BaseModel):

@@ -121,6 +121,20 @@ export interface AlarmThresholdSuggestionItem {
   recommendation: string
 }
 
+export interface AlarmThresholdSuggestionApplyItem {
+  camera_id: number
+  previous_confidence_threshold: number
+  applied_confidence_threshold: number
+  sample_count: number
+  false_positive_rate: number
+}
+
+export interface AlarmThresholdSuggestionApplyResponse {
+  applied_count: number
+  skipped_count: number
+  items: AlarmThresholdSuggestionApplyItem[]
+}
+
 export interface NVR {
   id: number
   name: string
