@@ -40,9 +40,11 @@ const backendDependencies = read('../backend/src/presentation/api/dependencies.p
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
+assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoint')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
+assertContains(alarmsPage, 'handleDownloadEvidenceManifest', 'evidence manifest UI action')
 assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
 assertContains(
   backendAlarmRoutes,
@@ -56,6 +58,7 @@ assertContains(
 )
 assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions', 'generated OpenAPI threshold read path')
 assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions/apply', 'generated OpenAPI threshold apply path')
+assertContains(generatedOpenApiTypes, '/api/alarms/{alarm_id}/evidence-manifest', 'generated OpenAPI evidence manifest path')
 assertContains(generatedOpenApiTypes, 'export type OpenApiOperation', 'generated OpenAPI operation union')
 
 assertMatches(

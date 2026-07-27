@@ -20,6 +20,8 @@ from src.infrastructure.database.repositories.camera_repository import SqlAlchem
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.infrastructure.time_utils import utc_now
 from src.presentation.api.schemas.alarm_schema import (
+    AlarmEvidenceFileItem,
+    AlarmEvidenceManifest,
     AlarmResolveRequest,
     AlarmResponse,
     AlarmThresholdSuggestionApplyItem,
@@ -84,6 +86,41 @@ def _snapshot_file_response(
         absolute_path,
         media_type="image/jpeg",
         headers={"X-Snapshot-SHA256": snapshot_sha256, "X-Snapshot-Variant": variant},
+    )
+
+
+def _evidence_file_item(variant: str, snapshot_path: str | None, stored_hash: str | None) -> AlarmEvidenceFileItem:
+    """Kanit manifesti icin dosya yolunu aciga cikarmadan hash/boyut ozeti uretir."""
+    if not snapshot_path:
+        return AlarmEvidenceFileItem(variant=variant, available=False, status="not_recorded")
+
+    base_dir = os.path.abspath("snapshots")
+    absolute_path = os.path.abspath(snapshot_path)
+    if os.path.commonpath([base_dir, absolute_path]) != base_dir:
+        return AlarmEvidenceFileItem(
+            variant=variant,
+            available=False,
+            filename=os.path.basename(snapshot_path),
+            status="unsafe_path",
+        )
+    if not os.path.isfile(absolute_path):
+        return AlarmEvidenceFileItem(
+            variant=variant,
+            available=False,
+            filename=os.path.basename(snapshot_path),
+            status="missing",
+        )
+
+    with open(absolute_path, "rb") as file:
+        snapshot_sha256 = hashlib.sha256(file.read()).hexdigest()
+    status = "ok" if stored_hash in {None, snapshot_sha256} else "hash_mismatch_recalculated"
+    return AlarmEvidenceFileItem(
+        variant=variant,
+        available=True,
+        filename=os.path.basename(snapshot_path),
+        sha256=snapshot_sha256,
+        size_bytes=os.path.getsize(absolute_path),
+        status=status,
     )
 
 
@@ -303,6 +340,63 @@ def get_alarm_annotated_snapshot(
 ):
     """Alarm operator kanit snapshot'ini, varsa insan kutulariyla dondurur."""
     return _snapshot_file_response(alarm_id, request, repo, current_user, annotated=True)
+
+
+@router.get("/{alarm_id}/evidence-manifest", response_model=AlarmEvidenceManifest)
+def get_alarm_evidence_manifest(
+    alarm_id: int,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    current_user: dict = Depends(get_evidence_export_user),
+):
+    """Alarm kanit dosyalari icin yol sizdirmayan hash ve metadata manifesti dondurur."""
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm:
+        raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
+
+    files = [
+        _evidence_file_item("raw", alarm.snapshot_path, alarm.snapshot_sha256),
+        _evidence_file_item("annotated", alarm.snapshot_annotated_path, alarm.snapshot_annotated_sha256),
+    ]
+    raw_file = files[0]
+    annotated_file = files[1]
+    changed = False
+    if raw_file.available and raw_file.sha256 and alarm.snapshot_sha256 != raw_file.sha256:
+        alarm.snapshot_sha256 = raw_file.sha256
+        changed = True
+    if annotated_file.available and annotated_file.sha256 and alarm.snapshot_annotated_sha256 != annotated_file.sha256:
+        alarm.snapshot_annotated_sha256 = annotated_file.sha256
+        changed = True
+    if changed:
+        alarm = repo.update(alarm)
+
+    write_audit_event(
+        "alarm.evidence_manifest.export",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "alarm_id": alarm_id,
+            "camera_id": alarm.camera_id,
+            "file_count": sum(1 for item in files if item.available),
+            "file_hashes": {item.variant: item.sha256 for item in files if item.sha256},
+        },
+    )
+    return AlarmEvidenceManifest(
+        alarm_id=alarm.id or alarm_id,
+        camera_id=alarm.camera_id,
+        alarm_type=alarm.alarm_type,
+        status=alarm.status,
+        severity=alarm.severity,
+        false_positive=alarm.false_positive,
+        confidence=alarm.confidence,
+        bounding_box=alarm.bounding_box,
+        created_at=alarm.created_at,
+        acknowledged_at=alarm.acknowledged_at,
+        resolved_at=alarm.resolved_at,
+        generated_at=utc_now(),
+        files=files,
+    )
+
 
 @router.post("/{alarm_id}/acknowledge", response_model=AlarmResponse)
 def acknowledge_alarm(

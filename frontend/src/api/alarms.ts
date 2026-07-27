@@ -2,6 +2,7 @@
 import client from './client'
 import type {
   Alarm,
+  AlarmEvidenceManifest,
   AlarmSeverity,
   AlarmStatus,
   AlarmThresholdSuggestionApplyResponse,
@@ -69,6 +70,12 @@ export const alarmsApi = {
     false_positive_only?: boolean
   }): Promise<AlarmTrainingFeedbackItem[]> => {
     const { data } = await client.get<AlarmTrainingFeedbackItem[]>('/alarms/training-feedback', { params })
+    return data
+  },
+
+  /** Kanit dosyalarinin yol sizdirmayan hash manifestini alir. */
+  evidenceManifest: async (alarmId: number): Promise<AlarmEvidenceManifest> => {
+    const { data } = await client.get<AlarmEvidenceManifest>(`/alarms/${alarmId}/evidence-manifest`)
     return data
   },
 

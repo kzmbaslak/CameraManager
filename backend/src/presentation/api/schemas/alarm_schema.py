@@ -50,6 +50,35 @@ class AlarmTrainingFeedbackItem(BaseModel):
     snapshot_annotated_sha256: Optional[str] = None
 
 
+class AlarmEvidenceFileItem(BaseModel):
+    """Kanit manifestindeki tek dosya ozeti; dosya yolu dondurmez."""
+
+    variant: str
+    available: bool
+    filename: Optional[str] = None
+    sha256: Optional[str] = None
+    size_bytes: Optional[int] = None
+    status: str
+
+
+class AlarmEvidenceManifest(BaseModel):
+    """Alarm kanit zinciri icin indirilebilir, yol sizdirmayan manifest."""
+
+    alarm_id: int
+    camera_id: int
+    alarm_type: AlarmType
+    status: AlarmStatus
+    severity: AlarmSeverity
+    false_positive: bool
+    confidence: Optional[float] = None
+    bounding_box: Optional[BoundingBoxSchema] = None
+    created_at: Optional[datetime] = None
+    acknowledged_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    generated_at: datetime
+    files: List[AlarmEvidenceFileItem]
+
+
 class AlarmThresholdSuggestionItem(BaseModel):
     """Kamera bazli yanlis alarm ve confidence esigi onerisi."""
 

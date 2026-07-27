@@ -22,6 +22,11 @@ export const openApiOperations = [
     "operationId": "acknowledge_alarm_api_alarms__alarm_id__acknowledge_post"
   },
   {
+    "method": "get",
+    "path": "/api/alarms/{alarm_id}/evidence-manifest",
+    "operationId": "get_alarm_evidence_manifest_api_alarms__alarm_id__evidence_manifest_get"
+  },
+  {
     "method": "post",
     "path": "/api/alarms/{alarm_id}/false-positive",
     "operationId": "mark_alarm_false_positive_api_alarms__alarm_id__false_positive_post"
@@ -283,6 +288,7 @@ export type OpenApiPath =
   | "/api/alarms/"
   | "/api/alarms/{alarm_id}"
   | "/api/alarms/{alarm_id}/acknowledge"
+  | "/api/alarms/{alarm_id}/evidence-manifest"
   | "/api/alarms/{alarm_id}/false-positive"
   | "/api/alarms/{alarm_id}/resolve"
   | "/api/alarms/{alarm_id}/snapshot"
@@ -338,6 +344,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/alarms/"; operationId: "list_alarms_api_alarms__get" }
   | { method: "patch"; path: "/api/alarms/{alarm_id}"; operationId: "update_alarm_api_alarms__alarm_id__patch" }
   | { method: "post"; path: "/api/alarms/{alarm_id}/acknowledge"; operationId: "acknowledge_alarm_api_alarms__alarm_id__acknowledge_post" }
+  | { method: "get"; path: "/api/alarms/{alarm_id}/evidence-manifest"; operationId: "get_alarm_evidence_manifest_api_alarms__alarm_id__evidence_manifest_get" }
   | { method: "post"; path: "/api/alarms/{alarm_id}/false-positive"; operationId: "mark_alarm_false_positive_api_alarms__alarm_id__false_positive_post" }
   | { method: "post"; path: "/api/alarms/{alarm_id}/resolve"; operationId: "resolve_alarm_api_alarms__alarm_id__resolve_post" }
   | { method: "get"; path: "/api/alarms/{alarm_id}/snapshot"; operationId: "get_alarm_snapshot_api_alarms__alarm_id__snapshot_get" }

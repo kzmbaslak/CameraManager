@@ -270,6 +270,7 @@ function AlarmDetailDrawer({
   onSave,
   onResolve,
   onFalsePositive,
+  onDownloadEvidenceManifest,
   acknowledging,
   saving,
   resolving,
@@ -290,6 +291,7 @@ function AlarmDetailDrawer({
   onSave: (payload: { assigned_to: string | null; operator_note: string | null; severity: AlarmSeverity }) => void
   onResolve: (payload: { resolution_reason: string | null; false_positive?: boolean }) => void
   onFalsePositive: () => void
+  onDownloadEvidenceManifest: () => void
   acknowledging: boolean
   saving: boolean
   resolving: boolean
@@ -388,6 +390,14 @@ function AlarmDetailDrawer({
                     Ham Kanit
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Download size={14} />}
+                  onClick={onDownloadEvidenceManifest}
+                >
+                  Manifest
+                </Button>
               </div>
             )}
           </div>
@@ -742,6 +752,24 @@ export function AlarmsPage() {
     }
   }
 
+  const handleDownloadEvidenceManifest = async (alarm: Alarm) => {
+    try {
+      const manifest = await alarmsApi.evidenceManifest(alarm.id)
+      const blob = new Blob([`${JSON.stringify(manifest, null, 2)}\n`], { type: 'application/json;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `alarm-${alarm.id}-kanit-manifest.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      showToast({ variant: 'success', title: 'Kanit manifesti indirildi', description: `Alarm #${alarm.id} hash ozeti hazirlandi.` })
+    } catch (err) {
+      showToast({ variant: 'danger', title: 'Manifest indirilemedi', description: getApiErrorMessage(err, 'Kanit manifesti alinamadi.') })
+    }
+  }
+
   const handleApplyThresholdSuggestions = () => {
     if (applicableThresholdSuggestionIds.length === 0) {
       showToast({ variant: 'info', title: 'Uygulanacak oneri yok', description: 'Listede confidence esigi onerilen kamera bulunmuyor.' })
@@ -977,6 +1005,7 @@ export function AlarmsPage() {
           onSave={(payload) => updateAlarm.mutate({ id: selectedAlarm.id, payload })}
           onResolve={(payload) => resolveAlarm.mutate({ id: selectedAlarm.id, payload })}
           onFalsePositive={() => falsePositiveAlarm.mutate(selectedAlarm.id)}
+          onDownloadEvidenceManifest={() => handleDownloadEvidenceManifest(selectedAlarm)}
           acknowledging={acknowledge.isPending && acknowledge.variables === selectedAlarm.id}
           saving={updateAlarm.isPending && updateAlarm.variables?.id === selectedAlarm.id}
           resolving={resolveAlarm.isPending && resolveAlarm.variables?.id === selectedAlarm.id}
