@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: Backend RBAC izin matrisi icin regression unit testleri eklendi. `backend/tests/test_rbac_permissions.py`, admin izin kapsamÄ±nÄ±, operatorun camera.manage/evidence.export/alarm.operate yetkilerini ve viewer/unknown rol sinirlarini dogrular.
 - 2026-07-27: Threshold onerisi karar mantigi application service katmanina tasindi ve `backend/tests/test_alarm_threshold_suggestions.py` unit testleriyle false-positive orani, minimum ornek sayisi, esik koruma ve risk siralamasi davranislari dogrulandi.
 - 2026-07-27: Threshold onerileri onayli toplu uygulama akisine baglandi. `POST /api/alarms/threshold-suggestions/apply` camera.manage yetkisiyle secili kamera onerilerini yeniden hesaplayip AI confidence esigine uygular, stream AI durumunu yeniler ve `alarm.threshold_suggestions.apply` audit olayi yazar; Alarmlar ekrani uygulanabilir onerileri tek tusla toplu uygular.
 - 2026-07-27: Dashboard stream kapasite trendi eklendi. Canli Izleme operator destek paneli ilk 8 izlenen aktif kameranin kalici stream-history ozetinden ortalama/minimum FPS, reconnect ve open failure toplamlarini gosterir; dusuk FPS, yuksek host CPU/RAM veya baglanti hatasi varsa Kapasite Trendi karti uyari rengine gecer.
