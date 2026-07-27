@@ -560,6 +560,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
                       type="checkbox"
                       checked={row.selected}
                       onChange={() => toggleSelect(index)}
+                      aria-label={`${row.ip}:${row.port} kamerasi sec`}
                       className="rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)] mt-1 h-4 w-4 cursor-pointer"
                     />
                     <div className="flex flex-col">
@@ -1176,6 +1177,7 @@ export function CamerasPage() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value as CameraStatus | 'all'); setCameraPage(1) }}
+          aria-label="Kamera durum filtresi"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum Durumlar</option>
@@ -1186,6 +1188,7 @@ export function CamerasPage() {
         <select
           value={aiFilter}
           onChange={(e) => { setAiFilter(e.target.value as 'all' | 'enabled' | 'disabled'); setCameraPage(1) }}
+          aria-label="Kamera AI filtresi"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum AI</option>

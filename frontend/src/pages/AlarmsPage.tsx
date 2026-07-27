@@ -187,6 +187,7 @@ function FilterBar({
       <select
         value={cameraFilter}
         onChange={(e) => onCamera(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+        aria-label="Alarm kamera filtresi"
         className={selectCls}
       >
         <option value="all">Tüm Kameralar</option>
@@ -198,12 +199,12 @@ function FilterBar({
       </select>
 
       {/* Durum filtresi */}
-      <select value={statusFilter} onChange={(e) => onStatus(e.target.value as AlarmStatus | 'all')} className={selectCls}>
+      <select value={statusFilter} onChange={(e) => onStatus(e.target.value as AlarmStatus | 'all')} aria-label="Alarm durum filtresi" className={selectCls}>
         {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
 
       {/* Tip filtresi */}
-      <select value={typeFilter} onChange={(e) => onType(e.target.value as AlarmType | 'all')} className={selectCls}>
+      <select value={typeFilter} onChange={(e) => onType(e.target.value as AlarmType | 'all')} aria-label="Alarm tip filtresi" className={selectCls}>
         {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
 

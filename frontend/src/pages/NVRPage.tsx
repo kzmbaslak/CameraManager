@@ -489,6 +489,7 @@ function ChannelModal({
                             type="checkbox"
                             checked={allSelected}
                             onChange={toggleAll}
+                            aria-label="Tum NVR kanallarini sec veya kaldir"
                             className="rounded"
                             title="Tümünü seç / kaldır"
                           />
@@ -516,6 +517,7 @@ function ChannelModal({
                               type="checkbox"
                               checked={selected.has(ch.profile_token)}
                               onChange={() => toggle(ch.profile_token)}
+                              aria-label={`${ch.profile_name} kanalini sec`}
                               className="rounded bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
                             />
                           </td>
@@ -937,6 +939,7 @@ function DiscoverModal({
                         type="checkbox"
                         checked={row.selected}
                         onChange={() => toggleSelect(index)}
+                        aria-label={`${row.host || 'Host yok'} kayit cihazini sec`}
                         className="rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)] h-4 w-4 cursor-pointer"
                       />
                       <span className="flex flex-col">
@@ -1209,6 +1212,7 @@ export function NVRPage() {
         <select
           value={nvrStatusFilter}
           onChange={(e) => { setNvrStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setNvrPage(1) }}
+          aria-label="Kayit cihazi durum filtresi"
           className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
         >
           <option value="all">Tum Durumlar</option>
