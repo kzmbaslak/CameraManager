@@ -16,11 +16,18 @@ import { CameraCard } from './CameraCard'
 import type { CameraPtzDirection } from '../../types/api'
 
 type FullscreenLayout = 1 | 4 | 9
+type PtzSpeedProfile = 'slow' | 'normal' | 'fast'
 
 const fullscreenLayoutClass: Record<FullscreenLayout, string> = {
   1: 'grid-cols-1',
   4: 'grid-cols-2',
   9: 'grid-cols-3',
+}
+
+const ptzSpeedProfiles: Record<PtzSpeedProfile, { label: string; speed: number; durationMs: number }> = {
+  slow: { label: 'Yavas', speed: 0.25, durationMs: 250 },
+  normal: { label: 'Normal', speed: 0.45, durationMs: 350 },
+  fast: { label: 'Hizli', speed: 0.75, durationMs: 500 },
 }
 
 function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
@@ -53,6 +60,7 @@ export function CameraFullscreenModal() {
   const [dims, setDims] = useState({ w: 960, h: 540 })
   const [layout, setLayout] = useState<FullscreenLayout>(1)
   const [selectedPresetToken, setSelectedPresetToken] = useState('')
+  const [ptzSpeedProfile, setPtzSpeedProfile] = useState<PtzSpeedProfile>('normal')
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -101,8 +109,14 @@ export function CameraFullscreenModal() {
   })
 
   const ptzMove = useMutation({
-    mutationFn: (direction: CameraPtzDirection) =>
-      camerasApi.ptzMove(expandedCameraId as number, { direction, speed: 0.45, duration_ms: 350 }),
+    mutationFn: (direction: CameraPtzDirection) => {
+      const profile = ptzSpeedProfiles[ptzSpeedProfile]
+      return camerasApi.ptzMove(expandedCameraId as number, {
+        direction,
+        speed: profile.speed,
+        duration_ms: profile.durationMs,
+      })
+    },
     onError: (err) => showToast({
       variant: 'danger',
       title: 'PTZ komutu gonderilemedi',
@@ -276,6 +290,22 @@ export function CameraFullscreenModal() {
               )}
               {camera && canControlPtz && (
                 <div className="absolute bottom-4 right-4 flex w-44 flex-col gap-2 rounded-md border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur">
+                  <div className="grid grid-cols-3 gap-1" aria-label="PTZ hiz profili">
+                    {(Object.entries(ptzSpeedProfiles) as [PtzSpeedProfile, (typeof ptzSpeedProfiles)[PtzSpeedProfile]][]).map(([key, profile]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-label={`PTZ hiz profili ${profile.label}`}
+                        title={`PTZ hiz profili ${profile.label}`}
+                        onClick={() => setPtzSpeedProfile(key)}
+                        className={`rounded-md px-1.5 py-1 text-[11px] font-semibold transition-colors ${
+                          ptzSpeedProfile === key ? 'bg-white text-black' : 'text-white hover:bg-white/20'
+                        }`}
+                      >
+                        {profile.label}
+                      </button>
+                    ))}
+                  </div>
                   <div className="grid grid-cols-3 gap-1">
                     <span />
                     <button type="button" aria-label="PTZ yukari" title="PTZ yukari" disabled={ptzMove.isPending} onClick={() => sendPtz('up')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">

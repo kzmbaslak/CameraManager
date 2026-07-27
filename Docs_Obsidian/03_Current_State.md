@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: PTZ hiz profilleri eklendi. Tam ekran PTZ paneli Yavas/Normal/Hizli profilleriyle ONVIF hareket komutunun speed ve duration degerlerini tek tikla ayarlar; contract check bu UI/payload bagini denetler.
 - 2026-07-27: ONVIF PTZ preset ilk fazi eklendi. `GET /api/cameras/{id}/ptz/presets` preset listesini, `POST /api/cameras/{id}/ptz/presets/goto` secili preset pozisyonuna gitmeyi saglar; tam ekran PTZ paneli preset secimi/goto aksiyonunu admin/operator icin gosterir.
 - 2026-07-27: ONVIF PTZ ilk fazi eklendi. `POST /api/cameras/{id}/ptz/move`, admin/operator icin `ptz.control` izniyle kisa sureli pan/tilt/zoom/stop komutlari gonderir, her komutu audit log'a yazar ve tam ekran canli kamera modalinda ikonlu PTZ kontrol paneli sunar.
 - 2026-07-27: Kamera konum modeli ilk fazi eklendi. Kamera domain/model/schema/repository zinciri saha, bina, kat ve bolge alanlarini saklar; eski SQLite kurulumlari idempotent kolon ekleme ile guncellenir. Kamera ekleme/duzenleme formlari ve kamera arama/tablosu konum bilgisini kullanir.
