@@ -10,7 +10,7 @@ Token'lar şunları içerir:
   - exp: token sona erme zamanı
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import JWTError, jwt
@@ -34,7 +34,7 @@ def create_access_token(username: str, role: str, expires_minutes: Optional[int]
     Returns:
         İmzalı JWT string'i.
     """
-    expire = datetime.utcnow() + timedelta(minutes=expires_minutes or _DEFAULT_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes or _DEFAULT_EXPIRE_MINUTES)
     payload = {"sub": username, "role": role, "purpose": "access", "exp": expire}
     return jwt.encode(payload, _SECRET_KEY, algorithm=_ALGORITHM)
 
@@ -60,7 +60,7 @@ def decode_access_token(token: str) -> dict:
 
 def create_stream_token(username: str, role: str, camera_id: int, expires_seconds: int = 60) -> str:
     """Belirli bir kamera canlı akışı için kısa ömürlü JWT üretir."""
-    expire = datetime.utcnow() + timedelta(seconds=expires_seconds)
+    expire = datetime.now(timezone.utc) + timedelta(seconds=expires_seconds)
     payload = {
         "sub": username,
         "role": role,
