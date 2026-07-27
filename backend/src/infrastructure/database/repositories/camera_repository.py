@@ -37,6 +37,10 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             brand=model.brand,
             model=model.model,
             nvr_id=model.nvr_id,
+            site=model.site,
+            building=model.building,
+            floor=model.floor,
+            zone=model.zone,
         )
 
     def _to_model(self, entity: Camera) -> CameraModel:
@@ -66,6 +70,10 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             brand=entity.brand,
             model=entity.model,
             nvr_id=entity.nvr_id,
+            site=entity.site,
+            building=entity.building,
+            floor=entity.floor,
+            zone=entity.zone,
         )
 
     def add(self, camera: Camera) -> Camera:
@@ -105,6 +113,10 @@ class SqlAlchemyCameraRepository(ICameraRepository):
                 CameraModel.rtsp_path.ilike(like),
                 CameraModel.brand.ilike(like),
                 CameraModel.model.ilike(like),
+                CameraModel.site.ilike(like),
+                CameraModel.building.ilike(like),
+                CameraModel.floor.ilike(like),
+                CameraModel.zone.ilike(like),
             ))
         if status != "all":
             query = query.filter(CameraModel.status == CameraStatus(status))
@@ -159,6 +171,10 @@ class SqlAlchemyCameraRepository(ICameraRepository):
         model.brand = camera.brand
         model.model = camera.model
         model.nvr_id = camera.nvr_id
+        model.site = camera.site
+        model.building = camera.building
+        model.floor = camera.floor
+        model.zone = camera.zone
         self._db.commit()
         self._db.refresh(model)
         return self._to_entity(model)

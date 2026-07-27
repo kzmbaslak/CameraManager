@@ -55,6 +55,10 @@ class CameraModel(Base):
     brand = Column(String, nullable=True)
     model = Column(String, nullable=True)
     nvr_id = Column(Integer, ForeignKey("nvrs.id", ondelete="SET NULL"), nullable=True)
+    site = Column(String, nullable=True)
+    building = Column(String, nullable=True)
+    floor = Column(String, nullable=True)
+    zone = Column(String, nullable=True)
 
     alarms = relationship("AlarmModel", back_populates="camera", cascade="all, delete-orphan")
     nvr = relationship("NVRModel", back_populates="cameras")

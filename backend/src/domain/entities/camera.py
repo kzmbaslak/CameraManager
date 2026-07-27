@@ -39,6 +39,10 @@ class Camera:
     brand: Optional[str] = None      # ONVIF'ten veya kullanıcıdan gelen marka
     model: Optional[str] = None      # ONVIF'ten veya kullanıcıdan gelen model
     nvr_id: Optional[int] = None     # Bağlı olduğu NVR (None = direkt kamera)
+    site: Optional[str] = None
+    building: Optional[str] = None
+    floor: Optional[str] = None
+    zone: Optional[str] = None
 
     def activate(self) -> None:
         self.status = CameraStatus.ACTIVE

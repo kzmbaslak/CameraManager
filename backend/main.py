@@ -30,6 +30,7 @@ from src.infrastructure.database.database import (
     engine,
     ensure_alarm_operation_columns,
     ensure_camera_ai_settings_columns,
+    ensure_camera_location_columns,
     ensure_camera_stream_metrics_table,
     ensure_device_password_rotation_columns,
 )
@@ -42,6 +43,7 @@ models.Base.metadata.create_all(bind=engine)
 ensure_camera_ai_settings_columns()
 ensure_alarm_operation_columns()
 ensure_device_password_rotation_columns()
+ensure_camera_location_columns()
 ensure_camera_stream_metrics_table()
 
 

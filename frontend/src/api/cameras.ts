@@ -11,6 +11,10 @@ export interface CameraUpdate {
   onvif_port?: number
   username?: string
   password?: string
+  site?: string | null
+  building?: string | null
+  floor?: string | null
+  zone?: string | null
   ai_confidence_threshold?: number
   ai_iou_threshold?: number
   ai_alarm_cooldown_seconds?: number

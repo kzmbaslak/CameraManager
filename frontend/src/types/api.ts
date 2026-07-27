@@ -33,6 +33,10 @@ export interface Camera {
   brand: string | null
   model: string | null
   nvr_id: number | null
+  site: string | null
+  building: string | null
+  floor: string | null
+  zone: string | null
   created_at: string | null
   updated_at: string | null
 }
@@ -48,6 +52,10 @@ export interface CameraCreate {
   password?: string
   brand?: string
   model?: string
+  site?: string | null
+  building?: string | null
+  floor?: string | null
+  zone?: string | null
   ai_confidence_threshold?: number
   ai_iou_threshold?: number
   ai_alarm_cooldown_seconds?: number

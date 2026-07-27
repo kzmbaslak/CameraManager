@@ -38,6 +38,10 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
             ai_alarm_cooldown_seconds=45,
             ai_frame_stride=2,
             ai_inference_width=512,
+            site="Central",
+            building="Block A",
+            floor="2",
+            zone="North Hall",
         ))
 
         loaded = self.repo.get_by_id(camera.id)
@@ -45,13 +49,19 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
         self.assertEqual(loaded.name, "Gate 1")
         self.assertEqual(loaded.ai_confidence_threshold, 0.62)
         self.assertEqual(loaded.ai_frame_stride, 2)
+        self.assertEqual(loaded.site, "Central")
+        self.assertEqual(loaded.building, "Block A")
+        self.assertEqual(loaded.floor, "2")
+        self.assertEqual(loaded.zone, "North Hall")
 
         loaded.ai_confidence_threshold = 0.78
         loaded.ai_frame_stride = 3
+        loaded.zone = "South Hall"
         updated = self.repo.update(loaded)
 
         self.assertEqual(updated.ai_confidence_threshold, 0.78)
         self.assertEqual(updated.ai_frame_stride, 3)
+        self.assertEqual(updated.zone, "South Hall")
 
     def test_paginated_search_status_and_ai_filters(self):
         self.repo.add(Camera(
@@ -61,6 +71,8 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
             rtsp_path="/main",
             status=CameraStatus.ACTIVE,
             ai_detection_enabled=True,
+            site="Campus",
+            building="Gatehouse",
         ))
         self.repo.add(Camera(
             id=None,
@@ -83,6 +95,18 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
         self.assertEqual(total, 1)
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0].name, "North Gate")
+
+        location_items, location_total = self.repo.list_paginated(
+            page=1,
+            page_size=10,
+            search="gatehouse",
+            status="all",
+            ai_filter="all",
+            sort="name_asc",
+        )
+
+        self.assertEqual(location_total, 1)
+        self.assertEqual(location_items[0].building, "Gatehouse")
 
 
 if __name__ == "__main__":

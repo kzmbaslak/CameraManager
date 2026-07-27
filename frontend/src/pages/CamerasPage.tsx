@@ -175,7 +175,7 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
-  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
+  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '' })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
@@ -184,7 +184,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'Kamera eklendi', description: form.name })
       onClose()
-      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false })
+      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '' })
       setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
@@ -263,6 +263,12 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
           <span>Seçili port çalışmazsa yaygın RTSP portlarını da dene: 554, 8554, 10554, 7070, 7777, 7778.</span>
         </label>
         <Input label="RTSP Path veya tam RTSP URL" placeholder="/videoStreamId=1 veya rtsp://192.168.1.100:554/stream1" value={form.rtsp_path ?? ''} onChange={(e) => set('rtsp_path', e.target.value)} />
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Saha" value={form.site ?? ''} onChange={(e) => set('site', e.target.value)} placeholder="Merkez" />
+          <Input label="Bina" value={form.building ?? ''} onChange={(e) => set('building', e.target.value)} placeholder="A Blok" />
+          <Input label="Kat" value={form.floor ?? ''} onChange={(e) => set('floor', e.target.value)} placeholder="Kat 2" />
+          <Input label="Bolge" value={form.zone ?? ''} onChange={(e) => set('zone', e.target.value)} placeholder="Kuzey koridor" />
+        </div>
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} error={fieldErrors.password} />
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
@@ -644,6 +650,10 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     ai_active_start: camera.ai_active_start ?? '',
     ai_active_end: camera.ai_active_end ?? '',
     ai_roi_polygon: camera.ai_roi_polygon ?? '',
+    site: camera.site ?? '',
+    building: camera.building ?? '',
+    floor: camera.floor ?? '',
+    zone: camera.zone ?? '',
   } : {})
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
@@ -746,6 +756,12 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
           <Input label="ONVIF Port" type="number" value={form.onvif_port ?? 80} onChange={(e) => setForm((f) => ({ ...f, onvif_port: Number(e.target.value) }))} error={fieldErrors.onvif_port} />
         </div>
         <Input label="RTSP Path" value={form.rtsp_path ?? ''} onChange={(e) => setForm((f) => ({ ...f, rtsp_path: e.target.value }))} />
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Saha" value={form.site ?? ''} onChange={(e) => setForm((f) => ({ ...f, site: e.target.value }))} />
+          <Input label="Bina" value={form.building ?? ''} onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))} />
+          <Input label="Kat" value={form.floor ?? ''} onChange={(e) => setForm((f) => ({ ...f, floor: e.target.value }))} />
+          <Input label="Bolge" value={form.zone ?? ''} onChange={(e) => setForm((f) => ({ ...f, zone: e.target.value }))} />
+        </div>
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
         <p className="text-xs text-[var(--text-secondary)]">
@@ -924,6 +940,10 @@ export function CamerasPage() {
         camera.rtsp_path,
         camera.brand ?? '',
         camera.model ?? '',
+        camera.site ?? '',
+        camera.building ?? '',
+        camera.floor ?? '',
+        camera.zone ?? '',
         camera.nvr_id ? `nvr ${camera.nvr_id}` : '',
       ].some((value) => value.toLowerCase().includes(needle))
       const matchesStatus = statusFilter === 'all' || camera.status === statusFilter
@@ -1022,6 +1042,14 @@ export function CamerasPage() {
     { key: 'host', header: 'Host', render: (c: Camera) => (
       <span className="font-mono text-xs text-[var(--text-secondary)]">{c.host}:{c.rtsp_port}</span>
     )},
+    { key: 'location', header: 'Konum', render: (c: Camera) => {
+      const location = [c.site, c.building, c.floor, c.zone].filter(Boolean).join(' / ')
+      return (
+        <span className="block max-w-[180px] truncate text-xs text-[var(--text-secondary)]" title={location || 'Konum girilmemis'}>
+          {location || '-'}
+        </span>
+      )
+    }},
     {
       key: 'password_rotation',
       header: 'Sifre',

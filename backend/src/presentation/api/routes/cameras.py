@@ -305,6 +305,10 @@ async def add_camera(
             encrypted_password=password,
             brand=brand,
             model=model,
+            site=camera_data.site,
+            building=camera_data.building,
+            floor=camera_data.floor,
+            zone=camera_data.zone,
             ai_confidence_threshold=camera_data.ai_confidence_threshold,
             ai_iou_threshold=camera_data.ai_iou_threshold,
             ai_alarm_cooldown_seconds=camera_data.ai_alarm_cooldown_seconds,
@@ -324,6 +328,10 @@ async def add_camera(
             metadata={
                 "camera_id": camera.id,
                 "host": camera.host,
+                "site": camera.site,
+                "building": camera.building,
+                "floor": camera.floor,
+                "zone": camera.zone,
                 "password_configured": bool(password),
                 "password_updated_at": camera.password_updated_at.isoformat() + "Z" if camera.password_updated_at else None,
             },
@@ -571,6 +579,14 @@ async def update_camera(
         camera.onvif_port = data.onvif_port
     if data.username is not None:
         camera.username = data.username
+    if data.site is not None:
+        camera.site = data.site
+    if data.building is not None:
+        camera.building = data.building
+    if data.floor is not None:
+        camera.floor = data.floor
+    if data.zone is not None:
+        camera.zone = data.zone
     ai_settings_changed = False
     if data.ai_confidence_threshold is not None:
         camera.ai_confidence_threshold = data.ai_confidence_threshold
@@ -613,6 +629,10 @@ async def update_camera(
             "connection_changed": connection_changed,
             "ai_settings_changed": ai_settings_changed,
             "password_rotated": password_rotated,
+            "site": updated_camera.site,
+            "building": updated_camera.building,
+            "floor": updated_camera.floor,
+            "zone": updated_camera.zone,
             "password_updated_at": updated_camera.password_updated_at.isoformat() + "Z" if updated_camera.password_updated_at else None,
         },
     )

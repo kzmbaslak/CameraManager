@@ -53,6 +53,10 @@ class CameraCreate(BaseModel):
     password: Optional[str] = Field(default=None, max_length=256)
     brand: Optional[str] = Field(default=None, max_length=120)
     model: Optional[str] = Field(default=None, max_length=120)
+    site: Optional[str] = Field(default=None, max_length=120)
+    building: Optional[str] = Field(default=None, max_length=120)
+    floor: Optional[str] = Field(default=None, max_length=80)
+    zone: Optional[str] = Field(default=None, max_length=120)
     ai_confidence_threshold: float = Field(default=0.5, ge=0.05, le=0.95)
     ai_iou_threshold: float = Field(default=0.45, ge=0.05, le=0.95)
     ai_alarm_cooldown_seconds: int = Field(default=60, ge=5, le=3600)
@@ -98,6 +102,10 @@ class CameraUpdate(BaseModel):
     onvif_port: Optional[int] = None
     username: Optional[str] = Field(default=None, max_length=128)
     password: Optional[str] = Field(default=None, max_length=256)
+    site: Optional[str] = Field(default=None, max_length=120)
+    building: Optional[str] = Field(default=None, max_length=120)
+    floor: Optional[str] = Field(default=None, max_length=80)
+    zone: Optional[str] = Field(default=None, max_length=120)
     ai_confidence_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
     ai_iou_threshold: Optional[float] = Field(default=None, ge=0.05, le=0.95)
     ai_alarm_cooldown_seconds: Optional[int] = Field(default=None, ge=5, le=3600)
@@ -159,6 +167,10 @@ class CameraResponse(BaseModel):
     brand: Optional[str] = None
     model: Optional[str] = None
     nvr_id: Optional[int] = None
+    site: Optional[str] = None
+    building: Optional[str] = None
+    floor: Optional[str] = None
+    zone: Optional[str] = None
 
     class Config:
         from_attributes = True

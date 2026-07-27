@@ -28,6 +28,10 @@ class CameraUseCases:
         nvr_id: Optional[int] = None,
         brand: Optional[str] = None,
         model: Optional[str] = None,
+        site: Optional[str] = None,
+        building: Optional[str] = None,
+        floor: Optional[str] = None,
+        zone: Optional[str] = None,
         ai_confidence_threshold: float = 0.5,
         ai_iou_threshold: float = 0.45,
         ai_alarm_cooldown_seconds: int = 60,
@@ -92,6 +96,10 @@ class CameraUseCases:
                 existing.brand = brand
             if model is not None:
                 existing.model = model
+            existing.site = site
+            existing.building = building
+            existing.floor = floor
+            existing.zone = zone
             return self.camera_repository.update(existing)
 
         camera = Camera(
@@ -108,6 +116,10 @@ class CameraUseCases:
             nvr_id=nvr_id,
             brand=brand,
             model=model,
+            site=site,
+            building=building,
+            floor=floor,
+            zone=zone,
             ai_confidence_threshold=ai_confidence_threshold,
             ai_iou_threshold=ai_iou_threshold,
             ai_alarm_cooldown_seconds=ai_alarm_cooldown_seconds,
@@ -196,6 +208,10 @@ class CameraUseCases:
             nvr_id = cam.get("nvr_id")
             brand = cam.get("brand")
             model = cam.get("model")
+            site = cam.get("site")
+            building = cam.get("building")
+            floor = cam.get("floor")
+            zone = cam.get("zone")
             
             if not name or not host:
                 continue
@@ -219,6 +235,10 @@ class CameraUseCases:
                         existing.brand = brand
                     if model is not None:
                         existing.model = model
+                    existing.site = site
+                    existing.building = building
+                    existing.floor = floor
+                    existing.zone = zone
                     added = self.camera_repository.update(existing)
                     added_cameras.append(added)
                 else:
@@ -235,6 +255,10 @@ class CameraUseCases:
                         status=CameraStatus.INACTIVE,
                         brand=brand,
                         model=model,
+                        site=site,
+                        building=building,
+                        floor=floor,
+                        zone=zone,
                     )
                     added = self.camera_repository.add(camera)
                     existing_standalone[standalone_key] = added
@@ -256,6 +280,10 @@ class CameraUseCases:
                         existing.brand = brand
                     if model is not None:
                         existing.model = model
+                    existing.site = site
+                    existing.building = building
+                    existing.floor = floor
+                    existing.zone = zone
                     added = self.camera_repository.update(existing)
                     added_cameras.append(added)
                 else:
@@ -273,6 +301,10 @@ class CameraUseCases:
                         nvr_id=nvr_id,
                         brand=brand,
                         model=model,
+                        site=site,
+                        building=building,
+                        floor=floor,
+                        zone=zone,
                     )
                     added = self.camera_repository.add(camera)
                     existing_nvr[nvr_key] = added
