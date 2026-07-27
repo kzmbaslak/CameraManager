@@ -82,6 +82,10 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `AUDIT_WEBHOOK_TIMEOUT_SECONDS` | Audit webhook gönderim zaman aşımı |
 | `BACKUP_RETENTION_DAYS` | Otomatik yedek arşivlerinin saklanacağı gün sayısı |
 | `BACKUP_KEEP_LATEST` | Retention süresi dolsa bile tutulacak en yeni otomatik yedek sayısı |
+| `ALARM_REPORT_WINDOW_HOURS` | Zamanlanmış alarm raporunun geriye dönük saat penceresi |
+| `ALARM_REPORT_LIMIT` | Alarm raporunda üretilecek maksimum satır sayısı |
+| `ALARM_REPORT_RETENTION_DAYS` | Alarm raporu dosyalarının saklanacağı gün sayısı |
+| `ALARM_REPORT_KEEP_LATEST` | Retention süresi dolsa bile tutulacak en yeni alarm raporu dosyası sayısı |
 
 ### 4. Veritabanını Hazırla
 
@@ -132,6 +136,28 @@ Geri yükleme mevcut dosyaların üstüne yazar; uygulama kapalıyken ve yalnız
 
 ```bash
 venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --force
+```
+
+### 4.2. Alarm Operasyon Raporları
+
+Son 24 saatin alarm detay CSV'si ve yönetici özet JSON dosyasını üretmek için:
+
+```bash
+venv\Scripts\python scripts\export_alarm_report.py
+```
+
+Farklı bir zaman penceresi veya açık tarih aralığı için:
+
+```bash
+venv\Scripts\python scripts\export_alarm_report.py --hours 72
+venv\Scripts\python scripts\export_alarm_report.py --since 2026-07-27T00:00:00 --until 2026-07-28T00:00:00
+```
+
+Windows Görev Zamanlayıcı ile her gün otomatik alarm raporu almak için repo kökünden:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-alarm-report-task.ps1 -At 03:15 -WindowHours 24 -RetentionDays 180 -KeepLatest 30
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-alarm-report-task.ps1
 ```
 
 ### 5. Sunucuyu Başlat

@@ -34,6 +34,28 @@ scripts\run-prod.bat
 
 ---
 
+## Windows Görevleri
+
+Backend servis, sistem yedeği ve alarm operasyon raporu Windows Görev Zamanlayıcı ile kurulabilir:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-service.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-backup-task.ps1 -At 03:00
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-alarm-report-task.ps1 -At 03:15
+```
+
+Kurulumu etkilemeden komutları doğrulamak için aynı scriptlere `-ValidateOnly` eklenebilir.
+
+Kaldırma:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-service.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-backup-task.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-alarm-report-task.ps1
+```
+
+---
+
 ## API Endpoints
 
 Sunucu başladıktan sonra:
