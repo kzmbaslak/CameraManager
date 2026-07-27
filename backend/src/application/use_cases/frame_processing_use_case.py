@@ -16,6 +16,7 @@ from src.domain.interfaces.ai_inference_service import Detection, IAIInferenceSe
 from src.domain.interfaces.alarm_repository import IAlarmRepository
 from src.domain.interfaces.camera_repository import ICameraRepository
 from src.domain.interfaces.frame_source import IFrameSource
+from src.infrastructure.time_utils import utc_now
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,7 @@ class ProcessFrameUseCase:
         """Belirtilen kamera ve alarm turu icin cooldown suresini kontrol eder."""
         key = (camera_id, alarm_type)
         if key in self._last_alarms:
-            time_since_last = datetime.utcnow() - self._last_alarms[key]
+            time_since_last = utc_now() - self._last_alarms[key]
             if time_since_last < timedelta(seconds=self.cooldown_seconds):
                 return True
         return False
@@ -91,7 +92,7 @@ class ProcessFrameUseCase:
 
     def _save_alarm_snapshots(self, frame: object, camera_id: int, detections: Tuple[Detection, ...]) -> tuple[str, str, str, str]:
         """Ham ve kutulu kanit goruntulerini diske kaydeder; yollar ve SHA-256 ozetlerini dondurur."""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
         raw_path = os.path.join(self.snapshot_dir, f"cam_{camera_id}_{timestamp}_raw.jpg")
         annotated_path = os.path.join(self.snapshot_dir, f"cam_{camera_id}_{timestamp}_boxed.jpg")
 
@@ -204,7 +205,7 @@ class ProcessFrameUseCase:
             if self.alarm_repository is not None:
                 for alarm in self.alarm_repository.list_by_camera(camera.id):
                     if alarm.alarm_type == AlarmType.CAMERA_OFFLINE and alarm.status != AlarmStatus.RESOLVED:
-                        alarm.resolve(datetime.utcnow())
+                        alarm.resolve(utc_now())
                         self.alarm_repository.update(alarm)
 
         return frame
@@ -218,7 +219,7 @@ class ProcessFrameUseCase:
             frame_width = int(frame.shape[1])
 
         saved_alarm = None
-        detected_at = datetime.utcnow()
+        detected_at = utc_now()
         if not self._is_ai_schedule_active(camera):
             return DetectionAnalysisResult(
                 alarm=None,

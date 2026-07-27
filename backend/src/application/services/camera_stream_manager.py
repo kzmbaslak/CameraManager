@@ -12,6 +12,7 @@ import cv2
 
 from src.domain.entities.alarm import AlarmType
 from src.domain.entities.camera import CameraStatus
+from src.infrastructure.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +272,7 @@ class CameraStreamManager:
             self._stop_flags[camera_id] = False
             return
         self._stop_flags[camera_id] = False
-        self._producer_started_at[camera_id] = datetime.utcnow()
+        self._producer_started_at[camera_id] = utc_now()
         self._producer_started_at_monotonic[camera_id] = time.monotonic()
         self._producer_start_counts[camera_id] = self._producer_start_counts.get(camera_id, 0) + 1
         self._producers[camera_id] = asyncio.create_task(

@@ -59,6 +59,7 @@ from src.infrastructure.camera.camera_scanner import (
 from src.infrastructure.system_metrics import get_host_resource_metrics
 from src.infrastructure.security.jwt_service import create_stream_token
 from src.infrastructure.security.audit_logger import write_audit_event
+from src.infrastructure.time_utils import utc_now
 
 router = APIRouter(prefix="/cameras", tags=["Cameras"])
 
@@ -109,7 +110,7 @@ def _camera_health_level(
     if latest_reachable is None or latest_checked_at is None:
         return "unknown", "Saglik olcumu bekleniyor."
 
-    age_seconds = (datetime.utcnow() - latest_checked_at).total_seconds()
+    age_seconds = (utc_now() - latest_checked_at).total_seconds()
     if age_seconds > 120:
         return "warning", f"Son saglik olcumu {int(age_seconds)} saniye once."
 
@@ -701,7 +702,7 @@ async def diagnose_camera_stream(
         stream_metric_repo.add(CameraStreamMetric(
             id=None,
             camera_id=camera_id,
-            sampled_at=datetime.utcnow(),
+            sampled_at=utc_now(),
             producer_running=payload["producer_running"],
             subscriber_count=payload["subscriber_count"],
             current_broadcast_fps=payload["current_broadcast_fps"],

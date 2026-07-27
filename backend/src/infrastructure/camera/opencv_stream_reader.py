@@ -18,6 +18,7 @@ import numpy as np
 
 from src.domain.entities.camera import Camera
 from src.domain.interfaces.frame_source import IFrameSource
+from src.infrastructure.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -196,11 +197,11 @@ class OpenCVStreamReader(IFrameSource):
     def _mark_open_failure(self, camera_id: int) -> None:
         telemetry = self._ensure_telemetry(camera_id)
         telemetry["open_failures"] += 1
-        telemetry["last_failure_at"] = datetime.utcnow()
+        telemetry["last_failure_at"] = utc_now()
 
     def _mark_success(self, camera_id: int) -> None:
         telemetry = self._ensure_telemetry(camera_id)
-        now = datetime.utcnow()
+        now = utc_now()
         telemetry["last_success_at"] = now
         telemetry["last_frame_at"] = now
 
@@ -360,7 +361,7 @@ class OpenCVStreamReader(IFrameSource):
 
         profile = self._select_warmup_profile(camera)
         telemetry = self._ensure_telemetry(camera.id)
-        now = datetime.utcnow()
+        now = utc_now()
         last_frame_at = telemetry.get("last_frame_at")
         last_success_at = telemetry.get("last_success_at")
         last_failure_at = telemetry.get("last_failure_at")

@@ -13,6 +13,8 @@ import time
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
+from src.infrastructure.time_utils import utc_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -138,7 +140,7 @@ class CameraHealthChecker:
 
             for camera in cameras:
                 reachable, latency_ms, failure_reason = self._ping(camera.host, camera.rtsp_port)
-                now = datetime.utcnow()
+                now = utc_now()
                 if health_repo is not None:
                     from src.domain.entities.camera_health import CameraHealthSample
 
