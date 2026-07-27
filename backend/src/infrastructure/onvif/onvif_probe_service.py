@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Sequence
 from urllib.parse import unquote, urlparse
 
@@ -124,7 +125,77 @@ class ONVIFProbeService(ICameraProbeService):
 
         return results
 
+    def ptz_move(
+        self,
+        host: str,
+        onvif_port: int,
+        username: str,
+        password: str,
+        direction: str,
+        speed: float = 0.5,
+        duration_ms: int = 400,
+    ) -> dict:
+        """Kameraya kisa sureli ONVIF PTZ hareket komutu gonderir ve ardindan durdurur."""
+        cam = self._connect(host, onvif_port, username, password)
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profiles_data = self._to_dict(cam, media.GetProfiles())
+        profiles = profiles_data.get("Profiles", [])
+        if isinstance(profiles, dict):
+            profiles = [profiles]
+        if not profiles:
+            raise RuntimeError("ONVIF medya profili bulunamadi.")
+
+        profile = profiles[0]
+        profile_token = profile.get("token") or profile.get("@token")
+        if not profile_token:
+            raise RuntimeError("PTZ icin profil token bulunamadi.")
+
+        if direction == "stop":
+            self._ptz_stop(ptz, profile_token)
+            return {"profile_token": profile_token, "stopped": True}
+
+        velocity = self._ptz_velocity(direction, speed)
+        ptz.ContinuousMove({"ProfileToken": profile_token, "Velocity": velocity})
+        time.sleep(max(0.05, min(duration_ms, 2000) / 1000))
+        self._ptz_stop(ptz, profile_token)
+        return {"profile_token": profile_token, "stopped": True}
+
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _ptz_velocity(direction: str, speed: float) -> dict:
+        """Operator yonunu ONVIF ContinuousMove velocity nesnesine cevirir."""
+        safe_speed = max(0.05, min(float(speed), 1.0))
+        vectors = {
+            "up": (0.0, safe_speed, 0.0),
+            "down": (0.0, -safe_speed, 0.0),
+            "left": (-safe_speed, 0.0, 0.0),
+            "right": (safe_speed, 0.0, 0.0),
+            "up_left": (-safe_speed, safe_speed, 0.0),
+            "up_right": (safe_speed, safe_speed, 0.0),
+            "down_left": (-safe_speed, -safe_speed, 0.0),
+            "down_right": (safe_speed, -safe_speed, 0.0),
+            "zoom_in": (0.0, 0.0, safe_speed),
+            "zoom_out": (0.0, 0.0, -safe_speed),
+        }
+        if direction not in vectors:
+            raise ValueError("Desteklenmeyen PTZ yonu.")
+        pan, tilt, zoom = vectors[direction]
+        velocity: dict[str, dict[str, float]] = {}
+        if pan or tilt:
+            velocity["PanTilt"] = {"x": pan, "y": tilt}
+        if zoom:
+            velocity["Zoom"] = {"x": zoom}
+        return velocity
+
+    @staticmethod
+    def _ptz_stop(ptz, profile_token: str) -> None:
+        """PTZ hareketini desteklenen cihazlarda durdurur."""
+        try:
+            ptz.Stop({"ProfileToken": profile_token, "PanTilt": True, "Zoom": True})
+        except Exception as exc:
+            logger.debug(f"PTZ stop komutu basarisiz: {exc}")
 
     @staticmethod
     def _profile_media_details(profile: dict) -> dict:

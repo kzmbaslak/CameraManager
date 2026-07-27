@@ -25,6 +25,8 @@ from src.presentation.api.dependencies import (
     get_camera_manage_user,
     get_current_user,
     get_live_view_user,
+    get_password_service,
+    get_ptz_control_user,
     frame_source,
 )
 from src.application.use_cases.camera_use_cases import CameraUseCases
@@ -38,6 +40,8 @@ from src.presentation.api.schemas.camera_schema import (
     CameraOnvifPreviewRequest,
     CameraOnvifPreviewResponse,
     CameraPageResponse,
+    CameraPtzMoveRequest,
+    CameraPtzMoveResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
     CameraHealthListItemResponse,
@@ -58,6 +62,7 @@ from src.infrastructure.camera.camera_scanner import (
 )
 from src.infrastructure.system_metrics import get_host_resource_metrics
 from src.infrastructure.security.jwt_service import create_stream_token
+from src.infrastructure.security.password_service import PasswordEncryptionService
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.infrastructure.time_utils import utc_now
 
@@ -406,6 +411,71 @@ async def preview_camera_rtsp(
         username=data.username if data.username is not None else (camera.username if camera else "") or "",
         password=password or "",
         nvr_id=camera.nvr_id if camera else None,
+    )
+
+
+@router.post("/{camera_id}/ptz/move", response_model=CameraPtzMoveResponse)
+async def move_camera_ptz(
+    camera_id: int,
+    data: CameraPtzMoveRequest,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    password_svc: PasswordEncryptionService = Depends(get_password_service),
+    current_user: dict = Depends(get_ptz_control_user),
+):
+    """Kayitli kameraya kisa sureli ONVIF PTZ hareket komutu gonderir."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    password = ""
+    if camera.encrypted_password:
+        try:
+            password = password_svc.decrypt(camera.encrypted_password)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Kamera sifresi cozumlenemedi.") from exc
+
+    try:
+        result = await asyncio.to_thread(
+            probe_svc.ptz_move,
+            camera.host,
+            camera.onvif_port,
+            camera.username or "",
+            password,
+            data.direction,
+            data.speed,
+            data.duration_ms,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        write_audit_event(
+            "camera.ptz.move_failed",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"camera_id": camera_id, "direction": data.direction, "error": str(exc)[:200]},
+        )
+        raise HTTPException(status_code=502, detail=f"PTZ komutu basarisiz: {exc}") from exc
+
+    write_audit_event(
+        "camera.ptz.move",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "camera_id": camera_id,
+            "direction": data.direction,
+            "speed": data.speed,
+            "duration_ms": data.duration_ms,
+            "profile_token": result.get("profile_token"),
+        },
+    )
+    return CameraPtzMoveResponse(
+        camera_id=camera_id,
+        ok=True,
+        direction=data.direction,
+        profile_token=result.get("profile_token"),
+        message="PTZ komutu gonderildi.",
     )
 
 

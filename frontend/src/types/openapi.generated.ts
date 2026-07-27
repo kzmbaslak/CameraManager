@@ -142,6 +142,11 @@ export const openApiOperations = [
     "operationId": "diagnose_camera_stream_api_cameras__camera_id__diagnostics_stream_get"
   },
   {
+    "method": "post",
+    "path": "/api/cameras/{camera_id}/ptz/move",
+    "operationId": "move_camera_ptz_api_cameras__camera_id__ptz_move_post"
+  },
+  {
     "method": "patch",
     "path": "/api/cameras/{camera_id}/status",
     "operationId": "update_camera_status_api_cameras__camera_id__status_patch"
@@ -309,6 +314,7 @@ export type OpenApiPath =
   | "/api/cameras/{camera_id}/diagnostics/rtsp"
   | "/api/cameras/{camera_id}/diagnostics/stream-history"
   | "/api/cameras/{camera_id}/diagnostics/stream"
+  | "/api/cameras/{camera_id}/ptz/move"
   | "/api/cameras/{camera_id}/status"
   | "/api/cameras/{camera_id}/stream-token"
   | "/api/cameras/bulk-add"
@@ -368,6 +374,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/rtsp"; operationId: "diagnose_camera_rtsp_api_cameras__camera_id__diagnostics_rtsp_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream-history"; operationId: "diagnose_camera_stream_history_api_cameras__camera_id__diagnostics_stream_history_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream"; operationId: "diagnose_camera_stream_api_cameras__camera_id__diagnostics_stream_get" }
+  | { method: "post"; path: "/api/cameras/{camera_id}/ptz/move"; operationId: "move_camera_ptz_api_cameras__camera_id__ptz_move_post" }
   | { method: "patch"; path: "/api/cameras/{camera_id}/status"; operationId: "update_camera_status_api_cameras__camera_id__status_patch" }
   | { method: "get"; path: "/api/cameras/{camera_id}/stream-token"; operationId: "create_camera_stream_token_api_cameras__camera_id__stream_token_get" }
   | { method: "post"; path: "/api/cameras/bulk-add"; operationId: "bulk_add_cameras_api_cameras_bulk_add_post" }

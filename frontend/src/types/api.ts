@@ -300,6 +300,33 @@ export interface CameraRtspDiagnostics {
   message: string
 }
 
+export type CameraPtzDirection =
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'up_left'
+  | 'up_right'
+  | 'down_left'
+  | 'down_right'
+  | 'zoom_in'
+  | 'zoom_out'
+  | 'stop'
+
+export interface CameraPtzMoveRequest {
+  direction: CameraPtzDirection
+  speed?: number
+  duration_ms?: number
+}
+
+export interface CameraPtzMoveResponse {
+  camera_id: number
+  ok: boolean
+  direction: CameraPtzDirection
+  profile_token: string | null
+  message: string
+}
+
 export interface CameraRtspPreviewRequest {
   camera_id?: number
   name?: string

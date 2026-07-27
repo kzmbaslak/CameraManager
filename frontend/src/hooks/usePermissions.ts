@@ -16,6 +16,8 @@ interface Permissions {
   canOperateAlarms: boolean
   /** Kanit ve rapor disa aktarma */
   canExportEvidence: boolean
+  /** PTZ kamera hareket kontrolu */
+  canControlPtz: boolean
   /** Mevcut rol */
   role: string | null
   isAdmin: boolean
@@ -45,6 +47,7 @@ export function usePermissions(): Permissions {
     canAcknowledgeAlarms: isAdmin || isOperator,
     canOperateAlarms: isAdmin || isOperator,
     canExportEvidence: isAdmin || isOperator,
+    canControlPtz: isAdmin || isOperator,
     role,
     isAdmin,
     isOperator,

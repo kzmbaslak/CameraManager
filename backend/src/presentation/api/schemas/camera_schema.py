@@ -3,7 +3,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -281,6 +281,36 @@ class CameraOnvifPreviewResponse(BaseModel):
     analytics_supported: bool = False
     first_stream_uri_masked: Optional[str] = None
     profiles: list[CameraOnvifProfileInfo] = Field(default_factory=list)
+    message: str
+
+
+class CameraPtzMoveRequest(BaseModel):
+    """Kayitli kamera icin kisa sureli ONVIF PTZ hareket istegi."""
+
+    direction: Literal[
+        "up",
+        "down",
+        "left",
+        "right",
+        "up_left",
+        "up_right",
+        "down_left",
+        "down_right",
+        "zoom_in",
+        "zoom_out",
+        "stop",
+    ]
+    speed: float = Field(default=0.5, ge=0.05, le=1.0)
+    duration_ms: int = Field(default=400, ge=50, le=2000)
+
+
+class CameraPtzMoveResponse(BaseModel):
+    """PTZ hareket komutu sonucu."""
+
+    camera_id: int
+    ok: bool
+    direction: str
+    profile_token: Optional[str] = None
     message: str
 
 

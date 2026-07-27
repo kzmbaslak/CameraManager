@@ -21,6 +21,7 @@ class RbacPermissionTests(unittest.TestCase):
             "evidence.export",
             "live.view",
             "nvr.manage",
+            "ptz.control",
             "security.status",
             "user.manage",
             "alarm.operate",
@@ -32,6 +33,7 @@ class RbacPermissionTests(unittest.TestCase):
         self.assertIn("camera.manage", permissions)
         self.assertIn("evidence.export", permissions)
         self.assertIn("alarm.operate", permissions)
+        self.assertIn("ptz.control", permissions)
         self.assertNotIn("user.manage", permissions)
         self.assertNotIn("audit.read", permissions)
         self.assertNotIn("backup.manage", permissions)

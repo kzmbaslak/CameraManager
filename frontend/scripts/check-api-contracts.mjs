@@ -32,7 +32,9 @@ function assertMatches(source, pattern, label) {
 }
 
 const alarmsApi = read('src/api/alarms.ts')
+const camerasApi = read('src/api/cameras.ts')
 const camerasPage = read('src/pages/CamerasPage.tsx')
+const cameraFullscreenModal = read('src/components/camera/CameraFullscreenModal.tsx')
 const frontendApiTypes = read('src/types/api.ts')
 const alarmsPage = read('src/pages/AlarmsPage.tsx')
 const permissionsHook = read('src/hooks/usePermissions.ts')
@@ -44,6 +46,7 @@ const backendDependencies = read('../backend/src/presentation/api/dependencies.p
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
 assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoint')
+assertContains(camerasApi, '/ptz/move', 'camera PTZ move endpoint')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
@@ -67,6 +70,9 @@ assertContains(backendCameraSchema, 'site: Optional[str]', 'backend camera locat
 assertContains(backendCameraSchema, 'building: Optional[str]', 'backend camera location building schema')
 assertContains(frontendApiTypes, 'site: string | null', 'frontend camera location site type')
 assertContains(camerasPage, "key: 'location'", 'camera list location column')
+assertContains(frontendApiTypes, 'CameraPtzDirection', 'frontend PTZ direction type')
+assertContains(cameraFullscreenModal, 'canControlPtz', 'frontend PTZ permission gate')
+assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/move', 'generated OpenAPI PTZ move path')
 
 assertMatches(
   backendAlarmRoutes,
@@ -82,6 +88,11 @@ assertMatches(
   backendDependencies,
   /"operator":\s*{[\s\S]*"camera\.manage"[\s\S]*"evidence\.export"[\s\S]*"alarm\.operate"[\s\S]*}/,
   'backend operator permission contract',
+)
+assertMatches(
+  backendDependencies,
+  /"operator":\s*{[\s\S]*"ptz\.control"[\s\S]*}/,
+  'backend operator PTZ permission contract',
 )
 assertMatches(
   backendDependencies,

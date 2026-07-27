@@ -1,15 +1,19 @@
 // Fullscreen live camera modal with alarm actions.
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, CheckCircle, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle, Minus, Plus, Square, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { camerasApi } from '../../api/cameras'
 import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
+import { usePermissions } from '../../hooks/usePermissions'
 import { useAlarmStore } from '../../stores/alarmStore'
+import { useToastStore } from '../../stores/toastStore'
+import { getApiErrorMessage } from '../../utils/apiError'
 import { Button } from '../ui/Button'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { CameraCard } from './CameraCard'
+import type { CameraPtzDirection } from '../../types/api'
 
 type FullscreenLayout = 1 | 4 | 9
 
@@ -43,6 +47,8 @@ export function CameraFullscreenModal() {
     muteSoundFor,
   } = useAlarmStore()
   const qc = useQueryClient()
+  const { canControlPtz } = usePermissions()
+  const showToast = useToastStore((state) => state.showToast)
   const videoRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 960, h: 540 })
   const [layout, setLayout] = useState<FullscreenLayout>(1)
@@ -82,6 +88,21 @@ export function CameraFullscreenModal() {
       setExpandedCamera(null)
     },
   })
+
+  const ptzMove = useMutation({
+    mutationFn: (direction: CameraPtzDirection) =>
+      camerasApi.ptzMove(expandedCameraId as number, { direction, speed: 0.45, duration_ms: 350 }),
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'PTZ komutu gonderilemedi',
+      description: getApiErrorMessage(err, 'ONVIF PTZ baglantisini ve kamera yetkisini kontrol edin.'),
+    }),
+  })
+
+  const sendPtz = (direction: CameraPtzDirection) => {
+    if (!expandedCameraId || ptzMove.isPending) return
+    ptzMove.mutate(direction)
+  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -222,6 +243,33 @@ export function CameraFullscreenModal() {
                     )}
                   </div>
                 </motion.div>
+              )}
+              {camera && canControlPtz && (
+                <div className="absolute bottom-4 right-4 grid grid-cols-3 gap-1 rounded-md border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur">
+                  <span />
+                  <button type="button" aria-label="PTZ yukari" title="PTZ yukari" disabled={ptzMove.isPending} onClick={() => sendPtz('up')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <ArrowUp size={17} />
+                  </button>
+                  <button type="button" aria-label="PTZ yakinlastir" title="PTZ yakinlastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_in')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <Plus size={17} />
+                  </button>
+                  <button type="button" aria-label="PTZ sola" title="PTZ sola" disabled={ptzMove.isPending} onClick={() => sendPtz('left')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <ArrowLeft size={17} />
+                  </button>
+                  <button type="button" aria-label="PTZ durdur" title="PTZ durdur" disabled={ptzMove.isPending} onClick={() => sendPtz('stop')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <Square size={15} />
+                  </button>
+                  <button type="button" aria-label="PTZ saga" title="PTZ saga" disabled={ptzMove.isPending} onClick={() => sendPtz('right')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <ArrowRight size={17} />
+                  </button>
+                  <span />
+                  <button type="button" aria-label="PTZ asagi" title="PTZ asagi" disabled={ptzMove.isPending} onClick={() => sendPtz('down')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <ArrowDown size={17} />
+                  </button>
+                  <button type="button" aria-label="PTZ uzaklastir" title="PTZ uzaklastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_out')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                    <Minus size={17} />
+                  </button>
+                </div>
               )}
             </div>
             ) : (

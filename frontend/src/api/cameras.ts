@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -106,6 +106,12 @@ export const camerasApi = {
   /** Kaydetmeden formdaki ONVIF baglantisini ve stream profillerini test eder. */
   previewOnvif: async (payload: CameraOnvifPreviewRequest): Promise<CameraOnvifPreviewResponse> => {
     const { data } = await client.post<CameraOnvifPreviewResponse>('/cameras/diagnostics/onvif-preview', payload)
+    return data
+  },
+
+  /** Kayitli kameraya kisa sureli ONVIF PTZ hareket komutu gonderir. */
+  ptzMove: async (id: number, payload: CameraPtzMoveRequest): Promise<CameraPtzMoveResponse> => {
+    const { data } = await client.post<CameraPtzMoveResponse>(`/cameras/${id}/ptz/move`, payload)
     return data
   },
 

@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: ONVIF PTZ ilk fazi eklendi. `POST /api/cameras/{id}/ptz/move`, admin/operator icin `ptz.control` izniyle kisa sureli pan/tilt/zoom/stop komutlari gonderir, her komutu audit log'a yazar ve tam ekran canli kamera modalinda ikonlu PTZ kontrol paneli sunar.
 - 2026-07-27: Kamera konum modeli ilk fazi eklendi. Kamera domain/model/schema/repository zinciri saha, bina, kat ve bolge alanlarini saklar; eski SQLite kurulumlari idempotent kolon ekleme ile guncellenir. Kamera ekleme/duzenleme formlari ve kamera arama/tablosu konum bilgisini kullanir.
 - 2026-07-27: Alarm kanit manifest endpoint'i eklendi. `GET /api/alarms/{id}/evidence-manifest`, ham/kutulu snapshot dosya yolunu sizdirmeden dosya adi, boyut, SHA-256, varyant ve alarm metadata'sini dondurur; Alarmlar detay panelinden JSON manifest indirilebilir ve export audit log'a yazilir.
 - 2026-07-27: Frontend OpenAPI tip uretimi eklendi. `npm run generate:api-types`, backend OpenAPI schema'sindan `src/types/openapi.generated.ts` dosyasini uretir; `npm run test:contracts` bu dosyanin backend sozlesmesine gore stale olmadigini kontrol eder.
