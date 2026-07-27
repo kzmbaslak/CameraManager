@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
@@ -6,6 +6,11 @@ from .database import Base
 from src.domain.entities.camera import CameraStatus
 from src.domain.entities.user import UserRole
 from src.domain.entities.alarm import AlarmStatus, AlarmType
+
+
+def utc_now() -> datetime:
+    """Timezone-aware UTC timestamp uretir."""
+    return datetime.now(timezone.utc)
 
 
 class NVRModel(Base):
@@ -21,8 +26,8 @@ class NVRModel(Base):
     brand = Column(String, nullable=True)
     model = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     cameras = relationship("CameraModel", back_populates="nvr")
 
@@ -50,8 +55,8 @@ class CameraModel(Base):
     ai_active_start = Column(String, nullable=True)
     ai_active_end = Column(String, nullable=True)
     ai_roi_polygon = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     brand = Column(String, nullable=True)
     model = Column(String, nullable=True)
     nvr_id = Column(Integer, ForeignKey("nvrs.id", ondelete="SET NULL"), nullable=True)
@@ -68,8 +73,8 @@ class UserModel(Base):
     password_hash = Column(String)
     role = Column(Enum(UserRole), default=UserRole.VIEWER)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class AlarmModel(Base):
@@ -97,7 +102,7 @@ class AlarmModel(Base):
     operator_note = Column(String, nullable=True)
     resolution_reason = Column(String, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     acknowledged_at = Column(DateTime, nullable=True)
     resolved_at = Column(DateTime, nullable=True)
 
@@ -109,7 +114,7 @@ class CameraHealthSampleModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
-    checked_at = Column(DateTime, default=datetime.utcnow, index=True)
+    checked_at = Column(DateTime, default=utc_now, index=True)
     reachable = Column(Boolean, default=False)
     status = Column(String, default="unknown")
     latency_ms = Column(Float, nullable=True)
@@ -121,7 +126,7 @@ class CameraStreamMetricModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
-    sampled_at = Column(DateTime, default=datetime.utcnow, index=True)
+    sampled_at = Column(DateTime, default=utc_now, index=True)
     producer_running = Column(Boolean, default=False)
     subscriber_count = Column(Integer, default=0)
     current_broadcast_fps = Column(Float, nullable=True)
