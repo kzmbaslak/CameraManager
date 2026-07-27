@@ -162,6 +162,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-alarm-report
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\uninstall-alarm-report-task.ps1
 ```
 
+### 4.3. API Sozlesmesi
+
+FastAPI OpenAPI sozlesmesini sunucuyu baslatmadan kontrol etmek icin:
+
+```bash
+venv\Scripts\python scripts\export_openapi.py
+```
+
+JSON dosyasi uretmek icin:
+
+```bash
+venv\Scripts\python scripts\export_openapi.py --output openapi.json
+```
+
 ### 5. Sunucuyu Başlat
 
 ```bash

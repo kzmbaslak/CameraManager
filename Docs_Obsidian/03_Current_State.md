@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: Backend OpenAPI export script'i eklendi. `venv\Scripts\python scripts\export_openapi.py` sunucuyu baslatmadan sozlesme ozetini verir; `--output openapi.json` ile JSON schema uretir.
 - 2026-07-27: Threshold onerisi uygulama audit'i kamera bazli degisim gecmisiyle genisletildi. `alarm.threshold_suggestions.apply` metadata'si artik uygulanan her kamera icin eski/yeni confidence esigi, ornek sayisi ve yanlis alarm oranini saklar; `npm run test:contracts` bu sozlesmeyi statik olarak denetler.
 - 2026-07-27: Frontend/API sozlesme kalite kapisi eklendi. `npm run test:contracts`, alarm threshold read/apply endpoint'lerinin frontend API'de ve backend route izinlerinde hizali kaldigini, operator/viewer RBAC kontratini ve frontend permission flag'lerini statik olarak dogrular.
 - 2026-07-27: UTC zaman standardi stream/AI runtime hattina genisletildi. Frame processing cooldown/snapshot/alarm zamanlari, stream producer baslangici, health checker sample zamani, OpenCV RTSP telemetry zamanlari ve camera stream diagnostics metric sample zamani `utc_now()` kullanir; kalan `datetime.now()` yalnizca kamera AI aktif saatinin lokal saat semantigi icin bilincli olarak korunur.
