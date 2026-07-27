@@ -12,7 +12,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Toggle } from '../components/ui/Toggle'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useAuthStore } from '../stores/authStore'
-import type { Alarm, Camera, CameraStreamDiagnostics, SecurityPosture } from '../types/api'
+import type { Alarm, Camera, CameraStreamDiagnostics, CameraStreamMetricSummary, SecurityPosture } from '../types/api'
 
 const DASHBOARD_GRID_KEY = 'dashboard-grid'
 const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
@@ -96,6 +96,10 @@ function Kbd({ children }: { children: string }) {
     </kbd>
   )
 }
+
+const averageNumber = (values: number[]) => (
+  values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+)
 
 interface StatusCardProps {
   icon: React.ReactNode
@@ -255,11 +259,13 @@ function OperatorAssistPanel({
   newAlarmCount,
   watchedCount,
   health,
+  streamTrends,
   security,
 }: {
   newAlarmCount: number
   watchedCount: number
   health: CameraStreamDiagnostics[]
+  streamTrends: CameraStreamMetricSummary[]
   security: SecurityPosture | null
 }) {
   const runningCount = health.filter((item) => item.producer_running).length
@@ -267,11 +273,29 @@ function OperatorAssistPanel({
   const aiBusyCount = health.filter((item) => item.ai_task_running).length
   const hostCpu = health.find((item) => item.host_cpu_load_percent !== null)?.host_cpu_load_percent ?? null
   const hostMemory = health.find((item) => item.host_memory_used_percent !== null)?.host_memory_used_percent ?? null
+  const averageFps = averageNumber(
+    streamTrends
+      .map((item) => item.average_broadcast_fps)
+      .filter((value): value is number => value !== null),
+  )
+  const minimumFps = averageNumber(
+    streamTrends
+      .map((item) => item.minimum_broadcast_fps)
+      .filter((value): value is number => value !== null),
+  )
+  const trendReconnects = streamTrends.reduce((sum, item) => sum + item.total_reconnects, 0)
+  const trendOpenFailures = streamTrends.reduce((sum, item) => sum + item.total_open_failures, 0)
+  const capacityWarning =
+    (hostCpu !== null && hostCpu >= 85) ||
+    (hostMemory !== null && hostMemory >= 90) ||
+    (minimumFps !== null && minimumFps < 2) ||
+    trendOpenFailures > 0 ||
+    trendReconnects >= 3
   const setupMissingCount = security?.setup_checks.filter((check) => !check.ok).length ?? 0
   const overduePasswordCount = security?.overdue_device_password_count ?? 0
 
   return (
-    <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-3">
+    <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-4">
       <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
         <Activity size={18} className={newAlarmCount > 0 ? 'text-danger' : 'text-success'} />
         <div className="min-w-0">
@@ -297,6 +321,18 @@ function OperatorAssistPanel({
       </div>
 
       <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
+        <Gauge size={18} className={capacityWarning ? 'text-warning' : 'text-success'} />
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-text-secondary">Kapasite Trendi</p>
+          <p className="truncate text-sm text-text-primary">
+            {streamTrends.length > 0
+              ? `FPS ort ${averageFps === null ? '-' : averageFps.toFixed(1)} | min ${minimumFps === null ? '-' : minimumFps.toFixed(1)} | reconnect ${trendReconnects} | hata ${trendOpenFailures}`
+              : 'Trend verisi toplaniyor'}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2">
         <ShieldCheck size={18} className={security?.status === 'hardened' ? 'text-success' : 'text-warning'} />
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-text-secondary">Guvenlik Kontrolu</p>
@@ -311,7 +347,7 @@ function OperatorAssistPanel({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2 lg:col-span-3">
+      <div className="flex items-center gap-3 rounded-md border border-border bg-bg-secondary px-3 py-2 lg:col-span-4">
         <MapPinned size={18} className="text-accent" />
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
           <span>Olay akisi: kamera kartina tikla, kutulu canli goruntuyu ac.</span>
@@ -419,9 +455,20 @@ export function DashboardPage() {
       refetchInterval: 15_000,
     })),
   })
+  const streamTrendQueries = useQueries({
+    queries: watchedCameras.slice(0, 8).map((camera) => ({
+      queryKey: ['camera-stream-history', camera.id, 'dashboard'],
+      queryFn: () => camerasApi.diagnoseStreamHistory(camera.id, 60),
+      enabled: camera.status === 'active',
+      refetchInterval: 60_000,
+    })),
+  })
   const health = healthQueries
     .map((query) => query.data)
     .filter((item): item is CameraStreamDiagnostics => Boolean(item))
+  const streamTrends = streamTrendQueries
+    .map((query) => query.data)
+    .filter((item): item is CameraStreamMetricSummary => Boolean(item))
 
   function handleToggle(camera: Camera) {
     const isWatched = camera.status !== 'inactive'
@@ -556,6 +603,7 @@ export function DashboardPage() {
           newAlarmCount={newAlarms.length}
           watchedCount={watchedCameras.length}
           health={health}
+          streamTrends={streamTrends}
           security={securityPosture}
         />
       )}
