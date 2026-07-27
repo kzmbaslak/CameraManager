@@ -51,6 +51,7 @@ stream_manager = CameraStreamManager(
     db_session_factory=SessionLocal,
     camera_repository_factory=SqlAlchemyCameraRepository,
     alarm_repository_factory=SqlAlchemyAlarmRepository,
+    recording_repository_factory=SqlAlchemyRecordingSegmentRepository,
     frame_source_factory=lambda: OpenCVStreamReader(password_service=password_service),
 )
 nvr_probe_service = ONVIFProbeService()

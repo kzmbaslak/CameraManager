@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +14,8 @@ import cv2
 
 from src.domain.entities.alarm import AlarmType
 from src.domain.entities.camera import CameraStatus
+from src.domain.entities.recording_segment import RecordingSegment
+from src.infrastructure.recording.retention import recording_storage_dir
 from src.infrastructure.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
@@ -47,6 +51,7 @@ class CameraStreamManager:
         db_session_factory=None,
         camera_repository_factory=None,
         alarm_repository_factory=None,
+        recording_repository_factory=None,
         frame_source_factory=None,
         ai_interval: float = 0.5,
         display_fps: float = 15.0,
@@ -57,6 +62,7 @@ class CameraStreamManager:
         self._db_session_factory = db_session_factory
         self._camera_repository_factory = camera_repository_factory
         self._alarm_repository_factory = alarm_repository_factory
+        self._recording_repository_factory = recording_repository_factory
         self._frame_source_factory = frame_source_factory
         self._ai_interval = ai_interval
         self._frame_interval = 1.0 / display_fps
@@ -78,6 +84,7 @@ class CameraStreamManager:
         self._ai_frame_stride_cache: Dict[int, int] = {}
         self._ai_frame_counters: Dict[int, int] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
+        self._recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
         self._last_ai_inference_ms: Dict[int, float] = {}
         self._avg_ai_inference_ms: Dict[int, float] = {}
         self._idle_grace_seconds = 10.0
@@ -103,6 +110,11 @@ class CameraStreamManager:
         if self._alarm_repository_factory is None:
             raise RuntimeError("CameraStreamManager alarm_repository_factory yapılandırılmamış.")
         return self._alarm_repository_factory(db)
+
+    def _recording_repo(self, db):
+        if self._recording_repository_factory is None:
+            raise RuntimeError("CameraStreamManager recording_repository_factory yapilandirilmamis.")
+        return self._recording_repository_factory(db)
 
     # ------------------------------------------------------------------
     # İzleyici (subscriber) yönetimi — WebSocket bağlantıları buradan akar
@@ -301,6 +313,7 @@ class CameraStreamManager:
                     break
 
                 if frame is not None:
+                    self._append_recording_frame(camera_id, frame)
                     ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                     if ret:
                         self._broadcast(camera_id, {
@@ -377,6 +390,12 @@ class CameraStreamManager:
                         **detection_payload,
                     })
                 if alarm:
+                    clip_frames = self._recording_clip_frames(camera_id)
+                    if clip_frames:
+                        await loop.run_in_executor(
+                            self._executor,
+                            lambda: self._save_event_recording_clip_sync(camera_id, alarm.id, clip_frames),
+                        )
                     logger.info(
                         f"[StreamManager] Kamera {camera_id} — insan tespiti! "
                         f"Güven: %{int(alarm.confidence * 100)}, Alarm ID: {alarm.id}"
@@ -432,6 +451,90 @@ class CameraStreamManager:
                 q.put_nowait(message)
             except asyncio.QueueFull:
                 pass
+
+    def _event_clip_seconds(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_EVENT_CLIP_SECONDS", "6") or "6")
+        except ValueError:
+            value = 6.0
+        return min(max(value, 1.0), 30.0)
+
+    def _event_clip_fps(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_EVENT_CLIP_FPS", "6") or "6")
+        except ValueError:
+            value = 6.0
+        return min(max(value, 1.0), 15.0)
+
+    def _append_recording_frame(self, camera_id: int, frame) -> None:
+        now = time.monotonic()
+        buffer = self._recording_buffers.setdefault(camera_id, deque())
+        buffer.append((now, frame.copy()))
+        cutoff = now - self._event_clip_seconds()
+        while buffer and buffer[0][0] < cutoff:
+            buffer.popleft()
+
+    def _recording_clip_frames(self, camera_id: int) -> list:
+        cached = self._recording_buffers.get(camera_id)
+        if not cached:
+            return []
+        cutoff = time.monotonic() - self._event_clip_seconds()
+        return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
+
+    def _save_event_recording_clip_sync(self, camera_id: int, alarm_id: int, frames: list) -> None:
+        if not frames:
+            return
+        storage_dir = recording_storage_dir() / f"cam_{camera_id}"
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        created_at = utc_now()
+        output_path = storage_dir / f"alarm_{alarm_id}_{created_at.strftime('%Y%m%d_%H%M%S')}.mp4"
+        height, width = frames[0].shape[:2]
+        fps = self._event_clip_fps()
+        writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+        if not writer.isOpened():
+            logger.warning(f"[Recording] Kamera {camera_id} event clip yazici acilamadi: {output_path.name}")
+            return
+        written = 0
+        try:
+            for frame in frames:
+                if frame.shape[:2] != (height, width):
+                    frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+                writer.write(frame)
+                written += 1
+        finally:
+            writer.release()
+        if written == 0 or not output_path.exists():
+            return
+        db = self._open_db()
+        try:
+            repo = self._recording_repo(db)
+            repo.add(RecordingSegment(
+                id=None,
+                camera_id=camera_id,
+                started_at=created_at,
+                ended_at=utc_now(),
+                recording_type="event",
+                status="complete",
+                file_path=str(output_path),
+                file_sha256=self._file_sha256(output_path),
+                size_bytes=output_path.stat().st_size,
+                codec="mp4v",
+                width=width,
+                height=height,
+                fps=fps,
+                alarm_id=alarm_id,
+                created_at=created_at,
+            ))
+        finally:
+            db.close()
+
+    @staticmethod
+    def _file_sha256(path) -> str:
+        digest = hashlib.sha256()
+        with open(path, "rb") as file:
+            for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     def _mark_frame_broadcast(self, camera_id: int) -> None:
         """Son yayinlanan kare zamanlarini kisa pencere FPS hesabi icin tutar."""
