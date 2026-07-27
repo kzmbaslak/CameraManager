@@ -32,10 +32,13 @@ function assertMatches(source, pattern, label) {
 }
 
 const alarmsApi = read('src/api/alarms.ts')
+const camerasPage = read('src/pages/CamerasPage.tsx')
+const frontendApiTypes = read('src/types/api.ts')
 const alarmsPage = read('src/pages/AlarmsPage.tsx')
 const permissionsHook = read('src/hooks/usePermissions.ts')
 const generatedOpenApiTypes = read('src/types/openapi.generated.ts')
 const backendAlarmRoutes = read('../backend/src/presentation/api/routes/alarms.py')
+const backendCameraSchema = read('../backend/src/presentation/api/schemas/camera_schema.py')
 const backendDependencies = read('../backend/src/presentation/api/dependencies.py')
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
@@ -60,6 +63,10 @@ assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions', 'gene
 assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions/apply', 'generated OpenAPI threshold apply path')
 assertContains(generatedOpenApiTypes, '/api/alarms/{alarm_id}/evidence-manifest', 'generated OpenAPI evidence manifest path')
 assertContains(generatedOpenApiTypes, 'export type OpenApiOperation', 'generated OpenAPI operation union')
+assertContains(backendCameraSchema, 'site: Optional[str]', 'backend camera location site schema')
+assertContains(backendCameraSchema, 'building: Optional[str]', 'backend camera location building schema')
+assertContains(frontendApiTypes, 'site: string | null', 'frontend camera location site type')
+assertContains(camerasPage, "key: 'location'", 'camera list location column')
 
 assertMatches(
   backendAlarmRoutes,
