@@ -1,10 +1,15 @@
 """API ana router'i, saglik ve guvenlik durusu endpoint'leri."""
 
 import os
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Response
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
+from src.infrastructure.database.database import get_db
+from src.infrastructure.database.models import CameraModel, NVRModel
 from src.infrastructure.setup.preflight import collect_setup_checks
 from src.infrastructure.security.runtime_config import require_camera_encryption_key, require_jwt_secret
 from src.presentation.api.dependencies import get_current_user, get_role_permissions, get_security_status_user
@@ -53,7 +58,10 @@ def readiness_check(response: Response):
 
 
 @router.get("/security/posture")
-def security_posture(current_user: dict = Depends(get_security_status_user)):
+def security_posture(
+    current_user: dict = Depends(get_security_status_user),
+    db: Session = Depends(get_db),
+):
     """Uygulamanin temel guvenlik durusunu operator icin ozetler."""
     findings = []
     cors_origins = [
@@ -111,6 +119,52 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
     if not app_log_rotation_configured:
         findings.append({"severity": "medium", "message": "APP_LOG_DIR ve APP_LOG_BACKUP_COUNT ile uygulama log rotasyonu tanimlanmali."})
 
+    try:
+        device_password_rotation_days = int(os.environ.get("DEVICE_PASSWORD_ROTATION_DAYS", "90") or "90")
+    except ValueError:
+        device_password_rotation_days = 90
+        findings.append({"severity": "medium", "message": "DEVICE_PASSWORD_ROTATION_DAYS sayisal olmali."})
+    device_password_rotation_days = min(max(device_password_rotation_days, 30), 365)
+    password_cutoff = datetime.utcnow() - timedelta(days=device_password_rotation_days)
+    camera_password_filter = CameraModel.encrypted_password.isnot(None) & (CameraModel.encrypted_password != "")
+    nvr_password_filter = NVRModel.encrypted_password.isnot(None) & (NVRModel.encrypted_password != "")
+    camera_password_device_count = db.query(CameraModel).filter(camera_password_filter).count()
+    nvr_password_device_count = db.query(NVRModel).filter(nvr_password_filter).count()
+    overdue_camera_password_count = (
+        db.query(CameraModel)
+        .filter(camera_password_filter)
+        .filter(or_(CameraModel.password_updated_at.is_(None), CameraModel.password_updated_at < password_cutoff))
+        .count()
+    )
+    overdue_nvr_password_count = (
+        db.query(NVRModel)
+        .filter(nvr_password_filter)
+        .filter(or_(NVRModel.password_updated_at.is_(None), NVRModel.password_updated_at < password_cutoff))
+        .count()
+    )
+    missing_camera_rotation_count = (
+        db.query(CameraModel)
+        .filter(camera_password_filter)
+        .filter(CameraModel.password_updated_at.is_(None))
+        .count()
+    )
+    missing_nvr_rotation_count = (
+        db.query(NVRModel)
+        .filter(nvr_password_filter)
+        .filter(NVRModel.password_updated_at.is_(None))
+        .count()
+    )
+    overdue_device_password_count = overdue_camera_password_count + overdue_nvr_password_count
+    missing_device_password_rotation_count = missing_camera_rotation_count + missing_nvr_rotation_count
+    if overdue_device_password_count > 0:
+        findings.append({
+            "severity": "high",
+            "message": (
+                f"{overdue_device_password_count} kamera/NVR parolasi "
+                f"{device_password_rotation_days} gunluk rotasyon politikasini asti."
+            ),
+        })
+
     audit_webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
     audit_webhook_configured = False
     if audit_webhook_url:
@@ -142,6 +196,13 @@ def security_posture(current_user: dict = Depends(get_security_status_user)):
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,
+        "device_password_rotation_days": device_password_rotation_days,
+        "device_password_rotation_compliant": overdue_device_password_count == 0,
+        "device_password_total_count": camera_password_device_count + nvr_password_device_count,
+        "overdue_device_password_count": overdue_device_password_count,
+        "missing_device_password_rotation_count": missing_device_password_rotation_count,
+        "overdue_camera_password_count": overdue_camera_password_count,
+        "overdue_nvr_password_count": overdue_nvr_password_count,
         "security_headers_enabled": True,
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,

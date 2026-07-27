@@ -69,6 +69,7 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `INITIAL_ADMIN_PASSWORD` | İlk kurulumda DB boşsa oluşturulacak admin şifresi |
 | `CORS_ALLOWED_ORIGINS` | Virgülle ayrılmış izinli frontend origin listesi |
 | `TRUSTED_HOSTS` | Virgülle ayrılmış izinli HTTP Host/DNS/IP listesi |
+| `DEVICE_PASSWORD_ROTATION_DAYS` | Kamera/NVR parolaları için zorunlu rotasyon günü; güvenlik duruşu geciken cihazları raporlar |
 | `APP_LOG_LEVEL` | Uygulama log seviyesi (`INFO`, `WARNING`, `ERROR` vb.) |
 | `APP_LOG_FORMAT` | Uygulama log formatı: `text` veya SIEM uyumlu tek satır `json` |
 | `APP_LOG_DIR` | `application.log` dosyasının yazılacağı klasör; göreli değerler backend köküne göre çözülür |

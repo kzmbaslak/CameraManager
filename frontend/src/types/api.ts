@@ -389,6 +389,13 @@ export interface SecurityPosture {
   app_log_rotation_configured: boolean
   app_log_json_format: boolean
   app_log_sensitive_query_masking: boolean
+  device_password_rotation_days: number
+  device_password_rotation_compliant: boolean
+  device_password_total_count: number
+  overdue_device_password_count: number
+  missing_device_password_rotation_count: number
+  overdue_camera_password_count: number
+  overdue_nvr_password_count: number
   security_headers_enabled: boolean
   content_security_policy_enabled: boolean
   setup_checks: SetupCheck[]

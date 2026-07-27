@@ -247,6 +247,7 @@ function OperatorAssistPanel({
   const hostCpu = health.find((item) => item.host_cpu_load_percent !== null)?.host_cpu_load_percent ?? null
   const hostMemory = health.find((item) => item.host_memory_used_percent !== null)?.host_memory_used_percent ?? null
   const setupMissingCount = security?.setup_checks.filter((check) => !check.ok).length ?? 0
+  const overduePasswordCount = security?.overdue_device_password_count ?? 0
 
   return (
     <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-3">
@@ -284,6 +285,7 @@ function OperatorAssistPanel({
                 ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · host ${security.trusted_hosts_configured ? 'sinirli' : 'acik'} · log ${security.app_log_rotation_configured ? 'rotasyon' : 'eksik'}`
                 : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · log ${security.app_log_json_format ? 'JSON' : 'text'} · maske ${security.app_log_sensitive_query_masking ? 'aktif' : 'eksik'}`
               : 'Guvenlik durusu okunuyor'}
+            {security ? ` · parola ${overduePasswordCount > 0 ? `${overduePasswordCount} gecikmis` : `${security.device_password_rotation_days} gun uygun`}` : ''}
           </p>
         </div>
       </div>
