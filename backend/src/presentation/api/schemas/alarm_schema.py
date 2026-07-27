@@ -50,6 +50,18 @@ class AlarmTrainingFeedbackItem(BaseModel):
     snapshot_annotated_sha256: Optional[str] = None
 
 
+class AlarmThresholdSuggestionItem(BaseModel):
+    """Kamera bazli yanlis alarm ve confidence esigi onerisi."""
+
+    camera_id: int
+    sample_count: int
+    false_positive_count: int
+    false_positive_rate: float
+    average_confidence: Optional[float] = None
+    suggested_confidence_threshold: Optional[float] = None
+    recommendation: str
+
+
 class AlarmUpdate(BaseModel):
     """Alarm operasyon alanlarini kismi olarak gunceller."""
 

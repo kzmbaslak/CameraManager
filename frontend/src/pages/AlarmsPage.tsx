@@ -1,7 +1,7 @@
 // Alarm yönetimi sayfası — filtreleme (kamera, tip, durum, tarih), listeleme, onaylama
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Download, Filter, Play, RotateCcw, X } from 'lucide-react'
+import { CheckCircle, Download, Filter, Play, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
@@ -11,7 +11,14 @@ import { usePermissions } from '../hooks/usePermissions'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import type { Alarm, AlarmSeverity, AlarmStatus, AlarmTrainingFeedbackItem, AlarmType } from '../types/api'
+import type {
+  Alarm,
+  AlarmSeverity,
+  AlarmStatus,
+  AlarmThresholdSuggestionItem,
+  AlarmTrainingFeedbackItem,
+  AlarmType,
+} from '../types/api'
 import dayjs from 'dayjs'
 
 // ────────────────────────────────────────────
@@ -62,6 +69,9 @@ const optionLabel = <T extends string>(options: { value: T | 'all'; label: strin
 
 const severityLabel = (value: AlarmSeverity) =>
   SEVERITY_OPTIONS.find((item) => item.value === value)?.label ?? value
+
+const percentLabel = (value: number | null) =>
+  value == null ? '-' : `${Math.round(value * 100)}%`
 
 const csvCell = (value: unknown) => {
   const text = value == null ? '' : String(value)
@@ -512,6 +522,7 @@ export function AlarmsPage() {
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
   const [dateRange, setDateRange] = useState<DateRange>('all')
   const [selectedAlarm, setSelectedAlarm] = useState<Alarm | null>(null)
+  const [thresholdSuggestionItems, setThresholdSuggestionItems] = useState<AlarmThresholdSuggestionItem[]>([])
   const { setExpandedCamera } = useAlarmStore()
   const showToast = useToastStore((state) => state.showToast)
   const qc = useQueryClient()
@@ -636,6 +647,19 @@ export function AlarmsPage() {
     mutationFn: () => alarmsApi.trainingFeedback({ limit: 5000, false_positive_only: true }),
   })
 
+  const thresholdSuggestions = useMutation({
+    mutationFn: () => alarmsApi.thresholdSuggestions({ limit: 5000, minimum_samples: 3 }),
+    onSuccess: (items) => {
+      setThresholdSuggestionItems(items)
+      if (items.length === 0) {
+        showToast({ variant: 'info', title: 'Threshold onerisi yok', description: 'Kamera bazli oneriler icin yeterli insan tespiti geri bildirimi yok.' })
+        return
+      }
+      showToast({ variant: 'success', title: 'Threshold onerileri hazir', description: `${items.length} kamera icin kalite onerisi listelendi.` })
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'Threshold onerisi alinamadi', description: getApiErrorMessage(err, 'Oneri verisi getirilemedi.') }),
+  })
+
   const cameraNameMap = Object.fromEntries(cameras.map((c) => [c.id, c.name]))
 
   const hasActiveFilter =
@@ -731,6 +755,17 @@ export function AlarmsPage() {
               AI Geri Bildirim
             </Button>
           )}
+          {canExportEvidence && (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<SlidersHorizontal size={14} />}
+              loading={thresholdSuggestions.isPending}
+              onClick={() => thresholdSuggestions.mutate()}
+            >
+              Threshold Onerileri
+            </Button>
+          )}
           {canAcknowledgeAlarms && filteredNewAlarmIds.length > 0 && (
             <Button
               size="sm"
@@ -780,6 +815,57 @@ export function AlarmsPage() {
           </p>
         </div>
       </div>
+
+      {thresholdSuggestionItems.length > 0 && (
+        <section className="rounded-md border border-border bg-bg-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-sm font-semibold text-text-primary">Threshold Onerileri</h2>
+              <p className="mt-0.5 text-xs text-text-secondary">
+                Yanlis alarm geri bildirimlerine gore kamera bazli confidence esigi
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<X size={14} />}
+              onClick={() => setThresholdSuggestionItems([])}
+            >
+              Kapat
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-bg-secondary">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Kamera</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Ornek</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Yanlis Alarm</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Ort. Guven</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Onerilen Esik</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-secondary">Aksiyon</th>
+                </tr>
+              </thead>
+              <tbody>
+                {thresholdSuggestionItems.slice(0, 8).map((item) => (
+                  <tr key={item.camera_id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-medium text-text-primary">
+                      {cameraNameMap[item.camera_id] ?? `Kamera #${item.camera_id}`}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{item.sample_count}</td>
+                    <td className="px-4 py-3 text-warning">
+                      {item.false_positive_count} / {percentLabel(item.false_positive_rate)}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{percentLabel(item.average_confidence)}</td>
+                    <td className="px-4 py-3 font-semibold text-text-primary">{percentLabel(item.suggested_confidence_threshold)}</td>
+                    <td className="max-w-xl px-4 py-3 text-text-secondary">{item.recommendation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* Tablo */}
       {isLoading ? (

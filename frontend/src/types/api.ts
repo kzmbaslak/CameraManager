@@ -111,6 +111,16 @@ export interface AlarmTrainingFeedbackItem {
   snapshot_annotated_sha256: string | null
 }
 
+export interface AlarmThresholdSuggestionItem {
+  camera_id: number
+  sample_count: number
+  false_positive_count: number
+  false_positive_rate: number
+  average_confidence: number | null
+  suggested_confidence_threshold: number | null
+  recommendation: string
+}
+
 export interface NVR {
   id: number
   name: string
