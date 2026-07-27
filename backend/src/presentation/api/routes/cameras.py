@@ -40,8 +40,11 @@ from src.presentation.api.schemas.camera_schema import (
     CameraOnvifPreviewRequest,
     CameraOnvifPreviewResponse,
     CameraPageResponse,
+    CameraPtzGotoPresetRequest,
+    CameraPtzGotoPresetResponse,
     CameraPtzMoveRequest,
     CameraPtzMoveResponse,
+    CameraPtzPresetListResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
     CameraHealthListItemResponse,
@@ -101,6 +104,16 @@ def _mask_rtsp_url(rtsp_url: str) -> str:
     netloc = f"{parsed.username}{password_part}@{host}{port}"
     suffix = f"?{parsed.query}" if parsed.query else ""
     return f"{parsed.scheme}://{netloc}{parsed.path}{suffix}"
+
+
+def _decrypt_camera_password(camera, password_svc: PasswordEncryptionService) -> str:
+    """Kayitli kamera sifresini route icinde loglamadan cozer."""
+    if not camera.encrypted_password:
+        return ""
+    try:
+        return password_svc.decrypt(camera.encrypted_password)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Kamera sifresi cozumlenemedi.") from exc
 
 
 def _camera_health_level(
@@ -429,12 +442,7 @@ async def move_camera_ptz(
     if not camera:
         raise HTTPException(status_code=404, detail="Kamera bulunamadi")
 
-    password = ""
-    if camera.encrypted_password:
-        try:
-            password = password_svc.decrypt(camera.encrypted_password)
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail="Kamera sifresi cozumlenemedi.") from exc
+    password = _decrypt_camera_password(camera, password_svc)
 
     try:
         result = await asyncio.to_thread(
@@ -476,6 +484,100 @@ async def move_camera_ptz(
         direction=data.direction,
         profile_token=result.get("profile_token"),
         message="PTZ komutu gonderildi.",
+    )
+
+
+@router.get("/{camera_id}/ptz/presets", response_model=CameraPtzPresetListResponse)
+async def list_camera_ptz_presets(
+    camera_id: int,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    password_svc: PasswordEncryptionService = Depends(get_password_service),
+    current_user: dict = Depends(get_ptz_control_user),
+):
+    """Kayitli kameranin ONVIF PTZ preset listesini dondurur."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+    password = _decrypt_camera_password(camera, password_svc)
+    try:
+        presets = await asyncio.to_thread(
+            probe_svc.get_ptz_presets,
+            camera.host,
+            camera.onvif_port,
+            camera.username or "",
+            password,
+        )
+    except Exception as exc:
+        write_audit_event(
+            "camera.ptz.presets_failed",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"camera_id": camera_id, "error": str(exc)[:200]},
+        )
+        raise HTTPException(status_code=502, detail=f"PTZ preset listesi alinamadi: {exc}") from exc
+
+    write_audit_event(
+        "camera.ptz.presets",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "preset_count": len(presets)},
+    )
+    return CameraPtzPresetListResponse(camera_id=camera_id, presets=presets)
+
+
+@router.post("/{camera_id}/ptz/presets/goto", response_model=CameraPtzGotoPresetResponse)
+async def goto_camera_ptz_preset(
+    camera_id: int,
+    data: CameraPtzGotoPresetRequest,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    password_svc: PasswordEncryptionService = Depends(get_password_service),
+    current_user: dict = Depends(get_ptz_control_user),
+):
+    """Kayitli kamerayi ONVIF PTZ preset pozisyonuna gonderir."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+    password = _decrypt_camera_password(camera, password_svc)
+    try:
+        result = await asyncio.to_thread(
+            probe_svc.goto_ptz_preset,
+            camera.host,
+            camera.onvif_port,
+            camera.username or "",
+            password,
+            data.preset_token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        write_audit_event(
+            "camera.ptz.goto_preset_failed",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"camera_id": camera_id, "preset_token": data.preset_token, "error": str(exc)[:200]},
+        )
+        raise HTTPException(status_code=502, detail=f"PTZ preset komutu basarisiz: {exc}") from exc
+
+    write_audit_event(
+        "camera.ptz.goto_preset",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "camera_id": camera_id,
+            "preset_token": data.preset_token,
+            "profile_token": result.get("profile_token"),
+        },
+    )
+    return CameraPtzGotoPresetResponse(
+        camera_id=camera_id,
+        ok=True,
+        preset_token=data.preset_token,
+        profile_token=result.get("profile_token"),
+        message="PTZ preset komutu gonderildi.",
     )
 
 

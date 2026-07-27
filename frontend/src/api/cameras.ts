@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -112,6 +112,20 @@ export const camerasApi = {
   /** Kayitli kameraya kisa sureli ONVIF PTZ hareket komutu gonderir. */
   ptzMove: async (id: number, payload: CameraPtzMoveRequest): Promise<CameraPtzMoveResponse> => {
     const { data } = await client.post<CameraPtzMoveResponse>(`/cameras/${id}/ptz/move`, payload)
+    return data
+  },
+
+  /** Kayitli kameranin ONVIF PTZ preset listesini alir. */
+  ptzPresets: async (id: number): Promise<CameraPtzPresetListResponse> => {
+    const { data } = await client.get<CameraPtzPresetListResponse>(`/cameras/${id}/ptz/presets`)
+    return data
+  },
+
+  /** Kamerayi ONVIF PTZ preset pozisyonuna gonderir. */
+  ptzGotoPreset: async (id: number, presetToken: string): Promise<CameraPtzGotoPresetResponse> => {
+    const { data } = await client.post<CameraPtzGotoPresetResponse>(`/cameras/${id}/ptz/presets/goto`, {
+      preset_token: presetToken,
+    })
     return data
   },
 

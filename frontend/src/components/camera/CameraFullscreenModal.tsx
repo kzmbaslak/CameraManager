@@ -52,6 +52,7 @@ export function CameraFullscreenModal() {
   const videoRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 960, h: 540 })
   const [layout, setLayout] = useState<FullscreenLayout>(1)
+  const [selectedPresetToken, setSelectedPresetToken] = useState('')
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -60,6 +61,16 @@ export function CameraFullscreenModal() {
   })
 
   const camera = cameras.find((c) => c.id === expandedCameraId) ?? null
+  const { data: ptzPresetData } = useQuery({
+    queryKey: ['camera-ptz-presets', expandedCameraId],
+    queryFn: () => camerasApi.ptzPresets(expandedCameraId as number),
+    enabled: expandedCameraId !== null && canControlPtz && layout === 1,
+    staleTime: 60_000,
+  })
+  const ptzPresets = ptzPresetData?.presets ?? []
+  const activePresetToken = ptzPresets.some((preset) => preset.token === selectedPresetToken)
+    ? selectedPresetToken
+    : ''
   const watchedCameras = cameras
     .filter((item) => item.id === expandedCameraId || item.status !== 'inactive')
     .sort((left, right) => {
@@ -99,9 +110,28 @@ export function CameraFullscreenModal() {
     }),
   })
 
+  const ptzGotoPreset = useMutation({
+    mutationFn: (presetToken: string) => camerasApi.ptzGotoPreset(expandedCameraId as number, presetToken),
+    onSuccess: () => showToast({
+      variant: 'success',
+      title: 'PTZ preset gonderildi',
+      description: 'Kamera secili preset pozisyonuna yonlendirildi.',
+    }),
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'PTZ preset gonderilemedi',
+      description: getApiErrorMessage(err, 'ONVIF preset listesini ve kamera yetkisini kontrol edin.'),
+    }),
+  })
+
   const sendPtz = (direction: CameraPtzDirection) => {
     if (!expandedCameraId || ptzMove.isPending) return
     ptzMove.mutate(direction)
+  }
+
+  const gotoPreset = () => {
+    if (!activePresetToken || !expandedCameraId || ptzGotoPreset.isPending) return
+    ptzGotoPreset.mutate(activePresetToken)
   }
 
   useEffect(() => {
@@ -245,30 +275,59 @@ export function CameraFullscreenModal() {
                 </motion.div>
               )}
               {camera && canControlPtz && (
-                <div className="absolute bottom-4 right-4 grid grid-cols-3 gap-1 rounded-md border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur">
-                  <span />
-                  <button type="button" aria-label="PTZ yukari" title="PTZ yukari" disabled={ptzMove.isPending} onClick={() => sendPtz('up')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <ArrowUp size={17} />
-                  </button>
-                  <button type="button" aria-label="PTZ yakinlastir" title="PTZ yakinlastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_in')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <Plus size={17} />
-                  </button>
-                  <button type="button" aria-label="PTZ sola" title="PTZ sola" disabled={ptzMove.isPending} onClick={() => sendPtz('left')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <ArrowLeft size={17} />
-                  </button>
-                  <button type="button" aria-label="PTZ durdur" title="PTZ durdur" disabled={ptzMove.isPending} onClick={() => sendPtz('stop')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <Square size={15} />
-                  </button>
-                  <button type="button" aria-label="PTZ saga" title="PTZ saga" disabled={ptzMove.isPending} onClick={() => sendPtz('right')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <ArrowRight size={17} />
-                  </button>
-                  <span />
-                  <button type="button" aria-label="PTZ asagi" title="PTZ asagi" disabled={ptzMove.isPending} onClick={() => sendPtz('down')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <ArrowDown size={17} />
-                  </button>
-                  <button type="button" aria-label="PTZ uzaklastir" title="PTZ uzaklastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_out')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
-                    <Minus size={17} />
-                  </button>
+                <div className="absolute bottom-4 right-4 flex w-44 flex-col gap-2 rounded-md border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur">
+                  <div className="grid grid-cols-3 gap-1">
+                    <span />
+                    <button type="button" aria-label="PTZ yukari" title="PTZ yukari" disabled={ptzMove.isPending} onClick={() => sendPtz('up')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <ArrowUp size={17} />
+                    </button>
+                    <button type="button" aria-label="PTZ yakinlastir" title="PTZ yakinlastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_in')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <Plus size={17} />
+                    </button>
+                    <button type="button" aria-label="PTZ sola" title="PTZ sola" disabled={ptzMove.isPending} onClick={() => sendPtz('left')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <ArrowLeft size={17} />
+                    </button>
+                    <button type="button" aria-label="PTZ durdur" title="PTZ durdur" disabled={ptzMove.isPending} onClick={() => sendPtz('stop')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <Square size={15} />
+                    </button>
+                    <button type="button" aria-label="PTZ saga" title="PTZ saga" disabled={ptzMove.isPending} onClick={() => sendPtz('right')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <ArrowRight size={17} />
+                    </button>
+                    <span />
+                    <button type="button" aria-label="PTZ asagi" title="PTZ asagi" disabled={ptzMove.isPending} onClick={() => sendPtz('down')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <ArrowDown size={17} />
+                    </button>
+                    <button type="button" aria-label="PTZ uzaklastir" title="PTZ uzaklastir" disabled={ptzMove.isPending} onClick={() => sendPtz('zoom_out')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">
+                      <Minus size={17} />
+                    </button>
+                  </div>
+                  {ptzPresets.length > 0 && (
+                    <div className="flex gap-1">
+                      <select
+                        aria-label="PTZ preset sec"
+                        value={activePresetToken}
+                        onChange={(event) => setSelectedPresetToken(event.target.value)}
+                        className="min-w-0 flex-1 rounded-md border border-white/15 bg-black/50 px-2 py-1 text-xs text-white outline-none focus:border-white/60"
+                      >
+                        <option value="">Preset</option>
+                        {ptzPresets.map((preset) => (
+                          <option key={preset.token} value={preset.token}>
+                            {preset.name || preset.token}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        aria-label="PTZ preset pozisyonuna git"
+                        title="PTZ preset pozisyonuna git"
+                        disabled={!activePresetToken || ptzGotoPreset.isPending}
+                        onClick={gotoPreset}
+                        className="rounded-md px-2 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                      >
+                        Git
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

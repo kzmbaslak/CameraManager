@@ -314,6 +314,37 @@ class CameraPtzMoveResponse(BaseModel):
     message: str
 
 
+class CameraPtzPresetItem(BaseModel):
+    """ONVIF PTZ preset ozeti."""
+
+    token: str
+    name: str
+    profile_token: Optional[str] = None
+
+
+class CameraPtzPresetListResponse(BaseModel):
+    """Kamera PTZ preset listesi."""
+
+    camera_id: int
+    presets: list[CameraPtzPresetItem]
+
+
+class CameraPtzGotoPresetRequest(BaseModel):
+    """Kamerayi kayitli PTZ preset pozisyonuna gonderir."""
+
+    preset_token: str = Field(min_length=1, max_length=256)
+
+
+class CameraPtzGotoPresetResponse(BaseModel):
+    """PTZ preset'e gitme komutu sonucu."""
+
+    camera_id: int
+    ok: bool
+    preset_token: str
+    profile_token: Optional[str] = None
+    message: str
+
+
 class CameraScanResult(BaseModel):
     """Kamera tarama sonucu."""
 

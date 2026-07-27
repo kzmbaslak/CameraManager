@@ -47,6 +47,8 @@ assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold sugg
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
 assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoint')
 assertContains(camerasApi, '/ptz/move', 'camera PTZ move endpoint')
+assertContains(camerasApi, '/ptz/presets', 'camera PTZ preset list endpoint')
+assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
@@ -71,8 +73,11 @@ assertContains(backendCameraSchema, 'building: Optional[str]', 'backend camera l
 assertContains(frontendApiTypes, 'site: string | null', 'frontend camera location site type')
 assertContains(camerasPage, "key: 'location'", 'camera list location column')
 assertContains(frontendApiTypes, 'CameraPtzDirection', 'frontend PTZ direction type')
+assertContains(frontendApiTypes, 'CameraPtzPresetItem', 'frontend PTZ preset type')
 assertContains(cameraFullscreenModal, 'canControlPtz', 'frontend PTZ permission gate')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/move', 'generated OpenAPI PTZ move path')
+assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets', 'generated OpenAPI PTZ preset path')
+assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto', 'generated OpenAPI PTZ goto preset path')
 
 assertMatches(
   backendAlarmRoutes,

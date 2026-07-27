@@ -327,6 +327,25 @@ export interface CameraPtzMoveResponse {
   message: string
 }
 
+export interface CameraPtzPresetItem {
+  token: string
+  name: string
+  profile_token: string | null
+}
+
+export interface CameraPtzPresetListResponse {
+  camera_id: number
+  presets: CameraPtzPresetItem[]
+}
+
+export interface CameraPtzGotoPresetResponse {
+  camera_id: number
+  ok: boolean
+  preset_token: string
+  profile_token: string | null
+  message: string
+}
+
 export interface CameraRtspPreviewRequest {
   camera_id?: number
   name?: string

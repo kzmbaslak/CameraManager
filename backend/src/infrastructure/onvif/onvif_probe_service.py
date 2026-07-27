@@ -139,17 +139,7 @@ class ONVIFProbeService(ICameraProbeService):
         cam = self._connect(host, onvif_port, username, password)
         media = cam.create_media_service()
         ptz = cam.create_ptz_service()
-        profiles_data = self._to_dict(cam, media.GetProfiles())
-        profiles = profiles_data.get("Profiles", [])
-        if isinstance(profiles, dict):
-            profiles = [profiles]
-        if not profiles:
-            raise RuntimeError("ONVIF medya profili bulunamadi.")
-
-        profile = profiles[0]
-        profile_token = profile.get("token") or profile.get("@token")
-        if not profile_token:
-            raise RuntimeError("PTZ icin profil token bulunamadi.")
+        profile_token = self._first_profile_token(cam, media)
 
         if direction == "stop":
             self._ptz_stop(ptz, profile_token)
@@ -161,7 +151,58 @@ class ONVIFProbeService(ICameraProbeService):
         self._ptz_stop(ptz, profile_token)
         return {"profile_token": profile_token, "stopped": True}
 
+    def get_ptz_presets(self, host: str, onvif_port: int, username: str, password: str) -> list[dict[str, str]]:
+        """Kameranin ONVIF PTZ preset listesini dondurur."""
+        cam = self._connect(host, onvif_port, username, password)
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profile_token = self._first_profile_token(cam, media)
+        raw_presets = ptz.GetPresets({"ProfileToken": profile_token})
+        presets_data = self._to_dict(cam, raw_presets)
+        presets = presets_data.get("Preset", presets_data.get("Presets", []))
+        if not presets and isinstance(raw_presets, (list, tuple)):
+            presets = [self._to_dict(cam, item) for item in raw_presets]
+        if isinstance(presets, dict):
+            presets = [presets]
+        return [
+            {
+                "token": str(preset.get("token") or preset.get("@token") or preset.get("Token") or ""),
+                "name": str(preset.get("Name") or preset.get("name") or preset.get("token") or preset.get("@token") or ""),
+                "profile_token": profile_token,
+            }
+            for preset in presets
+            if preset.get("token") or preset.get("@token") or preset.get("Token")
+        ]
+
+    def goto_ptz_preset(self, host: str, onvif_port: int, username: str, password: str, preset_token: str) -> dict:
+        """Kamerayi kayitli ONVIF PTZ preset pozisyonuna gonderir."""
+        if not preset_token.strip():
+            raise ValueError("Preset token gereklidir.")
+        cam = self._connect(host, onvif_port, username, password)
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profile_token = self._first_profile_token(cam, media)
+        ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": preset_token})
+        return {"profile_token": profile_token, "preset_token": preset_token}
+
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _first_profile_token(cam, media) -> str:
+        """PTZ komutlari icin ilk ONVIF medya profil token'ini dondurur."""
+        profiles_data = ONVIFProbeService._to_dict(cam, media.GetProfiles())
+        profiles = profiles_data.get("Profiles", [])
+        if not profiles and isinstance(profiles_data, list):
+            profiles = profiles_data
+        if isinstance(profiles, dict):
+            profiles = [profiles]
+        if not profiles:
+            raise RuntimeError("ONVIF medya profili bulunamadi.")
+        profile = profiles[0]
+        profile_token = profile.get("token") or profile.get("@token")
+        if not profile_token:
+            raise RuntimeError("PTZ icin profil token bulunamadi.")
+        return str(profile_token)
 
     @staticmethod
     def _ptz_velocity(direction: str, speed: float) -> dict:
