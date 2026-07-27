@@ -18,6 +18,7 @@ from src.application.services.camera_stream_manager import CameraStreamManager
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
 from src.infrastructure.security.audit_logger import write_audit_event
+from src.infrastructure.time_utils import utc_now
 from src.presentation.api.schemas.alarm_schema import (
     AlarmResolveRequest,
     AlarmResponse,
@@ -301,12 +302,11 @@ def acknowledge_alarm(
     current_user: dict = Depends(get_alarm_operate_user),
 ):
     """Bir alarmın onaylandığını (incelendiğini) işaretler."""
-    from datetime import datetime
     alarm = repo.get_by_id(alarm_id)
     if not alarm:
         raise HTTPException(status_code=404, detail="Alarm bulunamadı (Alarm not found)")
     
-    alarm.acknowledge(datetime.utcnow())
+    alarm.acknowledge(utc_now())
     updated = repo.update(alarm)
     write_audit_event(
         "alarm.acknowledge",
@@ -371,7 +371,7 @@ def resolve_alarm(
         raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
     alarm.resolution_reason = data.resolution_reason
     alarm.false_positive = data.false_positive
-    alarm.resolve(datetime.utcnow())
+    alarm.resolve(utc_now())
     updated = repo.update(alarm)
     write_audit_event(
         "alarm.resolve",
@@ -402,7 +402,7 @@ def mark_alarm_false_positive(
         raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
     alarm.false_positive = True
     alarm.resolution_reason = alarm.resolution_reason or "Yanlis alarm"
-    alarm.resolve(datetime.utcnow())
+    alarm.resolve(utc_now())
     updated = repo.update(alarm)
     write_audit_event(
         "alarm.false_positive",

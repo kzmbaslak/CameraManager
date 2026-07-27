@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: Backend UTC zaman uretimi icin `src.infrastructure.time_utils.utc_now()` ortak helper'i eklendi. JWT token expiry, SQLAlchemy model default tarihleri, auth rate-limit zamanlari, audit timestamp/rotasyon adi ve alarm onay/cozum zamanlari bu helper'a tasindi; Python 3.14 `datetime.utcnow()` uyarilari bu kapsamda giderildi.
 - 2026-07-27: Kamera repository SQLite integration testleri eklendi. `backend/tests/test_camera_repository_integration.py`, kamera ekle/getir/guncelle akisini AI ayarlariyla ve paginated search/status/AI filtrelerini in-memory SQLite uzerinde dogrular.
 - 2026-07-27: HTTP Bearer auth dependency regresyon testleri eklendi. `backend/tests/test_auth_dependencies.py`, Bearer token yok, gecersiz token, stream token'in access token yerine kullanilmasi ve gecerli viewer access token senaryolarini dogrular.
 - 2026-07-27: Backend RBAC izin matrisi icin regression unit testleri eklendi. `backend/tests/test_rbac_permissions.py`, admin izin kapsamÄ±nÄ±, operatorun camera.manage/evidence.export/alarm.operate yetkilerini ve viewer/unknown rol sinirlarini dogrular.

@@ -8,11 +8,11 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+from src.infrastructure.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def _rotate_audit_log_if_needed() -> None:
         return
     if os.path.getsize(AUDIT_LOG_PATH) < max_bytes:
         return
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp = utc_now().strftime("%Y%m%d-%H%M%S")
     archive_path = os.path.join(AUDIT_DIR, f"{AUDIT_ARCHIVE_PREFIX}{timestamp}{AUDIT_ARCHIVE_SUFFIX}")
     counter = 1
     while os.path.exists(archive_path):
@@ -158,7 +158,7 @@ def write_audit_event(
     """Audit olayını hassas veri içermeyecek şekilde dosyaya ekler."""
     os.makedirs(AUDIT_DIR, exist_ok=True)
     event = {
-        "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "timestamp": utc_now().isoformat(timespec="seconds").replace("+00:00", "Z"),
         "action": action,
         "actor": actor,
         "success": success,

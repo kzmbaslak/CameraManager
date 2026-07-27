@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
@@ -6,11 +5,7 @@ from .database import Base
 from src.domain.entities.camera import CameraStatus
 from src.domain.entities.user import UserRole
 from src.domain.entities.alarm import AlarmStatus, AlarmType
-
-
-def utc_now() -> datetime:
-    """Timezone-aware UTC timestamp uretir."""
-    return datetime.now(timezone.utc)
+from src.infrastructure.time_utils import utc_now
 
 
 class NVRModel(Base):

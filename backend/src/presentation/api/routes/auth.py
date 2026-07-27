@@ -18,6 +18,7 @@ from src.presentation.api.dependencies import get_user_repository, get_current_u
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
 from src.infrastructure.security.jwt_service import create_access_token
 from src.infrastructure.security.audit_logger import write_audit_event
+from src.infrastructure.time_utils import utc_now
 from src.presentation.api.schemas.auth_schema import LoginRequest, TokenResponse, ChangePasswordRequest
 
 router = APIRouter(prefix="/auth", tags=["Kimlik Doğrulama"])
@@ -36,7 +37,7 @@ def _rate_limit_key(request: Request, username: str) -> str:
 def _check_login_rate_limit(request: Request, username: str) -> None:
     """Kısa sürede çok fazla başarısız login denemesini engeller."""
     key = _rate_limit_key(request, username)
-    now = datetime.utcnow()
+    now = utc_now()
     attempts = _failed_logins[key]
     while attempts and now - attempts[0] > _FAILED_LOGIN_WINDOW:
         attempts.popleft()
@@ -49,7 +50,7 @@ def _check_login_rate_limit(request: Request, username: str) -> None:
 
 def _record_failed_login(request: Request, username: str) -> None:
     """Başarısız login denemesini rate-limit penceresine ekler."""
-    _failed_logins[_rate_limit_key(request, username)].append(datetime.utcnow())
+    _failed_logins[_rate_limit_key(request, username)].append(utc_now())
 
 
 def _clear_failed_logins(request: Request, username: str) -> None:
