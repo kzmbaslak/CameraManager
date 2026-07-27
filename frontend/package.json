@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "generate:api-types": "node scripts/generate-openapi-types.mjs",
     "lint": "eslint .",
     "test:a11y": "node scripts/check-a11y.mjs",
     "test:contracts": "node scripts/check-api-contracts.mjs",

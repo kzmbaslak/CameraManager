@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: Frontend OpenAPI tip uretimi eklendi. `npm run generate:api-types`, backend OpenAPI schema'sindan `src/types/openapi.generated.ts` dosyasini uretir; `npm run test:contracts` bu dosyanin backend sozlesmesine gore stale olmadigini kontrol eder.
 - 2026-07-27: Backend OpenAPI export script'i eklendi. `venv\Scripts\python scripts\export_openapi.py` sunucuyu baslatmadan sozlesme ozetini verir; `--output openapi.json` ile JSON schema uretir.
 - 2026-07-27: Threshold onerisi uygulama audit'i kamera bazli degisim gecmisiyle genisletildi. `alarm.threshold_suggestions.apply` metadata'si artik uygulanan her kamera icin eski/yeni confidence esigi, ornek sayisi ve yanlis alarm oranini saklar; `npm run test:contracts` bu sozlesmeyi statik olarak denetler.
 - 2026-07-27: Frontend/API sozlesme kalite kapisi eklendi. `npm run test:contracts`, alarm threshold read/apply endpoint'lerinin frontend API'de ve backend route izinlerinde hizali kaldigini, operator/viewer RBAC kontratini ve frontend permission flag'lerini statik olarak dogrular.

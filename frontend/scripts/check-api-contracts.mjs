@@ -1,7 +1,19 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 
 const root = process.cwd()
+
+const generatedTypesCheck = spawnSync(
+  'node',
+  ['scripts/generate-openapi-types.mjs', '--check'],
+  { cwd: root, encoding: 'utf8' },
+)
+if (generatedTypesCheck.status !== 0) {
+  throw new Error(
+    `generated OpenAPI types check failed\n${generatedTypesCheck.stdout ?? ''}${generatedTypesCheck.stderr ?? ''}`,
+  )
+}
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8')
@@ -22,6 +34,7 @@ function assertMatches(source, pattern, label) {
 const alarmsApi = read('src/api/alarms.ts')
 const alarmsPage = read('src/pages/AlarmsPage.tsx')
 const permissionsHook = read('src/hooks/usePermissions.ts')
+const generatedOpenApiTypes = read('src/types/openapi.generated.ts')
 const backendAlarmRoutes = read('../backend/src/presentation/api/routes/alarms.py')
 const backendDependencies = read('../backend/src/presentation/api/dependencies.py')
 
@@ -41,6 +54,9 @@ assertContains(
   '"applied_confidence_threshold"',
   'threshold apply audit applied threshold',
 )
+assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions', 'generated OpenAPI threshold read path')
+assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions/apply', 'generated OpenAPI threshold apply path')
+assertContains(generatedOpenApiTypes, 'export type OpenApiOperation', 'generated OpenAPI operation union')
 
 assertMatches(
   backendAlarmRoutes,
