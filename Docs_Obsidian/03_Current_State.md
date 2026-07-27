@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-27: ONVIF PTZ capability cache eklendi. Kamera kaydinda `onvif_ptz_supported` ve `onvif_capabilities_checked_at` tutulur; kayitli kamera ONVIF testi basarili capability sonucu dondurdugunde cache guncellenir, baglanti ayarlari degisince cache temizlenir. Tam ekran PTZ paneli artik sadece PTZ destegi dogrulanmis kameralarda gorunur.
 - 2026-07-27: PTZ hiz profilleri eklendi. Tam ekran PTZ paneli Yavas/Normal/Hizli profilleriyle ONVIF hareket komutunun speed ve duration degerlerini tek tikla ayarlar; contract check bu UI/payload bagini denetler.
 - 2026-07-27: ONVIF PTZ preset ilk fazi eklendi. `GET /api/cameras/{id}/ptz/presets` preset listesini, `POST /api/cameras/{id}/ptz/presets/goto` secili preset pozisyonuna gitmeyi saglar; tam ekran PTZ paneli preset secimi/goto aksiyonunu admin/operator icin gosterir.
 - 2026-07-27: ONVIF PTZ ilk fazi eklendi. `POST /api/cameras/{id}/ptz/move`, admin/operator icin `ptz.control` izniyle kisa sureli pan/tilt/zoom/stop komutlari gonderir, her komutu audit log'a yazar ve tam ekran canli kamera modalinda ikonlu PTZ kontrol paneli sunar.

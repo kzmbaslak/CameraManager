@@ -69,10 +69,11 @@ export function CameraFullscreenModal() {
   })
 
   const camera = cameras.find((c) => c.id === expandedCameraId) ?? null
+  const ptzSupported = camera?.onvif_ptz_supported === true
   const { data: ptzPresetData } = useQuery({
     queryKey: ['camera-ptz-presets', expandedCameraId],
     queryFn: () => camerasApi.ptzPresets(expandedCameraId as number),
-    enabled: expandedCameraId !== null && canControlPtz && layout === 1,
+    enabled: expandedCameraId !== null && canControlPtz && ptzSupported && layout === 1,
     staleTime: 60_000,
   })
   const ptzPresets = ptzPresetData?.presets ?? []
@@ -288,7 +289,7 @@ export function CameraFullscreenModal() {
                   </div>
                 </motion.div>
               )}
-              {camera && canControlPtz && (
+              {camera && canControlPtz && ptzSupported && (
                 <div className="absolute bottom-4 right-4 flex w-44 flex-col gap-2 rounded-md border border-white/15 bg-black/60 p-2 shadow-lg backdrop-blur">
                   <div className="grid grid-cols-3 gap-1" aria-label="PTZ hiz profili">
                     {(Object.entries(ptzSpeedProfiles) as [PtzSpeedProfile, (typeof ptzSpeedProfiles)[PtzSpeedProfile]][]).map(([key, profile]) => (
@@ -387,6 +388,12 @@ export function CameraFullscreenModal() {
                   </strong>
                 </span>
                 <span>AI: <strong className="text-text-primary">{camera.ai_detection_enabled ? 'Açık' : 'Kapalı'}</strong></span>
+                <span>
+                  PTZ:{' '}
+                  <strong className={camera.onvif_ptz_supported ? 'text-success' : 'text-text-secondary'}>
+                    {camera.onvif_ptz_supported === true ? 'Destekli' : camera.onvif_ptz_supported === false ? 'Destek yok' : 'ONVIF test bekliyor'}
+                  </strong>
+                </span>
                 <span className="ml-auto flex items-center gap-1.5 text-text-secondary">
                   <Kbd>Space</Kbd><span>Sustur</span>
                   <Kbd>A</Kbd><span>Onayla</span>

@@ -43,6 +43,8 @@ class Camera:
     building: Optional[str] = None
     floor: Optional[str] = None
     zone: Optional[str] = None
+    onvif_ptz_supported: Optional[bool] = None
+    onvif_capabilities_checked_at: Optional[datetime] = None
 
     def activate(self) -> None:
         self.status = CameraStatus.ACTIVE

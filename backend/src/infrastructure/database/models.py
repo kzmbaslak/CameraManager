@@ -59,6 +59,8 @@ class CameraModel(Base):
     building = Column(String, nullable=True)
     floor = Column(String, nullable=True)
     zone = Column(String, nullable=True)
+    onvif_ptz_supported = Column(Boolean, nullable=True)
+    onvif_capabilities_checked_at = Column(DateTime, nullable=True)
 
     alarms = relationship("AlarmModel", back_populates="camera", cascade="all, delete-orphan")
     nvr = relationship("NVRModel", back_populates="cameras")

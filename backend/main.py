@@ -31,6 +31,7 @@ from src.infrastructure.database.database import (
     ensure_alarm_operation_columns,
     ensure_camera_ai_settings_columns,
     ensure_camera_location_columns,
+    ensure_camera_onvif_capability_columns,
     ensure_camera_stream_metrics_table,
     ensure_device_password_rotation_columns,
 )
@@ -44,6 +45,7 @@ ensure_camera_ai_settings_columns()
 ensure_alarm_operation_columns()
 ensure_device_password_rotation_columns()
 ensure_camera_location_columns()
+ensure_camera_onvif_capability_columns()
 ensure_camera_stream_metrics_table()
 
 

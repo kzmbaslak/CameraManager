@@ -630,10 +630,16 @@ async def preview_camera_onvif(
         "imaging_supported": False,
         "analytics_supported": False,
     }
+    capability_checked = False
     try:
         capability_summary.update(probe_svc.get_capability_summary(host, onvif_port, username, password or ""))
+        capability_checked = True
     except Exception:
         pass
+    if camera and capability_checked:
+        camera.onvif_ptz_supported = capability_summary["ptz_supported"]
+        camera.onvif_capabilities_checked_at = utc_now()
+        use_cases.update_camera(camera)
 
     stream_error = None
     try:
@@ -759,6 +765,9 @@ async def update_camera(
         camera.floor = data.floor
     if data.zone is not None:
         camera.zone = data.zone
+    if connection_changed:
+        camera.onvif_ptz_supported = None
+        camera.onvif_capabilities_checked_at = None
     ai_settings_changed = False
     if data.ai_confidence_threshold is not None:
         camera.ai_confidence_threshold = data.ai_confidence_threshold

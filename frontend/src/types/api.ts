@@ -37,6 +37,8 @@ export interface Camera {
   building: string | null
   floor: string | null
   zone: string | null
+  onvif_ptz_supported: boolean | null
+  onvif_capabilities_checked_at: string | null
   created_at: string | null
   updated_at: string | null
 }

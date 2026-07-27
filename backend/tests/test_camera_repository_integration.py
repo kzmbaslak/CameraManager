@@ -42,6 +42,7 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
             building="Block A",
             floor="2",
             zone="North Hall",
+            onvif_ptz_supported=True,
         ))
 
         loaded = self.repo.get_by_id(camera.id)
@@ -53,15 +54,18 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
         self.assertEqual(loaded.building, "Block A")
         self.assertEqual(loaded.floor, "2")
         self.assertEqual(loaded.zone, "North Hall")
+        self.assertIs(loaded.onvif_ptz_supported, True)
 
         loaded.ai_confidence_threshold = 0.78
         loaded.ai_frame_stride = 3
         loaded.zone = "South Hall"
+        loaded.onvif_ptz_supported = False
         updated = self.repo.update(loaded)
 
         self.assertEqual(updated.ai_confidence_threshold, 0.78)
         self.assertEqual(updated.ai_frame_stride, 3)
         self.assertEqual(updated.zone, "South Hall")
+        self.assertIs(updated.onvif_ptz_supported, False)
 
     def test_paginated_search_status_and_ai_filters(self):
         self.repo.add(Camera(

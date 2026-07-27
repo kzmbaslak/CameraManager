@@ -41,6 +41,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             building=model.building,
             floor=model.floor,
             zone=model.zone,
+            onvif_ptz_supported=model.onvif_ptz_supported,
+            onvif_capabilities_checked_at=model.onvif_capabilities_checked_at,
         )
 
     def _to_model(self, entity: Camera) -> CameraModel:
@@ -74,6 +76,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             building=entity.building,
             floor=entity.floor,
             zone=entity.zone,
+            onvif_ptz_supported=entity.onvif_ptz_supported,
+            onvif_capabilities_checked_at=entity.onvif_capabilities_checked_at,
         )
 
     def add(self, camera: Camera) -> Camera:
@@ -175,6 +179,8 @@ class SqlAlchemyCameraRepository(ICameraRepository):
         model.building = camera.building
         model.floor = camera.floor
         model.zone = camera.zone
+        model.onvif_ptz_supported = camera.onvif_ptz_supported
+        model.onvif_capabilities_checked_at = camera.onvif_capabilities_checked_at
         self._db.commit()
         self._db.refresh(model)
         return self._to_entity(model)

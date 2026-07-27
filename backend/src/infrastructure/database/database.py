@@ -147,6 +147,28 @@ def ensure_camera_location_columns() -> None:
         conn.close()
 
 
+def ensure_camera_onvif_capability_columns() -> None:
+    """Eski SQLite kurulumlarinda kamera ONVIF capability cache kolonlarini idempotent ekler."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    columns = {
+        "onvif_ptz_supported": "BOOLEAN",
+        "onvif_capabilities_checked_at": "DATETIME",
+    }
+    conn = sqlite3.connect(db_path)
+    try:
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(cameras)").fetchall()}
+        for column, definition in columns.items():
+            if column not in existing:
+                conn.execute(f"ALTER TABLE cameras ADD COLUMN {column} {definition}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def ensure_camera_stream_metrics_table() -> None:
     """Eski SQLite kurulumlarinda stream metrikleri tablosunu idempotent olusturur."""
     if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):

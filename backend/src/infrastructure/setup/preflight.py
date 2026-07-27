@@ -45,6 +45,8 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "building",
         "floor",
         "zone",
+        "onvif_ptz_supported",
+        "onvif_capabilities_checked_at",
     },
     "nvrs": {"id", "name", "host", "onvif_port", "username", "encrypted_password", "password_updated_at", "brand", "model", "is_active"},
     "alarms": {
