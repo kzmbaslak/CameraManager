@@ -1,7 +1,7 @@
 // Fullscreen live camera modal with alarm actions.
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle, Minus, Plus, Square, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle, Home, Minus, Plus, Square, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { camerasApi } from '../../api/cameras'
 import { alarmsApi } from '../../api/alarms'
@@ -139,6 +139,20 @@ export function CameraFullscreenModal() {
     }),
   })
 
+  const ptzHome = useMutation({
+    mutationFn: () => camerasApi.ptzHome(expandedCameraId as number),
+    onSuccess: () => showToast({
+      variant: 'success',
+      title: 'PTZ home gonderildi',
+      description: 'Kamera varsayilan home pozisyonuna yonlendirildi.',
+    }),
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'PTZ home gonderilemedi',
+      description: getApiErrorMessage(err, 'ONVIF home pozisyonunu ve kamera yetkisini kontrol edin.'),
+    }),
+  })
+
   const sendPtz = (direction: CameraPtzDirection) => {
     if (!expandedCameraId || ptzMove.isPending) return
     ptzMove.mutate(direction)
@@ -147,6 +161,11 @@ export function CameraFullscreenModal() {
   const gotoPreset = () => {
     if (!activePresetToken || !expandedCameraId || ptzGotoPreset.isPending) return
     ptzGotoPreset.mutate(activePresetToken)
+  }
+
+  const gotoHome = () => {
+    if (!expandedCameraId || ptzHome.isPending) return
+    ptzHome.mutate()
   }
 
   useEffect(() => {
@@ -307,6 +326,17 @@ export function CameraFullscreenModal() {
                       </button>
                     ))}
                   </div>
+                  <button
+                    type="button"
+                    aria-label="PTZ home pozisyonuna git"
+                    title="PTZ home pozisyonuna git"
+                    disabled={ptzHome.isPending}
+                    onClick={gotoHome}
+                    className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                  >
+                    <Home size={13} />
+                    Home
+                  </button>
                   <div className="grid grid-cols-3 gap-1">
                     <span />
                     <button type="button" aria-label="PTZ yukari" title="PTZ yukari" disabled={ptzMove.isPending} onClick={() => sendPtz('up')} className="flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/20 disabled:opacity-50">

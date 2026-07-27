@@ -348,6 +348,13 @@ export interface CameraPtzGotoPresetResponse {
   message: string
 }
 
+export interface CameraPtzHomeResponse {
+  camera_id: number
+  ok: boolean
+  profile_token: string | null
+  message: string
+}
+
 export interface CameraRtspPreviewRequest {
   camera_id?: number
   name?: string

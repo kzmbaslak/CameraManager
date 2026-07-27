@@ -49,6 +49,7 @@ assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoin
 assertContains(camerasApi, '/ptz/move', 'camera PTZ move endpoint')
 assertContains(camerasApi, '/ptz/presets', 'camera PTZ preset list endpoint')
 assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint')
+assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')
 assertContains(alarmsPage, 'canEditCameras &&', 'threshold apply action is camera-edit gated')
 assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply UI action')
@@ -74,15 +75,18 @@ assertContains(frontendApiTypes, 'site: string | null', 'frontend camera locatio
 assertContains(camerasPage, "key: 'location'", 'camera list location column')
 assertContains(frontendApiTypes, 'CameraPtzDirection', 'frontend PTZ direction type')
 assertContains(frontendApiTypes, 'CameraPtzPresetItem', 'frontend PTZ preset type')
+assertContains(frontendApiTypes, 'CameraPtzHomeResponse', 'frontend PTZ home type')
 assertContains(frontendApiTypes, 'onvif_ptz_supported: boolean | null', 'frontend PTZ capability cache type')
 assertContains(cameraFullscreenModal, 'canControlPtz', 'frontend PTZ permission gate')
 assertContains(cameraFullscreenModal, "camera?.onvif_ptz_supported === true", 'frontend PTZ capability gate')
 assertContains(cameraFullscreenModal, 'ptzSpeedProfiles', 'frontend PTZ speed profiles')
 assertContains(cameraFullscreenModal, 'duration_ms: profile.durationMs', 'frontend PTZ speed duration payload')
+assertContains(cameraFullscreenModal, 'ptzHome', 'frontend PTZ home action')
 assertContains(backendCameraSchema, 'onvif_ptz_supported: Optional[bool]', 'backend PTZ capability schema')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/move', 'generated OpenAPI PTZ move path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets', 'generated OpenAPI PTZ preset path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto', 'generated OpenAPI PTZ goto preset path')
+assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 
 assertMatches(
   backendAlarmRoutes,

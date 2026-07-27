@@ -185,6 +185,15 @@ class ONVIFProbeService(ICameraProbeService):
         ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": preset_token})
         return {"profile_token": profile_token, "preset_token": preset_token}
 
+    def goto_ptz_home(self, host: str, onvif_port: int, username: str, password: str) -> dict:
+        """Kamerayi ONVIF home pozisyonuna gonderir."""
+        cam = self._connect(host, onvif_port, username, password)
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profile_token = self._first_profile_token(cam, media)
+        ptz.GotoHomePosition({"ProfileToken": profile_token})
+        return {"profile_token": profile_token}
+
     # ------------------------------------------------------------------
 
     @staticmethod

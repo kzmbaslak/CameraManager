@@ -42,6 +42,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraPageResponse,
     CameraPtzGotoPresetRequest,
     CameraPtzGotoPresetResponse,
+    CameraPtzHomeResponse,
     CameraPtzMoveRequest,
     CameraPtzMoveResponse,
     CameraPtzPresetListResponse,
@@ -578,6 +579,51 @@ async def goto_camera_ptz_preset(
         preset_token=data.preset_token,
         profile_token=result.get("profile_token"),
         message="PTZ preset komutu gonderildi.",
+    )
+
+
+@router.post("/{camera_id}/ptz/home", response_model=CameraPtzHomeResponse)
+async def goto_camera_ptz_home(
+    camera_id: int,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    password_svc: PasswordEncryptionService = Depends(get_password_service),
+    current_user: dict = Depends(get_ptz_control_user),
+):
+    """Kayitli kamerayi ONVIF PTZ home pozisyonuna gonderir."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+    password = _decrypt_camera_password(camera, password_svc)
+    try:
+        result = await asyncio.to_thread(
+            probe_svc.goto_ptz_home,
+            camera.host,
+            camera.onvif_port,
+            camera.username or "",
+            password,
+        )
+    except Exception as exc:
+        write_audit_event(
+            "camera.ptz.home_failed",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={"camera_id": camera_id, "error": str(exc)[:200]},
+        )
+        raise HTTPException(status_code=502, detail=f"PTZ home komutu basarisiz: {exc}") from exc
+
+    write_audit_event(
+        "camera.ptz.home",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "profile_token": result.get("profile_token")},
+    )
+    return CameraPtzHomeResponse(
+        camera_id=camera_id,
+        ok=True,
+        profile_token=result.get("profile_token"),
+        message="PTZ home komutu gonderildi.",
     )
 
 

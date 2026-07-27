@@ -347,6 +347,15 @@ class CameraPtzGotoPresetResponse(BaseModel):
     message: str
 
 
+class CameraPtzHomeResponse(BaseModel):
+    """PTZ home pozisyonuna gitme komutu sonucu."""
+
+    camera_id: int
+    ok: bool
+    profile_token: Optional[str] = None
+    message: str
+
+
 class CameraScanResult(BaseModel):
     """Kamera tarama sonucu."""
 

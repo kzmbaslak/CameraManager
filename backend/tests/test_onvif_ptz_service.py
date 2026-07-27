@@ -9,6 +9,9 @@ class _FakeMedia:
 
 
 class _FakePtz:
+    def __init__(self):
+        self.home_request = None
+
     def GetPresets(self, request):
         return {
             "Preset": [
@@ -17,18 +20,27 @@ class _FakePtz:
             ]
         }
 
+    def GotoHomePosition(self, request):
+        self.home_request = request
+
 
 class _FakeCamera:
+    def __init__(self):
+        self.ptz = _FakePtz()
+
     def create_media_service(self):
         return _FakeMedia()
 
     def create_ptz_service(self):
-        return _FakePtz()
+        return self.ptz
 
 
 class _FakePtzService(ONVIFProbeService):
+    def __init__(self):
+        self.camera = _FakeCamera()
+
     def _connect(self, host, port, username, password):
-        return _FakeCamera()
+        return self.camera
 
 
 class OnvifPtzServiceTests(unittest.TestCase):
@@ -56,6 +68,14 @@ class OnvifPtzServiceTests(unittest.TestCase):
         self.assertEqual(presets[0]["name"], "Gate")
         self.assertEqual(presets[0]["profile_token"], "profile-1")
         self.assertNotIn("secret", str(presets))
+
+    def test_goto_home_uses_profile_token_without_credentials_in_result(self):
+        service = _FakePtzService()
+        result = service.goto_ptz_home("10.0.0.10", 80, "operator", "secret")
+
+        self.assertEqual(result["profile_token"], "profile-1")
+        self.assertEqual(service.camera.ptz.home_request, {"ProfileToken": "profile-1"})
+        self.assertNotIn("secret", str(result))
 
 
 if __name__ == "__main__":

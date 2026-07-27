@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -126,6 +126,12 @@ export const camerasApi = {
     const { data } = await client.post<CameraPtzGotoPresetResponse>(`/cameras/${id}/ptz/presets/goto`, {
       preset_token: presetToken,
     })
+    return data
+  },
+
+  /** Kamerayi ONVIF PTZ home pozisyonuna gonderir. */
+  ptzHome: async (id: number): Promise<CameraPtzHomeResponse> => {
+    const { data } = await client.post<CameraPtzHomeResponse>(`/cameras/${id}/ptz/home`)
     return data
   },
 
