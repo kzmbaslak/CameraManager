@@ -355,6 +355,19 @@ export interface CameraPtzHomeResponse {
   message: string
 }
 
+export interface CameraPtzPatrolRequest {
+  preset_tokens: string[]
+  dwell_seconds?: number
+}
+
+export interface CameraPtzPatrolResponse {
+  camera_id: number
+  ok: boolean
+  visited_preset_tokens: string[]
+  profile_token: string | null
+  message: string
+}
+
 export interface CameraRtspPreviewRequest {
   camera_id?: number
   name?: string

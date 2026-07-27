@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -132,6 +132,12 @@ export const camerasApi = {
   /** Kamerayi ONVIF PTZ home pozisyonuna gonderir. */
   ptzHome: async (id: number): Promise<CameraPtzHomeResponse> => {
     const { data } = await client.post<CameraPtzHomeResponse>(`/cameras/${id}/ptz/home`)
+    return data
+  },
+
+  /** Secili presetleri sirayla gezerek kisa ONVIF PTZ patrol calistirir. */
+  ptzPatrol: async (id: number, payload: CameraPtzPatrolRequest): Promise<CameraPtzPatrolResponse> => {
+    const { data } = await client.post<CameraPtzPatrolResponse>(`/cameras/${id}/ptz/patrol`, payload)
     return data
   },
 

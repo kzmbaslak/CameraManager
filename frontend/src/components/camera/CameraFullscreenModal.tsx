@@ -1,7 +1,7 @@
 // Fullscreen live camera modal with alarm actions.
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle, Home, Minus, Plus, Square, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, CheckCircle, Home, Minus, Play, Plus, Square, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { camerasApi } from '../../api/cameras'
 import { alarmsApi } from '../../api/alarms'
@@ -153,6 +153,23 @@ export function CameraFullscreenModal() {
     }),
   })
 
+  const ptzPatrol = useMutation({
+    mutationFn: () => camerasApi.ptzPatrol(expandedCameraId as number, {
+      preset_tokens: ptzPresets.map((preset) => preset.token),
+      dwell_seconds: 2,
+    }),
+    onSuccess: (result) => showToast({
+      variant: 'success',
+      title: 'PTZ patrol tamamlandi',
+      description: `${result.visited_preset_tokens.length} preset pozisyonu gezildi.`,
+    }),
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'PTZ patrol baslatilamadi',
+      description: getApiErrorMessage(err, 'En az iki ONVIF preset ve kamera yetkisini kontrol edin.'),
+    }),
+  })
+
   const sendPtz = (direction: CameraPtzDirection) => {
     if (!expandedCameraId || ptzMove.isPending) return
     ptzMove.mutate(direction)
@@ -166,6 +183,11 @@ export function CameraFullscreenModal() {
   const gotoHome = () => {
     if (!expandedCameraId || ptzHome.isPending) return
     ptzHome.mutate()
+  }
+
+  const startPatrol = () => {
+    if (!expandedCameraId || ptzPresets.length < 2 || ptzPatrol.isPending) return
+    ptzPatrol.mutate()
   }
 
   useEffect(() => {
@@ -336,6 +358,17 @@ export function CameraFullscreenModal() {
                   >
                     <Home size={13} />
                     Home
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="PTZ preset patrol baslat"
+                    title="PTZ preset patrol baslat"
+                    disabled={ptzPresets.length < 2 || ptzPatrol.isPending}
+                    onClick={startPatrol}
+                    className="flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                  >
+                    <Play size={13} />
+                    Patrol
                   </button>
                   <div className="grid grid-cols-3 gap-1">
                     <span />

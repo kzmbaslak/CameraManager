@@ -152,6 +152,11 @@ export const openApiOperations = [
     "operationId": "move_camera_ptz_api_cameras__camera_id__ptz_move_post"
   },
   {
+    "method": "post",
+    "path": "/api/cameras/{camera_id}/ptz/patrol",
+    "operationId": "run_camera_ptz_patrol_api_cameras__camera_id__ptz_patrol_post"
+  },
+  {
     "method": "get",
     "path": "/api/cameras/{camera_id}/ptz/presets",
     "operationId": "list_camera_ptz_presets_api_cameras__camera_id__ptz_presets_get"
@@ -331,6 +336,7 @@ export type OpenApiPath =
   | "/api/cameras/{camera_id}/diagnostics/stream"
   | "/api/cameras/{camera_id}/ptz/home"
   | "/api/cameras/{camera_id}/ptz/move"
+  | "/api/cameras/{camera_id}/ptz/patrol"
   | "/api/cameras/{camera_id}/ptz/presets"
   | "/api/cameras/{camera_id}/ptz/presets/goto"
   | "/api/cameras/{camera_id}/status"
@@ -394,6 +400,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream"; operationId: "diagnose_camera_stream_api_cameras__camera_id__diagnostics_stream_get" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/home"; operationId: "goto_camera_ptz_home_api_cameras__camera_id__ptz_home_post" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/move"; operationId: "move_camera_ptz_api_cameras__camera_id__ptz_move_post" }
+  | { method: "post"; path: "/api/cameras/{camera_id}/ptz/patrol"; operationId: "run_camera_ptz_patrol_api_cameras__camera_id__ptz_patrol_post" }
   | { method: "get"; path: "/api/cameras/{camera_id}/ptz/presets"; operationId: "list_camera_ptz_presets_api_cameras__camera_id__ptz_presets_get" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/presets/goto"; operationId: "goto_camera_ptz_preset_api_cameras__camera_id__ptz_presets_goto_post" }
   | { method: "patch"; path: "/api/cameras/{camera_id}/status"; operationId: "update_camera_status_api_cameras__camera_id__status_patch" }

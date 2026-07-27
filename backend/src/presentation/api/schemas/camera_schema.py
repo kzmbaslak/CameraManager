@@ -356,6 +356,33 @@ class CameraPtzHomeResponse(BaseModel):
     message: str
 
 
+class CameraPtzPatrolRequest(BaseModel):
+    """Secili PTZ preset pozisyonlarini sirayla gezdirir."""
+
+    preset_tokens: list[str] = Field(min_length=2, max_length=12)
+    dwell_seconds: float = Field(default=2.0, ge=0.2, le=10.0)
+
+    @field_validator("preset_tokens")
+    @classmethod
+    def _validate_preset_tokens(cls, value: list[str]) -> list[str]:
+        tokens = [token.strip() for token in value if token and token.strip()]
+        if len(tokens) < 2:
+            raise ValueError("Patrol icin en az iki preset secilmelidir.")
+        if len(set(tokens)) != len(tokens):
+            raise ValueError("Patrol preset listesinde tekrar eden token olmamalidir.")
+        return tokens
+
+
+class CameraPtzPatrolResponse(BaseModel):
+    """PTZ patrol komutu sonucu."""
+
+    camera_id: int
+    ok: bool
+    visited_preset_tokens: list[str]
+    profile_token: Optional[str] = None
+    message: str
+
+
 class CameraScanResult(BaseModel):
     """Kamera tarama sonucu."""
 

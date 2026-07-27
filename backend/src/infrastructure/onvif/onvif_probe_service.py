@@ -194,6 +194,34 @@ class ONVIFProbeService(ICameraProbeService):
         ptz.GotoHomePosition({"ProfileToken": profile_token})
         return {"profile_token": profile_token}
 
+    def run_ptz_preset_patrol(
+        self,
+        host: str,
+        onvif_port: int,
+        username: str,
+        password: str,
+        preset_tokens: list[str],
+        dwell_seconds: float = 2.0,
+    ) -> dict:
+        """Secili ONVIF preset pozisyonlarini sirayla gezer."""
+        tokens = [token.strip() for token in preset_tokens if token and token.strip()]
+        if len(tokens) < 2:
+            raise ValueError("Patrol icin en az iki preset token gereklidir.")
+        if len(tokens) > 12:
+            raise ValueError("Patrol tek istekte en fazla 12 preset gezebilir.")
+
+        cam = self._connect(host, onvif_port, username, password)
+        media = cam.create_media_service()
+        ptz = cam.create_ptz_service()
+        profile_token = self._first_profile_token(cam, media)
+        safe_dwell = max(0.2, min(float(dwell_seconds), 10.0))
+        visited: list[str] = []
+        for token in tokens:
+            ptz.GotoPreset({"ProfileToken": profile_token, "PresetToken": token})
+            visited.append(token)
+            time.sleep(safe_dwell)
+        return {"profile_token": profile_token, "visited_preset_tokens": visited}
+
     # ------------------------------------------------------------------
 
     @staticmethod

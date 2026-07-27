@@ -11,6 +11,7 @@ class _FakeMedia:
 class _FakePtz:
     def __init__(self):
         self.home_request = None
+        self.goto_requests = []
 
     def GetPresets(self, request):
         return {
@@ -22,6 +23,9 @@ class _FakePtz:
 
     def GotoHomePosition(self, request):
         self.home_request = request
+
+    def GotoPreset(self, request):
+        self.goto_requests.append(request)
 
 
 class _FakeCamera:
@@ -76,6 +80,32 @@ class OnvifPtzServiceTests(unittest.TestCase):
         self.assertEqual(result["profile_token"], "profile-1")
         self.assertEqual(service.camera.ptz.home_request, {"ProfileToken": "profile-1"})
         self.assertNotIn("secret", str(result))
+
+    def test_preset_patrol_visits_tokens_in_order_without_credentials_in_result(self):
+        service = _FakePtzService()
+        result = service.run_ptz_preset_patrol(
+            "10.0.0.10",
+            80,
+            "operator",
+            "secret",
+            ["preset-1", "preset-2"],
+            dwell_seconds=0.2,
+        )
+
+        self.assertEqual(result["profile_token"], "profile-1")
+        self.assertEqual(result["visited_preset_tokens"], ["preset-1", "preset-2"])
+        self.assertEqual(
+            service.camera.ptz.goto_requests,
+            [
+                {"ProfileToken": "profile-1", "PresetToken": "preset-1"},
+                {"ProfileToken": "profile-1", "PresetToken": "preset-2"},
+            ],
+        )
+        self.assertNotIn("secret", str(result))
+
+    def test_preset_patrol_requires_two_presets(self):
+        with self.assertRaises(ValueError):
+            _FakePtzService().run_ptz_preset_patrol("10.0.0.10", 80, "operator", "secret", ["preset-1"])
 
 
 if __name__ == "__main__":

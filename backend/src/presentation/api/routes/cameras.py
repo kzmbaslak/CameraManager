@@ -45,6 +45,8 @@ from src.presentation.api.schemas.camera_schema import (
     CameraPtzHomeResponse,
     CameraPtzMoveRequest,
     CameraPtzMoveResponse,
+    CameraPtzPatrolRequest,
+    CameraPtzPatrolResponse,
     CameraPtzPresetListResponse,
     CameraRtspDiagnostics,
     CameraRtspPreviewRequest,
@@ -624,6 +626,68 @@ async def goto_camera_ptz_home(
         ok=True,
         profile_token=result.get("profile_token"),
         message="PTZ home komutu gonderildi.",
+    )
+
+
+@router.post("/{camera_id}/ptz/patrol", response_model=CameraPtzPatrolResponse)
+async def run_camera_ptz_patrol(
+    camera_id: int,
+    data: CameraPtzPatrolRequest,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    probe_svc: ONVIFProbeService = Depends(get_nvr_probe_service),
+    password_svc: PasswordEncryptionService = Depends(get_password_service),
+    current_user: dict = Depends(get_ptz_control_user),
+):
+    """Kayitli kamerada secili preset pozisyonlarini kisa bir patrol olarak gezdirir."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+    password = _decrypt_camera_password(camera, password_svc)
+    try:
+        result = await asyncio.to_thread(
+            probe_svc.run_ptz_preset_patrol,
+            camera.host,
+            camera.onvif_port,
+            camera.username or "",
+            password,
+            data.preset_tokens,
+            data.dwell_seconds,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        write_audit_event(
+            "camera.ptz.patrol_failed",
+            actor=current_user.get("sub"),
+            source_ip=request.client.host if request.client else None,
+            metadata={
+                "camera_id": camera_id,
+                "preset_count": len(data.preset_tokens),
+                "dwell_seconds": data.dwell_seconds,
+                "error": str(exc)[:200],
+            },
+        )
+        raise HTTPException(status_code=502, detail=f"PTZ patrol komutu basarisiz: {exc}") from exc
+
+    visited_tokens = result.get("visited_preset_tokens", [])
+    write_audit_event(
+        "camera.ptz.patrol",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "camera_id": camera_id,
+            "preset_count": len(visited_tokens),
+            "dwell_seconds": data.dwell_seconds,
+            "profile_token": result.get("profile_token"),
+        },
+    )
+    return CameraPtzPatrolResponse(
+        camera_id=camera_id,
+        ok=True,
+        visited_preset_tokens=visited_tokens,
+        profile_token=result.get("profile_token"),
+        message="PTZ patrol tamamlandi.",
     )
 
 
