@@ -9,6 +9,7 @@ import { alarmsApi } from '../../api/alarms'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmNotifications } from '../../hooks/useAlarmNotifications'
+import { usePermissions } from '../../hooks/usePermissions'
 import { useSystemSettingsStore } from '../../stores/systemSettingsStore'
 import { BoundingBoxOverlay } from '../camera/BoundingBoxOverlay'
 import { Button } from '../ui/Button'
@@ -24,13 +25,17 @@ function Kbd({ children }: { children: string }) {
   )
 }
 
-function ShortcutLegend() {
+function ShortcutLegend({ canOperateAlarms }: { canOperateAlarms: boolean }) {
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-text-secondary">
       <Kbd>Space</Kbd><span>Sustur</span>
       <Kbd>S</Kbd><span>30 sn</span>
       <Kbd>M</Kbd><span>5 dk</span>
-      <Kbd>A</Kbd><span>Onayla</span>
+      {canOperateAlarms && (
+        <>
+          <Kbd>A</Kbd><span>Onayla</span>
+        </>
+      )}
       <Kbd>Enter</Kbd><span>Canlı</span>
     </div>
   )
@@ -49,12 +54,14 @@ function NotificationCard({
   onAcknowledge,
   onFalseAlarm,
   busy,
+  canOperateAlarms,
 }: {
   alarm: Alarm
   receivedAt: number
   onAcknowledge: (alarm: Alarm) => void
   onFalseAlarm: (alarm: Alarm) => void
   busy: boolean
+  canOperateAlarms: boolean
 }) {
   const previewRef = useRef<HTMLButtonElement>(null)
   const [previewDims, setPreviewDims] = useState({ w: 360, h: 203 })
@@ -137,6 +144,7 @@ function NotificationCard({
       </button>
 
       <div className="grid grid-cols-2 gap-2 p-3">
+        {canOperateAlarms ? (
         <Button
           size="sm"
           variant="danger"
@@ -147,14 +155,21 @@ function NotificationCard({
         >
           Sustur ve Onayla
         </Button>
+        ) : (
+          <div className="col-span-2 rounded-md border border-border bg-bg-secondary px-3 py-2 text-xs text-text-secondary">
+            Bu rol alarm onaylama islemi yapamaz.
+          </div>
+        )}
         <Button
           size="sm"
           variant="secondary"
           icon={<Eye size={14} />}
           onClick={() => setExpandedCamera(alarm.camera_id, alarm.id)}
+          className={canOperateAlarms ? undefined : 'col-span-2'}
         >
           Canlı Aç
         </Button>
+        {canOperateAlarms && (
         <Button
           size="sm"
           variant="ghost"
@@ -164,6 +179,7 @@ function NotificationCard({
         >
           Yanlış Alarm
         </Button>
+        )}
       </div>
     </motion.div>
   )
@@ -173,6 +189,7 @@ export function AlarmNotificationPanel() {
   useAlarmNotifications()
 
   const qc = useQueryClient()
+  const { canOperateAlarms } = usePermissions()
   const { notifications, dismiss, dismissAll, stopSound, muteSoundFor, setExpandedCamera } = useAlarmStore()
 
   const acknowledge = useMutation({
@@ -219,12 +236,12 @@ export function AlarmNotificationPanel() {
       }
       if (e.key === 's' || e.key === 'S') muteSoundFor(30 * 1000)
       if (e.key === 'm' || e.key === 'M') muteSoundFor(5 * 60 * 1000)
-      if (e.key === 'a' || e.key === 'A') acknowledge.mutate(firstAlarm.id)
+      if ((e.key === 'a' || e.key === 'A') && canOperateAlarms) acknowledge.mutate(firstAlarm.id)
       if (e.key === 'Enter') setExpandedCamera(firstAlarm.camera_id, firstAlarm.id)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [acknowledge, muteSoundFor, notifications, setExpandedCamera, stopSound])
+  }, [acknowledge, canOperateAlarms, muteSoundFor, notifications, setExpandedCamera, stopSound])
 
   return (
     <div className="fixed right-4 top-4 z-[100] flex max-h-[calc(100vh-2rem)] flex-col items-end gap-2">
@@ -254,7 +271,7 @@ export function AlarmNotificationPanel() {
             >
               5 dk Sessiz
             </Button>
-            {notifications.length > 1 && (
+            {canOperateAlarms && notifications.length > 1 && (
               <Button
                 size="sm"
                 variant="danger"
@@ -277,7 +294,7 @@ export function AlarmNotificationPanel() {
               Gizle
             </Button>
             <div className="ml-1 hidden border-l border-border pl-3 md:block">
-              <ShortcutLegend />
+              <ShortcutLegend canOperateAlarms={canOperateAlarms} />
             </div>
           </motion.div>
         )}
@@ -296,6 +313,7 @@ export function AlarmNotificationPanel() {
               }
               onAcknowledge={handleAcknowledge}
               onFalseAlarm={handleFalseAlarm}
+              canOperateAlarms={canOperateAlarms}
             />
           ))}
         </AnimatePresence>

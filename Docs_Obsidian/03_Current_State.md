@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-28: Alarm bildirim paneli RBAC ile hizalandi. Viewer rolunde popup gorunumu ve lokal ses susturma kalir, ancak Sustur ve Onayla, Yanlis Alarm, Tumunu Onayla ve `A` kisa yolu yalnizca `alarm.operate` yetkili admin/operator icin calisir/gorunur.
 - 2026-07-28: Rol yetki aciklamasi RBAC ile hizalandi. Sistem/Kullanicilar ekranindaki Izleyici rol karti artik alarm onaylama yetkisini kapali gosterir; contract kontrolu viewer icin bu yanlis izin metninin tekrar eklenmesini engeller.
 - 2026-07-28: Alarm bildirim paneline kisa sessize alma eklendi. Operator yeni alarm kartlari gorunur kalirken `30 sn Sessiz` veya `5 dk Sessiz` aksiyonlariyla sesi gecici susturabilir; `S` kisa sessiz, `M` uzun sessiz ve `Space` anlik sesi kesme kisa yollari panelde gosterilir.
 - 2026-07-28: Insan tespiti kutulari operator ayarina baglandi. Genel Ayarlar icindeki "Insan Kutulari" anahtari alarm popup onizlemesi, canli grid, tam ekran izleme ve kayit playback uzerindeki BoundingBoxOverlay cizimlerini kalici olarak acip kapatir; alarm aksiyonlari ve kanit metadata'si etkilenmez.

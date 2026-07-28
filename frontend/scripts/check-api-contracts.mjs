@@ -130,8 +130,11 @@ assertContains(alarmsPage, 'Kanit raporu indirildi', 'evidence report success to
 assertContains(alarmNotificationPanel, '30 sn Sessiz', 'alarm notification short mute action')
 assertContains(alarmNotificationPanel, 'BoundingBoxOverlay', 'alarm notification bbox overlay')
 assertContains(alarmNotificationPanel, 'humanDetectionBoxesVisible', 'alarm notification bbox visibility setting')
+assertContains(alarmNotificationPanel, 'canOperateAlarms', 'alarm notification operation permission gate')
+assertContains(alarmNotificationPanel, 'canOperateAlarms && notifications.length > 1', 'alarm notification bulk acknowledge permission gate')
 assertContains(alarmNotificationPanel, "e.key === 's'", 'alarm notification short mute shortcut')
 assertContains(alarmNotificationPanel, "e.key === 'm'", 'alarm notification long mute shortcut')
+assertContains(alarmNotificationPanel, "canOperateAlarms) acknowledge.mutate", 'alarm notification acknowledge shortcut permission gate')
 assertContains(alarmNotificationPanel, 'muteSoundFor(30 * 1000)', 'alarm notification short mute duration')
 assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
 assertContains(
