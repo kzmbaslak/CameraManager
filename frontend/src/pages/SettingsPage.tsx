@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Archive, Download, Moon, Plus, Pencil, Sun, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Archive, Download, Moon, Plus, Pencil, ScanLine, Sun, Trash2, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -191,6 +191,8 @@ function GeneralSettingsPanel() {
   const soundDuration = useSystemSettingsStore((s) => s.humanDetectionSoundDurationSeconds)
   const setSoundEnabled = useSystemSettingsStore((s) => s.setHumanDetectionSoundEnabled)
   const setSoundDuration = useSystemSettingsStore((s) => s.setHumanDetectionSoundDurationSeconds)
+  const boxesVisible = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
+  const setBoxesVisible = useSystemSettingsStore((s) => s.setHumanDetectionBoxesVisible)
 
   return (
     <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
@@ -247,6 +249,21 @@ function GeneralSettingsPanel() {
           value={rotationDays}
           onChange={(e) => setRotationDays(Number(e.target.value))}
         />
+      </div>
+
+      <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <ScanLine size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Insan Kutulari</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Canli izleme ve kayit oynaticida insan tespiti kutularini gosterir veya gizler.
+            </p>
+          </div>
+        </div>
+        <Toggle checked={boxesVisible} onChange={setBoxesVisible} />
       </div>
 
       <div className="flex items-start justify-between gap-4">

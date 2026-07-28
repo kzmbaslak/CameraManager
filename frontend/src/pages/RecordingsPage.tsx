@@ -12,6 +12,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Table } from '../components/ui/Table'
 import { BoundingBoxOverlay } from '../components/camera/BoundingBoxOverlay'
 import { usePermissions } from '../hooks/usePermissions'
+import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import type { Camera, RecordingMetadata, RecordingSegment } from '../types/api'
@@ -99,6 +100,7 @@ function detectionOffsetSeconds(segment: RecordingSegment, metadata: RecordingMe
 export function RecordingsPage() {
   const { canViewRecordings, canManageRecordings } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
+  const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
   const [selectedCameraId, setSelectedCameraId] = useState('all')
   const [range, setRange] = useState<DateRange>('24h')
   const [limit, setLimit] = useState(100)
@@ -589,14 +591,16 @@ export function RecordingsPage() {
               className="h-full w-full object-contain"
               aria-label={`${cameraName(cameraById, preview.segment.camera_id)} kayit oynatici`}
             />
-            <BoundingBoxOverlay
-              detections={preview.metadata?.detections ?? []}
-              containerWidth={previewDims.w}
-              containerHeight={previewDims.h}
-              sourceWidth={preview.metadata?.frame_width ?? preview.segment.width}
-              sourceHeight={preview.metadata?.frame_height ?? preview.segment.height}
-              fit="contain"
-            />
+            {showHumanDetectionBoxes && (
+              <BoundingBoxOverlay
+                detections={preview.metadata?.detections ?? []}
+                containerWidth={previewDims.w}
+                containerHeight={previewDims.h}
+                sourceWidth={preview.metadata?.frame_width ?? preview.segment.width}
+                sourceHeight={preview.metadata?.frame_height ?? preview.segment.height}
+                fit="contain"
+              />
+            )}
           </div>
           <div className="border-t border-border px-4 py-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary">

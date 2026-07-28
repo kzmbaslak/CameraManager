@@ -7,6 +7,7 @@ import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { useAlarmStore } from '../../stores/alarmStore'
+import { useSystemSettingsStore } from '../../stores/systemSettingsStore'
 import { Button } from '../ui/Button'
 import type { Alarm, Camera } from '../../types/api'
 import type { StreamProfile } from '../../hooks/useCameraStream'
@@ -29,6 +30,7 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
   const [isNearViewport, setIsNearViewport] = useState(false)
   const qc = useQueryClient()
   const { setExpandedCamera, stopSound, dismiss } = useAlarmStore()
+  const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
 
   const { frame, alarmTriggered, connected, detections, frameWidth, frameHeight, detectedAt } = useCameraStream(
     camera.id,
@@ -126,16 +128,18 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
             </span>
           </div>
         )}
-        <BoundingBoxOverlay
-          detections={activeDetections}
-          box={!activeDetections.length ? fallbackBox : null}
-          containerWidth={dims.w}
-          containerHeight={dims.h}
-          sourceWidth={frameWidth}
-          sourceHeight={frameHeight}
-          fit="cover"
-          stale={!activeDetections.length && Boolean(fallbackBox)}
-        />
+        {showHumanDetectionBoxes && (
+          <BoundingBoxOverlay
+            detections={activeDetections}
+            box={!activeDetections.length ? fallbackBox : null}
+            containerWidth={dims.w}
+            containerHeight={dims.h}
+            sourceWidth={frameWidth}
+            sourceHeight={frameHeight}
+            fit="cover"
+            stale={!activeDetections.length && Boolean(fallbackBox)}
+          />
+        )}
 
         {camera.status === 'active' && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover:opacity-100">

@@ -8,6 +8,7 @@ import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAlarmStore } from '../../stores/alarmStore'
+import { useSystemSettingsStore } from '../../stores/systemSettingsStore'
 import { useToastStore } from '../../stores/toastStore'
 import { getApiErrorMessage } from '../../utils/apiError'
 import { Button } from '../ui/Button'
@@ -66,6 +67,7 @@ export function CameraFullscreenModal() {
   const qc = useQueryClient()
   const { canControlPtz } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
+  const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
   const videoRef = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ w: 960, h: 540 })
   const [layout, setLayout] = useState<FullscreenLayout>(1)
@@ -307,15 +309,17 @@ export function CameraFullscreenModal() {
                   <span className="text-sm">Görüntü bekleniyor...</span>
                 </div>
               )}
-              <BoundingBoxOverlay
-                detections={activeDetections}
-                containerWidth={dims.w}
-                containerHeight={dims.h}
-                sourceWidth={frameWidth}
-                sourceHeight={frameHeight}
-                fit="contain"
-                emphasis="live"
-              />
+              {showHumanDetectionBoxes && (
+                <BoundingBoxOverlay
+                  detections={activeDetections}
+                  containerWidth={dims.w}
+                  containerHeight={dims.h}
+                  sourceWidth={frameWidth}
+                  sourceHeight={frameHeight}
+                  fit="contain"
+                  emphasis="live"
+                />
+              )}
 
               {isAlarmActive && (
                 <motion.div
@@ -492,6 +496,7 @@ export function CameraFullscreenModal() {
                   <Kbd>M</Kbd><span>Sustur</span>
                   <Kbd>Space</Kbd><span>Ses</span>
                   <Kbd>A</Kbd><span>Onayla</span>
+                  <span>Kutular: <strong className="text-text-primary">{showHumanDetectionBoxes ? 'Acik' : 'Kapali'}</strong></span>
                   <Kbd>Esc</Kbd><span>Kapat</span>
                 </span>
               </div>

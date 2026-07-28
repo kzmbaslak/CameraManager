@@ -9,10 +9,12 @@ interface SystemSettingsState {
   devicePasswordRotationDays: number
   humanDetectionSoundEnabled: boolean
   humanDetectionSoundDurationSeconds: number
+  humanDetectionBoxesVisible: boolean
   setThemeMode: (mode: ThemeMode) => void
   setDevicePasswordRotationDays: (days: number) => void
   setHumanDetectionSoundEnabled: (enabled: boolean) => void
   setHumanDetectionSoundDurationSeconds: (seconds: number) => void
+  setHumanDetectionBoxesVisible: (visible: boolean) => void
 }
 
 const clampDuration = (seconds: number) => Math.min(Math.max(Math.round(seconds), 1), 15)
@@ -25,11 +27,13 @@ export const useSystemSettingsStore = create<SystemSettingsState>()(
       devicePasswordRotationDays: 90,
       humanDetectionSoundEnabled: true,
       humanDetectionSoundDurationSeconds: 3,
+      humanDetectionBoxesVisible: true,
       setThemeMode: (mode) => set({ themeMode: mode }),
       setDevicePasswordRotationDays: (days) => set({ devicePasswordRotationDays: clampRotationDays(days) }),
       setHumanDetectionSoundEnabled: (enabled) => set({ humanDetectionSoundEnabled: enabled }),
       setHumanDetectionSoundDurationSeconds: (seconds) =>
         set({ humanDetectionSoundDurationSeconds: clampDuration(seconds) }),
+      setHumanDetectionBoxesVisible: (visible) => set({ humanDetectionBoxesVisible: visible }),
     }),
     {
       name: 'kamera-system-settings',
