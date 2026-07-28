@@ -38,6 +38,7 @@ from src.infrastructure.onvif.onvif_probe_service import ONVIFProbeService
 from src.application.services.camera_stream_manager import CameraStreamManager
 from src.application.services.camera_health_checker import CameraHealthChecker
 from src.infrastructure.security.password_service import PasswordEncryptionService
+from src.infrastructure.recording.retention_runner import RecordingRetentionRunner
 
 # ---------------------------------------------------------------------------
 # Singleton altyapı servisleri (uygulama boyunca tek instance)
@@ -63,6 +64,10 @@ health_checker = CameraHealthChecker(
     camera_repository_factory=SqlAlchemyCameraRepository,
     alarm_repository_factory=SqlAlchemyAlarmRepository,
     health_repository_factory=SqlAlchemyCameraHealthRepository,
+)
+recording_retention_runner = RecordingRetentionRunner(
+    db_session_factory=SessionLocal,
+    recording_repository_factory=SqlAlchemyRecordingSegmentRepository,
 )
 
 

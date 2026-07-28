@@ -89,10 +89,12 @@ def _seed_admin_user() -> None:
 async def lifespan(app: FastAPI):
     """Uygulama başlangıç ve kapanış yönetimi."""
     _seed_admin_user()
-    from src.presentation.api.dependencies import stream_manager, health_checker
+    from src.presentation.api.dependencies import stream_manager, health_checker, recording_retention_runner
     await stream_manager.start_all_active()
     health_checker.start()
+    recording_retention_runner.start()
     yield
+    recording_retention_runner.stop()
     health_checker.stop()
     await stream_manager.stop_all()
 

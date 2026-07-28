@@ -598,6 +598,7 @@ export interface SecurityPosture {
   recording_storage_dir_configured: boolean
   recording_retention_days: number
   recording_max_storage_mb: number
+  recording_prune_interval_minutes: number
   findings: SecurityPostureFinding[]
 }
 

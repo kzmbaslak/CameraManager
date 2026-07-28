@@ -52,6 +52,15 @@ def recording_quota_mb() -> int:
     return max(value, 0)
 
 
+def recording_prune_interval_minutes() -> int:
+    """Otomatik recording prune periyodunu okur; 0 otomatik calistiriciyi kapatir."""
+    try:
+        value = int(os.environ.get("RECORDING_PRUNE_INTERVAL_MINUTES", "360") or "360")
+    except ValueError:
+        value = 360
+    return min(max(value, 0), 10_080)
+
+
 class RecordingRetentionService:
     """Kayit segmentleri icin retention ve disk kotasi temizligi uygular."""
 
