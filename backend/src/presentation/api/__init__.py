@@ -269,6 +269,15 @@ def security_posture(
     else:
         findings.append({"severity": "low", "message": "ALARM_REPORT_WEBHOOK_URL ile alarm raporlari SIEM/webhook kanalina dagitilmali."})
 
+    alarm_report_smtp_host = os.environ.get("ALARM_REPORT_SMTP_HOST", "").strip()
+    alarm_report_email_from = os.environ.get("ALARM_REPORT_EMAIL_FROM", "").strip()
+    alarm_report_email_to = [item.strip() for item in os.environ.get("ALARM_REPORT_EMAIL_TO", "").split(",") if item.strip()]
+    alarm_report_email_configured = bool(alarm_report_smtp_host and alarm_report_email_from and alarm_report_email_to)
+    if alarm_report_smtp_host and not alarm_report_email_configured:
+        findings.append({"severity": "medium", "message": "Alarm raporu SMTP icin host, gonderen ve en az bir alici birlikte tanimlanmali."})
+    elif not alarm_report_email_configured:
+        findings.append({"severity": "low", "message": "ALARM_REPORT_SMTP_HOST/EMAIL_TO ile alarm raporlari e-posta kanalina dagitilmali."})
+
     setup_checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
         for check in collect_setup_checks()
@@ -288,6 +297,7 @@ def security_posture(
         "audit_chain_secret_configured": audit_chain_secret_configured,
         "audit_webhook_configured": audit_webhook_configured,
         "alarm_report_webhook_configured": alarm_report_webhook_configured,
+        "alarm_report_email_configured": alarm_report_email_configured,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,

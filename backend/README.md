@@ -91,6 +91,14 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `ALARM_REPORT_WEBHOOK_URL` | Opsiyonel HTTPS SIEM/webhook alarm raporu dağıtım endpoint'i |
 | `ALARM_REPORT_WEBHOOK_TOKEN` | Opsiyonel alarm raporu webhook Bearer token değeri |
 | `ALARM_REPORT_WEBHOOK_TIMEOUT_SECONDS` | Alarm raporu webhook gönderim zaman aşımı |
+| `ALARM_REPORT_SMTP_HOST` | Opsiyonel SMTP alarm raporu e-posta sunucusu |
+| `ALARM_REPORT_SMTP_PORT` | SMTP portu; varsayılan `587` |
+| `ALARM_REPORT_SMTP_STARTTLS` | SMTP StartTLS kullanımı; varsayılan `true` |
+| `ALARM_REPORT_SMTP_USERNAME` | Opsiyonel SMTP kullanıcı adı |
+| `ALARM_REPORT_SMTP_PASSWORD` | Opsiyonel SMTP parolası |
+| `ALARM_REPORT_SMTP_TIMEOUT_SECONDS` | SMTP gönderim zaman aşımı |
+| `ALARM_REPORT_EMAIL_FROM` | Alarm raporu e-postası gönderen adres |
+| `ALARM_REPORT_EMAIL_TO` | Virgülle ayrılmış alarm raporu alıcı adresleri |
 
 ### 4. Veritabanını Hazırla
 

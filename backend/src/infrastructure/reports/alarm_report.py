@@ -6,9 +6,12 @@ import csv
 import hashlib
 import json
 import os
+import smtplib
+import ssl
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
@@ -38,6 +41,13 @@ class AlarmReportDeliveryResult:
     url: str | None = None
     status_code: int | None = None
     message: str = ""
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _file_sha256(path: Path) -> str:
@@ -290,4 +300,110 @@ def deliver_alarm_report_webhook(
         url=url,
         status_code=int(status_code) if status_code else None,
         message="delivered",
+    )
+
+
+def _report_artifact_metadata(result: AlarmReportResult) -> dict[str, dict[str, object]]:
+    return {
+        "csv": {
+            "filename": result.csv_path.name,
+            "size_bytes": result.csv_path.stat().st_size,
+            "sha256": _file_sha256(result.csv_path),
+        },
+        "summary": {
+            "filename": result.summary_path.name,
+            "size_bytes": result.summary_path.stat().st_size,
+            "sha256": _file_sha256(result.summary_path),
+        },
+    }
+
+
+def _email_body(summary: dict[str, object], artifacts: dict[str, dict[str, object]]) -> str:
+    window = summary.get("window") if isinstance(summary.get("window"), dict) else {}
+    return "\n".join(
+        [
+            "Alarm operasyon raporu olusturuldu.",
+            "",
+            f"Pencere: {window.get('since', '-')} - {window.get('until', '-')}",
+            f"Toplam alarm: {summary.get('total_count', 0)}",
+            f"Acik alarm: {summary.get('open_count', 0)}",
+            f"Yanlis alarm: {summary.get('false_positive_count', 0)}",
+            f"Ortalama onay suresi sn: {summary.get('average_acknowledge_seconds') or '-'}",
+            f"Ortalama cozum suresi sn: {summary.get('average_resolve_seconds') or '-'}",
+            "",
+            "Artifact metadata:",
+            f"- CSV: {artifacts['csv']['filename']} | {artifacts['csv']['size_bytes']} bayt | sha256={artifacts['csv']['sha256']}",
+            f"- Summary: {artifacts['summary']['filename']} | {artifacts['summary']['size_bytes']} bayt | sha256={artifacts['summary']['sha256']}",
+            "",
+            "Not: Guvenlik nedeniyle rapor dosyalari e-postaya eklenmez; dosyalar sunucudaki rapor klasorunde saklanir.",
+        ]
+    )
+
+
+def deliver_alarm_report_email(
+    result: AlarmReportResult,
+    *,
+    smtp_host: str | None = None,
+    smtp_port: int | None = None,
+    recipients: str | Iterable[str] | None = None,
+    sender: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    use_tls: bool | None = None,
+    timeout_seconds: int | None = None,
+    smtp_factory=smtplib.SMTP,
+) -> AlarmReportDeliveryResult:
+    """Send generated alarm report summary and artifact hashes via SMTP."""
+    host = (smtp_host or os.environ.get("ALARM_REPORT_SMTP_HOST", "")).strip()
+    if not host:
+        return AlarmReportDeliveryResult(delivered=False, message="ALARM_REPORT_SMTP_HOST tanimli degil.")
+    if smtp_port is None:
+        try:
+            smtp_port = int(os.environ.get("ALARM_REPORT_SMTP_PORT", "587") or "587")
+        except ValueError:
+            smtp_port = 587
+    smtp_port = min(max(smtp_port, 1), 65535)
+    if timeout_seconds is None:
+        try:
+            timeout_seconds = int(os.environ.get("ALARM_REPORT_SMTP_TIMEOUT_SECONDS", "10") or "10")
+        except ValueError:
+            timeout_seconds = 10
+    timeout_seconds = min(max(timeout_seconds, 1), 120)
+    if use_tls is None:
+        use_tls = _env_bool("ALARM_REPORT_SMTP_STARTTLS", True)
+
+    raw_recipients = recipients if recipients is not None else os.environ.get("ALARM_REPORT_EMAIL_TO", "")
+    if isinstance(raw_recipients, str):
+        recipient_list = [item.strip() for item in raw_recipients.split(",") if item.strip()]
+    else:
+        recipient_list = [str(item).strip() for item in raw_recipients if str(item).strip()]
+    if not recipient_list:
+        return AlarmReportDeliveryResult(delivered=False, url=f"smtp://{host}:{smtp_port}", message="ALARM_REPORT_EMAIL_TO tanimli degil.")
+
+    effective_sender = (sender or os.environ.get("ALARM_REPORT_EMAIL_FROM", "")).strip()
+    if not effective_sender:
+        return AlarmReportDeliveryResult(delivered=False, url=f"smtp://{host}:{smtp_port}", message="ALARM_REPORT_EMAIL_FROM tanimli degil.")
+    effective_username = (username if username is not None else os.environ.get("ALARM_REPORT_SMTP_USERNAME", "")).strip()
+    effective_password = password if password is not None else os.environ.get("ALARM_REPORT_SMTP_PASSWORD", "")
+
+    with result.summary_path.open("r", encoding="utf-8") as file:
+        summary = json.load(file)
+    artifacts = _report_artifact_metadata(result)
+    message = EmailMessage()
+    message["Subject"] = f"Alarm operasyon raporu - {summary.get('total_count', result.total_count)} alarm"
+    message["From"] = effective_sender
+    message["To"] = ", ".join(recipient_list)
+    message.set_content(_email_body(summary, artifacts))
+
+    with smtp_factory(host, smtp_port, timeout=timeout_seconds) as smtp:
+        if use_tls:
+            smtp.starttls(context=ssl.create_default_context())
+        if effective_username or effective_password:
+            smtp.login(effective_username, effective_password)
+        smtp.send_message(message)
+    return AlarmReportDeliveryResult(
+        delivered=True,
+        url=f"smtp://{host}:{smtp_port}",
+        status_code=None,
+        message=f"{len(recipient_list)} aliciya gonderildi.",
     )
