@@ -1,6 +1,6 @@
 // Recording segment API cagrilari.
 import client from './client'
-import type { RecordingPruneResult, RecordingSegmentListResponse } from '../types/api'
+import type { RecordingMetadata, RecordingPruneResult, RecordingSegmentListResponse } from '../types/api'
 
 export const recordingsApi = {
   /** Kayit segmentlerini kamera ve zaman araligina gore listeler. */
@@ -23,6 +23,12 @@ export const recordingsApi = {
   /** Kayit dosyasini yetkili API uzerinden blob olarak indirir. */
   fileBlob: async (segmentId: number): Promise<Blob> => {
     const { data } = await client.get<Blob>(`/recordings/${segmentId}/file`, { responseType: 'blob' })
+    return data
+  },
+
+  /** Kayit playback bbox/detection metadata'sini getirir. */
+  metadata: async (segmentId: number): Promise<RecordingMetadata> => {
+    const { data } = await client.get<RecordingMetadata>(`/recordings/${segmentId}/metadata`)
     return data
   },
 }

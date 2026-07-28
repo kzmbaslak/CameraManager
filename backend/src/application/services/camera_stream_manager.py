@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import time
@@ -394,7 +395,7 @@ class CameraStreamManager:
                     if clip_frames:
                         await loop.run_in_executor(
                             self._executor,
-                            lambda: self._save_event_recording_clip_sync(camera_id, alarm.id, clip_frames),
+                            lambda: self._save_event_recording_clip_sync(camera_id, alarm.id, clip_frames, detection_payload),
                         )
                     logger.info(
                         f"[StreamManager] Kamera {camera_id} — insan tespiti! "
@@ -481,7 +482,7 @@ class CameraStreamManager:
         cutoff = time.monotonic() - self._event_clip_seconds()
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
 
-    def _save_event_recording_clip_sync(self, camera_id: int, alarm_id: int, frames: list) -> None:
+    def _save_event_recording_clip_sync(self, camera_id: int, alarm_id: int, frames: list, detection_payload: dict | None = None) -> None:
         if not frames:
             return
         storage_dir = recording_storage_dir() / f"cam_{camera_id}"
@@ -505,6 +506,7 @@ class CameraStreamManager:
             writer.release()
         if written == 0 or not output_path.exists():
             return
+        metadata_path = self._write_event_detection_metadata(output_path, camera_id, alarm_id, detection_payload)
         db = self._open_db()
         try:
             repo = self._recording_repo(db)
@@ -527,6 +529,25 @@ class CameraStreamManager:
             ))
         finally:
             db.close()
+        if metadata_path:
+            logger.info("[Recording] Event clip detection metadata yazildi: %s", metadata_path.name)
+
+    def _write_event_detection_metadata(self, output_path, camera_id: int, alarm_id: int, detection_payload: dict | None):
+        """Event clip yanina playback bbox metadata sidecar'i yazar."""
+        if not detection_payload:
+            return None
+        metadata_path = output_path.with_suffix(".detections.json")
+        payload = {
+            "camera_id": camera_id,
+            "alarm_id": alarm_id,
+            "frame_width": detection_payload.get("frame_width"),
+            "frame_height": detection_payload.get("frame_height"),
+            "detected_at": detection_payload.get("detected_at"),
+            "detections": detection_payload.get("detections") or [],
+        }
+        with open(metadata_path, "w", encoding="utf-8") as file:
+            json.dump(payload, file, ensure_ascii=False, separators=(",", ":"))
+        return metadata_path
 
     @staticmethod
     def _file_sha256(path) -> str:

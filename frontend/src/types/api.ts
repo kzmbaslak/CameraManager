@@ -547,6 +547,16 @@ export interface RecordingSegmentListResponse {
   limit: number
 }
 
+export interface RecordingMetadata {
+  segment_id: number
+  camera_id: number
+  alarm_id: number | null
+  frame_width: number | null
+  frame_height: number | null
+  detected_at: string | null
+  detections: Detection[]
+}
+
 export interface RecordingPruneResult {
   retention_days: number
   quota_mb: number

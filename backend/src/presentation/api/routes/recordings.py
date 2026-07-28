@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -22,6 +23,8 @@ from src.presentation.api.dependencies import (
 )
 from src.presentation.api.schemas.recording_schema import (
     RecordingPruneResponse,
+    RecordingDetectionItem,
+    RecordingMetadataResponse,
     RecordingSegmentListResponse,
     RecordingSegmentResponse,
 )
@@ -49,6 +52,60 @@ def _safe_recording_file_path(segment: RecordingSegment, storage_root: Path | No
     if not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kayit dosyasi bulunamadi.")
     return path
+
+
+def _recording_metadata_response(
+    segment: RecordingSegment,
+    storage_root: Path | None = None,
+) -> RecordingMetadataResponse:
+    """Kayit metadata sidecar'ini guvenli storage siniri icinde okur."""
+    path = _safe_recording_file_path(segment, storage_root)
+    metadata_path = path.with_suffix(".detections.json")
+    if not metadata_path.is_file():
+        return RecordingMetadataResponse(
+            segment_id=segment.id or 0,
+            camera_id=segment.camera_id,
+            alarm_id=segment.alarm_id,
+            frame_width=segment.width,
+            frame_height=segment.height,
+            detected_at=None,
+            detections=[],
+        )
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as file:
+            payload = json.load(file)
+    except (OSError, json.JSONDecodeError):
+        payload = {}
+    detections = []
+    for item in payload.get("detections") or []:
+        box = item.get("bounding_box") if isinstance(item, dict) else None
+        if not isinstance(box, dict):
+            continue
+        try:
+            detections.append(RecordingDetectionItem(
+                label=str(item.get("label") or "person"),
+                confidence=float(item.get("confidence") or 0),
+                bounding_box={
+                    "x": int(box.get("x") or 0),
+                    "y": int(box.get("y") or 0),
+                    "width": int(box.get("width") or 0),
+                    "height": int(box.get("height") or 0),
+                },
+            ))
+        except (TypeError, ValueError):
+            continue
+    detected_at = payload.get("detected_at")
+    if isinstance(detected_at, str) and detected_at.endswith("Z"):
+        detected_at = detected_at[:-1] + "+00:00"
+    return RecordingMetadataResponse(
+        segment_id=segment.id or 0,
+        camera_id=segment.camera_id,
+        alarm_id=segment.alarm_id,
+        frame_width=payload.get("frame_width") or segment.width,
+        frame_height=payload.get("frame_height") or segment.height,
+        detected_at=detected_at,
+        detections=detections,
+    )
 
 
 def _segment_response(segment: RecordingSegment) -> RecordingSegmentResponse:
@@ -127,6 +184,19 @@ def get_recording_file(
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+@router.get("/{segment_id}/metadata", response_model=RecordingMetadataResponse)
+def get_recording_metadata(
+    segment_id: int,
+    use_cases: RecordingUseCases = Depends(get_recording_use_cases),
+    current_user: dict = Depends(get_recording_view_user),
+):
+    """Playback icin event detection metadata'sini path sizdirmadan dondurur."""
+    segment = use_cases.get_segment(segment_id)
+    if segment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kayit segmenti bulunamadi.")
+    return _recording_metadata_response(segment)
 
 
 @router.post("/maintenance/prune", response_model=RecordingPruneResponse)

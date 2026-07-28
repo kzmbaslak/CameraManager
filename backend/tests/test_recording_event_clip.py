@@ -51,7 +51,16 @@ class RecordingEventClipTests(unittest.TestCase):
             np.full((32, 48, 3), 128, dtype=np.uint8),
         ]
 
-        manager._save_event_recording_clip_sync(camera_id=3, alarm_id=9, frames=frames)
+        manager._save_event_recording_clip_sync(camera_id=3, alarm_id=9, frames=frames, detection_payload={
+            "frame_width": 48,
+            "frame_height": 32,
+            "detected_at": "2026-07-28T10:00:00Z",
+            "detections": [{
+                "label": "person",
+                "confidence": 0.91,
+                "bounding_box": {"x": 5, "y": 6, "width": 12, "height": 18},
+            }],
+        })
 
         db = self.session_factory()
         try:
@@ -68,6 +77,10 @@ class RecordingEventClipTests(unittest.TestCase):
         self.assertTrue(segments[0].file_sha256)
         self.assertGreater(segments[0].size_bytes or 0, 0)
         self.assertTrue(os.path.exists(segments[0].file_path))
+        metadata_path = os.path.splitext(segments[0].file_path)[0] + ".detections.json"
+        self.assertTrue(os.path.exists(metadata_path))
+        with open(metadata_path, "r", encoding="utf-8") as file:
+            self.assertIn('"confidence":0.91', file.read())
 
 
 if __name__ == "__main__":

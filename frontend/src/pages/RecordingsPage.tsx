@@ -1,5 +1,5 @@
 // Kayit segmentleri ve playback envanteri ekrani.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { Database, Download, Film, Filter, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
@@ -10,10 +10,11 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { Table } from '../components/ui/Table'
+import { BoundingBoxOverlay } from '../components/camera/BoundingBoxOverlay'
 import { usePermissions } from '../hooks/usePermissions'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import type { Camera, RecordingSegment } from '../types/api'
+import type { Camera, RecordingMetadata, RecordingSegment } from '../types/api'
 
 type DateRange = '24h' | '7d' | '30d' | 'all'
 
@@ -60,7 +61,9 @@ export function RecordingsPage() {
   const [selectedCameraId, setSelectedCameraId] = useState('all')
   const [range, setRange] = useState<DateRange>('24h')
   const [limit, setLimit] = useState(100)
-  const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string } | null>(null)
+  const previewFrameRef = useRef<HTMLDivElement>(null)
+  const [previewDims, setPreviewDims] = useState({ w: 960, h: 540 })
+  const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string; metadata: RecordingMetadata | null } | null>(null)
   const [loadingAction, setLoadingAction] = useState<{ id: number; action: 'play' | 'download' } | null>(null)
 
   const { data: cameras = [] } = useQuery({
@@ -111,6 +114,16 @@ export function RecordingsPage() {
     if (preview?.url) URL.revokeObjectURL(preview.url)
   }, [preview?.url])
 
+  useEffect(() => {
+    if (!preview || !previewFrameRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setPreviewDims({ w: Math.round(width), h: Math.round(height) })
+    })
+    observer.observe(previewFrameRef.current)
+    return () => observer.disconnect()
+  }, [preview])
+
   const fetchSegmentBlob = async (segment: RecordingSegment, action: 'play' | 'download') => {
     if (segment.status !== 'complete') {
       showToast({
@@ -138,10 +151,18 @@ export function RecordingsPage() {
   const playSegment = async (segment: RecordingSegment) => {
     const blob = await fetchSegmentBlob(segment, 'play')
     if (!blob) return
+    const metadata = await recordingsApi.metadata(segment.id).catch((err) => {
+      showToast({
+        variant: 'warning',
+        title: 'Detection metadata alinamadi',
+        description: getApiErrorMessage(err, 'Kayit video olarak acildi; insan kutulari gosterilemeyebilir.'),
+      })
+      return null
+    })
     const url = URL.createObjectURL(blob)
     setPreview((current) => {
       if (current?.url) URL.revokeObjectURL(current.url)
-      return { segment, url }
+      return { segment, url, metadata }
     })
   }
 
@@ -387,12 +408,22 @@ export function RecordingsPage() {
               Kapat
             </Button>
           </div>
-          <video
-            src={preview.url}
-            controls
-            className="aspect-video w-full bg-black"
-            aria-label={`${cameraName(cameraById, preview.segment.camera_id)} kayit oynatici`}
-          />
+          <div ref={previewFrameRef} className="relative aspect-video w-full bg-black">
+            <video
+              src={preview.url}
+              controls
+              className="h-full w-full object-contain"
+              aria-label={`${cameraName(cameraById, preview.segment.camera_id)} kayit oynatici`}
+            />
+            <BoundingBoxOverlay
+              detections={preview.metadata?.detections ?? []}
+              containerWidth={previewDims.w}
+              containerHeight={previewDims.h}
+              sourceWidth={preview.metadata?.frame_width ?? preview.segment.width}
+              sourceHeight={preview.metadata?.frame_height ?? preview.segment.height}
+              fit="contain"
+            />
+          </div>
         </div>
       )}
 

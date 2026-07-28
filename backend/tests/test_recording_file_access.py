@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import HTTPException, status
 
 from src.domain.entities.recording_segment import RecordingSegment
-from src.presentation.api.routes.recordings import _safe_recording_file_path
+from src.presentation.api.routes.recordings import _recording_metadata_response, _safe_recording_file_path
 from src.infrastructure.time_utils import utc_now
 
 
@@ -68,6 +68,36 @@ class RecordingFileAccessTests(unittest.TestCase):
                 _safe_recording_file_path(self._segment(root / "missing.mp4"), root)
 
             self.assertEqual(ctx.exception.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_recording_metadata_reads_detection_sidecar_without_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            path = root / "event.mp4"
+            path.write_bytes(b"mp4")
+            path.with_suffix(".detections.json").write_text(
+                '{"frame_width":48,"frame_height":32,"detected_at":"2026-07-28T10:00:00Z",'
+                '"detections":[{"label":"person","confidence":0.92,'
+                '"bounding_box":{"x":5,"y":6,"width":12,"height":18}}]}',
+                encoding="utf-8",
+            )
+
+            metadata = _recording_metadata_response(self._segment(path), root)
+
+            self.assertEqual(metadata.frame_width, 48)
+            self.assertEqual(metadata.frame_height, 32)
+            self.assertEqual(len(metadata.detections), 1)
+            self.assertEqual(metadata.detections[0].bounding_box.x, 5)
+
+    def test_recording_metadata_returns_empty_when_sidecar_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            path = root / "event.mp4"
+            path.write_bytes(b"mp4")
+
+            metadata = _recording_metadata_response(self._segment(path), root)
+
+            self.assertEqual(metadata.detections, [])
+            self.assertEqual(metadata.frame_width, None)
 
 
 if __name__ == "__main__":

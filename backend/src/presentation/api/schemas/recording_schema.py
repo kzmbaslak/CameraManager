@@ -7,6 +7,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from src.presentation.api.schemas.alarm_schema import BoundingBoxSchema
+
 
 class RecordingSegmentResponse(BaseModel):
     """Kayit segmentini dosya yolu sizdirmadan donduren yanit."""
@@ -47,3 +49,23 @@ class RecordingPruneResponse(BaseModel):
     skipped_count: int
     removed_filenames: list[str]
     skipped_reasons: list[str]
+
+
+class RecordingDetectionItem(BaseModel):
+    """Kayit playback uzerinde cizilecek tek detection ozeti."""
+
+    label: str
+    confidence: float
+    bounding_box: BoundingBoxSchema
+
+
+class RecordingMetadataResponse(BaseModel):
+    """Kayit segmenti icin yol sizdirmayan playback metadata'si."""
+
+    segment_id: int
+    camera_id: int
+    alarm_id: Optional[int] = None
+    frame_width: Optional[int] = None
+    frame_height: Optional[int] = None
+    detected_at: Optional[datetime] = None
+    detections: list[RecordingDetectionItem]
