@@ -88,6 +88,9 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `ALARM_REPORT_LIMIT` | Alarm raporunda üretilecek maksimum satır sayısı |
 | `ALARM_REPORT_RETENTION_DAYS` | Alarm raporu dosyalarının saklanacağı gün sayısı |
 | `ALARM_REPORT_KEEP_LATEST` | Retention süresi dolsa bile tutulacak en yeni alarm raporu dosyası sayısı |
+| `ALARM_REPORT_WEBHOOK_URL` | Opsiyonel HTTPS SIEM/webhook alarm raporu dağıtım endpoint'i |
+| `ALARM_REPORT_WEBHOOK_TOKEN` | Opsiyonel alarm raporu webhook Bearer token değeri |
+| `ALARM_REPORT_WEBHOOK_TIMEOUT_SECONDS` | Alarm raporu webhook gönderim zaman aşımı |
 
 ### 4. Veritabanını Hazırla
 

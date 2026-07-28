@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
+import os
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from sqlalchemy.orm import Session
 
@@ -26,6 +30,22 @@ class AlarmReportResult:
     summary_path: Path
     total_count: int
     removed_files: list[Path]
+
+
+@dataclass(frozen=True)
+class AlarmReportDeliveryResult:
+    delivered: bool
+    url: str | None = None
+    status_code: int | None = None
+    message: str = ""
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _format_dt(value: datetime | None) -> str:
@@ -211,4 +231,63 @@ def generate_alarm_report(
         summary_path=summary_path,
         total_count=len(records),
         removed_files=removed_files,
+    )
+
+
+def deliver_alarm_report_webhook(
+    result: AlarmReportResult,
+    webhook_url: str | None = None,
+    token: str | None = None,
+    timeout_seconds: int | None = None,
+    opener=urlopen,
+) -> AlarmReportDeliveryResult:
+    """Send generated alarm report metadata to an HTTPS webhook/SIEM endpoint."""
+    url = (webhook_url or os.environ.get("ALARM_REPORT_WEBHOOK_URL", "")).strip()
+    if not url:
+        return AlarmReportDeliveryResult(delivered=False, message="ALARM_REPORT_WEBHOOK_URL tanimli degil.")
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        return AlarmReportDeliveryResult(delivered=False, url=url, message="Webhook URL HTTPS ve gecerli host icermeli.")
+    effective_token = (token if token is not None else os.environ.get("ALARM_REPORT_WEBHOOK_TOKEN", "")).strip()
+    if timeout_seconds is None:
+        try:
+            timeout_seconds = int(os.environ.get("ALARM_REPORT_WEBHOOK_TIMEOUT_SECONDS", "5") or "5")
+        except ValueError:
+            timeout_seconds = 5
+    timeout_seconds = min(max(timeout_seconds, 1), 60)
+    with result.summary_path.open("r", encoding="utf-8") as file:
+        summary = json.load(file)
+    payload = json.dumps(
+        {
+            "event": "alarm_report.generated",
+            "generated_at": _format_dt(datetime.now(UTC)),
+            "total_count": result.total_count,
+            "summary": summary,
+            "artifacts": {
+                "csv": {
+                    "filename": result.csv_path.name,
+                    "size_bytes": result.csv_path.stat().st_size,
+                    "sha256": _file_sha256(result.csv_path),
+                },
+                "summary": {
+                    "filename": result.summary_path.name,
+                    "size_bytes": result.summary_path.stat().st_size,
+                    "sha256": _file_sha256(result.summary_path),
+                },
+            },
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    headers = {"Content-Type": "application/json", "User-Agent": "kamera-yonetimi-alarm-report/1.0"}
+    if effective_token:
+        headers["Authorization"] = f"Bearer {effective_token}"
+    request = Request(url, data=payload, headers=headers, method="POST")
+    with opener(request, timeout=timeout_seconds) as response:
+        status_code = getattr(response, "status", None) or getattr(response, "code", None)
+    return AlarmReportDeliveryResult(
+        delivered=bool(status_code and 200 <= int(status_code) < 300),
+        url=url,
+        status_code=int(status_code) if status_code else None,
+        message="delivered",
     )

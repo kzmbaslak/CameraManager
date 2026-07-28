@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.infrastructure.database.database import SessionLocal
-from src.infrastructure.reports.alarm_report import DEFAULT_REPORT_DIR, generate_alarm_report
+from src.infrastructure.reports.alarm_report import DEFAULT_REPORT_DIR, deliver_alarm_report_webhook, generate_alarm_report
 
 
 def _env_int(name: str, default: int) -> int:
@@ -61,6 +61,7 @@ def main() -> None:
         help="Retention suresi dolsa bile tutulacak en yeni rapor dosyasi sayisi.",
     )
     parser.add_argument("--skip-cleanup", action="store_true", help="Eski rapor temizligini atla.")
+    parser.add_argument("--skip-delivery", action="store_true", help="ALARM_REPORT_WEBHOOK_URL tanimli olsa bile rapor dagitimini atla.")
     args = parser.parse_args()
 
     db = SessionLocal()
@@ -86,6 +87,14 @@ def main() -> None:
         print(f"Eski rapor temizlendi: {len(result.removed_files)} dosya")
         for path in result.removed_files:
             print(path)
+    if not args.skip_delivery:
+        delivery = deliver_alarm_report_webhook(result)
+        if delivery.url:
+            print(
+                "Rapor dagitimi: "
+                f"{'basarili' if delivery.delivered else 'basarisiz'} "
+                f"status={delivery.status_code or '-'} url={delivery.url}"
+            )
 
 
 if __name__ == "__main__":

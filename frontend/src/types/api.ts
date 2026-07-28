@@ -590,6 +590,7 @@ export interface SecurityPosture {
   secure_cookie_auth: boolean
   audit_chain_secret_configured: boolean
   audit_webhook_configured: boolean
+  alarm_report_webhook_configured: boolean
   app_log_rotation_configured: boolean
   app_log_json_format: boolean
   app_log_sensitive_query_masking: boolean

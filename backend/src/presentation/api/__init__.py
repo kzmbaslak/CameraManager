@@ -213,6 +213,16 @@ def security_posture(
     else:
         findings.append({"severity": "low", "message": "Kurumsal ortamda AUDIT_WEBHOOK_URL ile merkezi/SIEM audit arsivi tanimlanmali."})
 
+    alarm_report_webhook_url = os.environ.get("ALARM_REPORT_WEBHOOK_URL", "").strip()
+    alarm_report_webhook_configured = False
+    if alarm_report_webhook_url:
+        parsed_report_webhook = urlparse(alarm_report_webhook_url)
+        alarm_report_webhook_configured = parsed_report_webhook.scheme == "https" and bool(parsed_report_webhook.netloc)
+        if not alarm_report_webhook_configured:
+            findings.append({"severity": "medium", "message": "ALARM_REPORT_WEBHOOK_URL HTTPS ve gecerli bir rapor dagitim endpoint'i olmali."})
+    else:
+        findings.append({"severity": "low", "message": "ALARM_REPORT_WEBHOOK_URL ile alarm raporlari SIEM/webhook kanalina dagitilmali."})
+
     setup_checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
         for check in collect_setup_checks()
@@ -231,6 +241,7 @@ def security_posture(
         "secure_cookie_auth": secure_cookie_auth,
         "audit_chain_secret_configured": audit_chain_secret_configured,
         "audit_webhook_configured": audit_webhook_configured,
+        "alarm_report_webhook_configured": alarm_report_webhook_configured,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,
