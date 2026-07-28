@@ -1,6 +1,6 @@
 // Persistent alarm action panel shown above every page.
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, BellOff, CheckCircle, Clock3, Eye, VolumeX, XCircle } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
@@ -9,6 +9,8 @@ import { alarmsApi } from '../../api/alarms'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { useCameraStream } from '../../hooks/useCameraStream'
 import { useAlarmNotifications } from '../../hooks/useAlarmNotifications'
+import { useSystemSettingsStore } from '../../stores/systemSettingsStore'
+import { BoundingBoxOverlay } from '../camera/BoundingBoxOverlay'
 import { Button } from '../ui/Button'
 import type { Alarm } from '../../types/api'
 
@@ -54,9 +56,22 @@ function NotificationCard({
   onFalseAlarm: (alarm: Alarm) => void
   busy: boolean
 }) {
+  const previewRef = useRef<HTMLButtonElement>(null)
+  const [previewDims, setPreviewDims] = useState({ w: 360, h: 203 })
   const { dismiss, setExpandedCamera } = useAlarmStore()
+  const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
   const streamEnabled = alarm.alarm_type !== 'camera_offline' && alarm.alarm_type !== 'camera_health_degraded'
-  const { frame, connected } = useCameraStream(alarm.camera_id, streamEnabled, 'alarm')
+  const { frame, connected, detections, frameWidth, frameHeight } = useCameraStream(alarm.camera_id, streamEnabled, 'alarm')
+
+  useEffect(() => {
+    if (!previewRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setPreviewDims({ w: Math.round(width), h: Math.round(height) })
+    })
+    observer.observe(previewRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <motion.div
@@ -93,6 +108,7 @@ function NotificationCard({
       </div>
 
       <button
+        ref={previewRef}
         type="button"
         onClick={() => setExpandedCamera(alarm.camera_id, alarm.id)}
         className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-bg-primary"
@@ -101,6 +117,18 @@ function NotificationCard({
           <img src={frame} alt="Alarm kamera önizlemesi" className="h-full w-full object-cover" />
         ) : (
           <div className="text-xs text-text-secondary">{connected ? 'Bağlanıyor...' : 'Bağlantı yok'}</div>
+        )}
+        {showHumanDetectionBoxes && (
+          <BoundingBoxOverlay
+            detections={detections}
+            box={!detections.length ? alarm.bounding_box : null}
+            containerWidth={previewDims.w}
+            containerHeight={previewDims.h}
+            sourceWidth={frameWidth}
+            sourceHeight={frameHeight}
+            fit="cover"
+            stale={!detections.length && Boolean(alarm.bounding_box)}
+          />
         )}
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/65 px-3 py-2 text-xs text-white">
           <span>Canlı görüntüyü aç</span>
