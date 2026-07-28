@@ -181,6 +181,14 @@ def security_posture(
     recording_continuous_active_start = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START", "").strip() or None
     recording_continuous_active_end = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_END", "").strip() or None
     try:
+        recording_event_pre_seconds = float(os.environ.get("RECORDING_EVENT_PRE_SECONDS", os.environ.get("RECORDING_EVENT_CLIP_SECONDS", "6")) or "6")
+    except ValueError:
+        recording_event_pre_seconds = 6.0
+    try:
+        recording_event_post_seconds = float(os.environ.get("RECORDING_EVENT_POST_SECONDS", "3") or "3")
+    except ValueError:
+        recording_event_post_seconds = 3.0
+    try:
         recording_continuous_segment_seconds = int(float(os.environ.get("RECORDING_CONTINUOUS_SEGMENT_SECONDS", "60") or "60"))
     except ValueError:
         recording_continuous_segment_seconds = 60
@@ -238,6 +246,8 @@ def security_posture(
         "recording_retention_days": recording_retention,
         "recording_max_storage_mb": recording_quota,
         "recording_prune_interval_minutes": recording_prune_interval,
+        "recording_event_pre_seconds": min(max(recording_event_pre_seconds, 1.0), 30.0),
+        "recording_event_post_seconds": min(max(recording_event_post_seconds, 0.0), 30.0),
         "recording_continuous_enabled": recording_continuous_enabled,
         "recording_continuous_segment_seconds": min(max(recording_continuous_segment_seconds, 10), 900),
         "recording_continuous_fps": min(max(recording_continuous_fps, 1.0), 10.0),

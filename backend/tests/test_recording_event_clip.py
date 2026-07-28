@@ -27,6 +27,8 @@ class RecordingEventClipTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.previous_storage = os.environ.get("RECORDING_STORAGE_DIR")
         self.previous_fps = os.environ.get("RECORDING_EVENT_CLIP_FPS")
+        self.previous_event_pre = os.environ.get("RECORDING_EVENT_PRE_SECONDS")
+        self.previous_event_post = os.environ.get("RECORDING_EVENT_POST_SECONDS")
         self.previous_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED")
         self.previous_continuous_fps = os.environ.get("RECORDING_CONTINUOUS_FPS")
         self.previous_active_start = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START")
@@ -44,6 +46,14 @@ class RecordingEventClipTests(unittest.TestCase):
             os.environ.pop("RECORDING_EVENT_CLIP_FPS", None)
         else:
             os.environ["RECORDING_EVENT_CLIP_FPS"] = self.previous_fps
+        if self.previous_event_pre is None:
+            os.environ.pop("RECORDING_EVENT_PRE_SECONDS", None)
+        else:
+            os.environ["RECORDING_EVENT_PRE_SECONDS"] = self.previous_event_pre
+        if self.previous_event_post is None:
+            os.environ.pop("RECORDING_EVENT_POST_SECONDS", None)
+        else:
+            os.environ["RECORDING_EVENT_POST_SECONDS"] = self.previous_event_post
         if self.previous_continuous_enabled is None:
             os.environ.pop("RECORDING_CONTINUOUS_ENABLED", None)
         else:
@@ -104,6 +114,32 @@ class RecordingEventClipTests(unittest.TestCase):
         self.assertTrue(os.path.exists(metadata_path))
         with open(metadata_path, "r", encoding="utf-8") as file:
             self.assertIn('"confidence":0.91', file.read())
+
+    def test_event_clip_pre_post_seconds_are_clamped_and_summed(self):
+        manager = CameraStreamManager(ai_service=None)
+        os.environ["RECORDING_EVENT_PRE_SECONDS"] = "8"
+        os.environ["RECORDING_EVENT_POST_SECONDS"] = "4"
+
+        self.assertEqual(manager._event_pre_seconds(), 8.0)
+        self.assertEqual(manager._event_post_seconds(), 4.0)
+        self.assertEqual(manager._event_buffer_seconds(), 12.0)
+
+        os.environ["RECORDING_EVENT_PRE_SECONDS"] = "bad"
+        os.environ["RECORDING_EVENT_POST_SECONDS"] = "-5"
+
+        self.assertEqual(manager._event_pre_seconds(), 6.0)
+        self.assertEqual(manager._event_post_seconds(), 0.0)
+
+    def test_event_recording_buffer_keeps_pre_and_post_window(self):
+        manager = CameraStreamManager(ai_service=None)
+        os.environ["RECORDING_EVENT_PRE_SECONDS"] = "2"
+        os.environ["RECORDING_EVENT_POST_SECONDS"] = "3"
+        frame = np.zeros((32, 48, 3), dtype=np.uint8)
+
+        manager._append_recording_frame(7, frame)
+
+        self.assertLessEqual(len(manager._recording_buffers[7]), 1)
+        self.assertEqual(manager._event_buffer_seconds(), 5.0)
 
     def test_continuous_recording_schedule_handles_day_and_overnight_windows(self):
         manager = CameraStreamManager(ai_service=None)

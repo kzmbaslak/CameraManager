@@ -395,6 +395,9 @@ class CameraStreamManager:
                         **detection_payload,
                     })
                 if alarm:
+                    post_seconds = self._event_post_seconds()
+                    if post_seconds > 0:
+                        await asyncio.sleep(post_seconds)
                     clip_frames = self._recording_clip_frames(camera_id)
                     if clip_frames:
                         await loop.run_in_executor(
@@ -464,6 +467,23 @@ class CameraStreamManager:
             value = 6.0
         return min(max(value, 1.0), 30.0)
 
+    def _event_pre_seconds(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_EVENT_PRE_SECONDS", str(self._event_clip_seconds())) or str(self._event_clip_seconds()))
+        except ValueError:
+            value = self._event_clip_seconds()
+        return min(max(value, 1.0), 30.0)
+
+    def _event_post_seconds(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_EVENT_POST_SECONDS", "3") or "3")
+        except ValueError:
+            value = 3.0
+        return min(max(value, 0.0), 30.0)
+
+    def _event_buffer_seconds(self) -> float:
+        return min(self._event_pre_seconds() + self._event_post_seconds(), 60.0)
+
     def _event_clip_fps(self) -> float:
         try:
             value = float(os.environ.get("RECORDING_EVENT_CLIP_FPS", "6") or "6")
@@ -512,7 +532,7 @@ class CameraStreamManager:
         now = time.monotonic()
         buffer = self._recording_buffers.setdefault(camera_id, deque())
         buffer.append((now, frame.copy()))
-        cutoff = now - self._event_clip_seconds()
+        cutoff = now - self._event_buffer_seconds()
         while buffer and buffer[0][0] < cutoff:
             buffer.popleft()
 
@@ -520,7 +540,7 @@ class CameraStreamManager:
         cached = self._recording_buffers.get(camera_id)
         if not cached:
             return []
-        cutoff = time.monotonic() - self._event_clip_seconds()
+        cutoff = time.monotonic() - self._event_buffer_seconds()
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
 
     def _handle_continuous_recording_frame(self, camera_id: int, frame) -> None:
