@@ -773,6 +773,7 @@ async def preview_camera_onvif(
         }
         for stream in streams
     ]
+    compatibility = probe_svc.infer_profile_compatibility(capability_summary, streams)
 
     return {
         "camera_id": camera.id if camera else 0,
@@ -786,6 +787,7 @@ async def preview_camera_onvif(
         "profile_count": len(streams),
         "stream_uri_count": sum(1 for stream in streams if stream.rtsp_url),
         **capability_summary,
+        **compatibility,
         "first_stream_uri_masked": _mask_rtsp_url(streams[0].rtsp_url) if streams else None,
         "profiles": profiles,
         "message": (

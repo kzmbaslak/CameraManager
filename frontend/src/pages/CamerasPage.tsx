@@ -133,6 +133,24 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
         <Badge variant={result.imaging_supported ? 'success' : 'neutral'}>Imaging</Badge>
         <Badge variant={result.analytics_supported ? 'success' : 'neutral'}>Analytics</Badge>
       </div>
+      <div className="grid grid-cols-4 gap-1 text-[10px]">
+        <Badge variant={result.profile_s_likely ? 'success' : 'neutral'}>Profile S</Badge>
+        <Badge variant={result.profile_t_likely ? 'success' : 'neutral'}>Profile T</Badge>
+        <Badge variant={result.profile_g_likely ? 'success' : 'neutral'}>Profile G</Badge>
+        <Badge variant={result.profile_m_likely ? 'success' : 'neutral'}>Profile M</Badge>
+      </div>
+      <div className="grid grid-cols-3 gap-1 text-[10px]">
+        <Badge variant={result.event_subscription_likely ? 'success' : 'warning'}>Event Sub</Badge>
+        <Badge variant={result.snapshot_supported ? 'success' : 'neutral'}>Snapshot</Badge>
+        <Badge variant={result.h264_or_h265_supported ? 'success' : 'neutral'}>H.264/H.265</Badge>
+      </div>
+      {result.compatibility_notes?.length > 0 && (
+        <div className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--text-secondary)]">
+          {result.compatibility_notes.slice(0, 3).map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </div>
+      )}
       {(result.manufacturer || result.model) && (
         <p className="text-xs text-[var(--text-secondary)]">
           {[result.manufacturer, result.model, result.firmware_version].filter(Boolean).join(' / ')}

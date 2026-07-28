@@ -125,6 +125,38 @@ class ONVIFProbeService(ICameraProbeService):
 
         return results
 
+    @staticmethod
+    def infer_profile_compatibility(capabilities: dict, streams: Sequence[CameraProbeResult]) -> dict:
+        """Capability/stream sonucundan ONVIF Profile S/T/G/M icin pratik uyumluluk gostergesi uretir."""
+        encodings = {str(stream.encoding or "").upper() for stream in streams if stream.encoding}
+        has_stream = any(stream.rtsp_url for stream in streams)
+        has_snapshot = any(stream.snapshot_uri for stream in streams)
+        has_h264_or_h265 = bool(encodings.intersection({"H264", "H265", "HEVC"}))
+        media_supported = bool(capabilities.get("media_supported"))
+        events_supported = bool(capabilities.get("events_supported"))
+        analytics_supported = bool(capabilities.get("analytics_supported"))
+
+        return {
+            "profile_s_likely": media_supported and has_stream,
+            "profile_t_likely": media_supported and has_stream and has_h264_or_h265,
+            "profile_g_likely": False,
+            "profile_m_likely": analytics_supported and events_supported,
+            "event_subscription_likely": events_supported,
+            "snapshot_supported": has_snapshot,
+            "h264_or_h265_supported": has_h264_or_h265,
+            "compatibility_notes": [
+                note
+                for note in (
+                    "Profile S gostergesi: Media servisi ve RTSP stream URI mevcut." if media_supported and has_stream else None,
+                    "Profile T gostergesi: H.264/H.265 stream mevcut." if has_h264_or_h265 else None,
+                    "Profile M gostergesi: Events ve Analytics servisleri birlikte gorunuyor." if analytics_supported and events_supported else None,
+                    "Profile G icin recording service dogrulanmadi; cihaz/NVR dokumaniyla teyit edilmeli.",
+                    "Event subscription icin Events servisi mevcut." if events_supported else "Event subscription icin Events servisi gorunmedi.",
+                )
+                if note
+            ],
+        }
+
     def ptz_move(
         self,
         host: str,

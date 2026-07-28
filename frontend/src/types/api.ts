@@ -416,6 +416,14 @@ export interface CameraOnvifPreviewResponse {
   ptz_supported: boolean
   imaging_supported: boolean
   analytics_supported: boolean
+  profile_s_likely: boolean
+  profile_t_likely: boolean
+  profile_g_likely: boolean
+  profile_m_likely: boolean
+  event_subscription_likely: boolean
+  snapshot_supported: boolean
+  h264_or_h265_supported: boolean
+  compatibility_notes: string[]
   first_stream_uri_masked: string | null
   profiles: CameraOnvifProfileInfo[]
   message: string

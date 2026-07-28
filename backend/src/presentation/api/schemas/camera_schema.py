@@ -284,6 +284,14 @@ class CameraOnvifPreviewResponse(BaseModel):
     ptz_supported: bool = False
     imaging_supported: bool = False
     analytics_supported: bool = False
+    profile_s_likely: bool = False
+    profile_t_likely: bool = False
+    profile_g_likely: bool = False
+    profile_m_likely: bool = False
+    event_subscription_likely: bool = False
+    snapshot_supported: bool = False
+    h264_or_h265_supported: bool = False
+    compatibility_notes: list[str] = Field(default_factory=list)
     first_stream_uri_masked: Optional[str] = None
     profiles: list[CameraOnvifProfileInfo] = Field(default_factory=list)
     message: str
