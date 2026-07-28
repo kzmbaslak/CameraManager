@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle, Play, VolumeX, Wifi, WifiOff } from 'lucide-r
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { alarmsApi } from '../../api/alarms'
 import { useCameraStream } from '../../hooks/useCameraStream'
+import { usePermissions } from '../../hooks/usePermissions'
 import { BoundingBoxOverlay } from './BoundingBoxOverlay'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { useSystemSettingsStore } from '../../stores/systemSettingsStore'
@@ -29,6 +30,7 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
   const [dims, setDims] = useState({ w: 320, h: 180 })
   const [isNearViewport, setIsNearViewport] = useState(false)
   const qc = useQueryClient()
+  const { canAcknowledgeAlarms } = usePermissions()
   const { setExpandedCamera, stopSound, dismiss } = useAlarmStore()
   const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
 
@@ -68,7 +70,7 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
     ? Math.round(latestAlarm.confidence * 100)
     : null
   const isAlarmActive = alarmTriggered || hasFreshDetection || Boolean(latestAlarm?.bounding_box)
-  const actionableAlarmId = latestAlarm?.status === 'new' || latestAlarm?.status === 'acknowledged'
+  const actionableAlarmId = canAcknowledgeAlarms && (latestAlarm?.status === 'new' || latestAlarm?.status === 'acknowledged')
     ? latestAlarm.id
     : null
 

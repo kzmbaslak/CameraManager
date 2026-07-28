@@ -65,7 +65,7 @@ export function CameraFullscreenModal() {
     muteSoundFor,
   } = useAlarmStore()
   const qc = useQueryClient()
-  const { canControlPtz } = usePermissions()
+  const { canAcknowledgeAlarms, canControlPtz } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
   const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
   const videoRef = useRef<HTMLDivElement>(null)
@@ -109,7 +109,7 @@ export function CameraFullscreenModal() {
     expandedCameraId !== null,
     'live',
   )
-  const actionableAlarmId = expandedAlarmId ?? alarmId
+  const actionableAlarmId = canAcknowledgeAlarms ? expandedAlarmId ?? alarmId : null
   const hasFreshDetection = isRecentDetection(detectedAt)
   const activeDetections = hasFreshDetection ? detections : []
   const visibleDetectionCount = activeDetections.length
@@ -214,7 +214,7 @@ export function CameraFullscreenModal() {
       const target = e.target as HTMLElement | null
       if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') setExpandedCamera(null)
-      if ((e.key === 'a' || e.key === 'A') && actionableAlarmId) acknowledge.mutate(actionableAlarmId)
+      if ((e.key === 'a' || e.key === 'A') && canAcknowledgeAlarms && actionableAlarmId) acknowledge.mutate(actionableAlarmId)
       if (e.key === 'm' || e.key === 'M') stopSound()
       if (e.code === 'Space') {
         e.preventDefault()
@@ -223,7 +223,7 @@ export function CameraFullscreenModal() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [acknowledge, actionableAlarmId, setExpandedCamera, stopSound])
+  }, [acknowledge, actionableAlarmId, canAcknowledgeAlarms, setExpandedCamera, stopSound])
 
   useEffect(() => {
     if (!videoRef.current) return
@@ -495,7 +495,11 @@ export function CameraFullscreenModal() {
                 <span className="ml-auto flex items-center gap-1.5 text-text-secondary">
                   <Kbd>M</Kbd><span>Sustur</span>
                   <Kbd>Space</Kbd><span>Ses</span>
-                  <Kbd>A</Kbd><span>Onayla</span>
+                  {canAcknowledgeAlarms && (
+                    <>
+                      <Kbd>A</Kbd><span>Onayla</span>
+                    </>
+                  )}
                   <span>Kutular: <strong className="text-text-primary">{showHumanDetectionBoxes ? 'Acik' : 'Kapali'}</strong></span>
                   <Kbd>Esc</Kbd><span>Kapat</span>
                 </span>

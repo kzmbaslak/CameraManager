@@ -10,6 +10,7 @@ import { CameraGrid, type GridCols } from '../components/camera/CameraGrid'
 import { GridSizeSelector } from '../components/camera/GridSizeSelector'
 import { Spinner } from '../components/ui/Spinner'
 import { Toggle } from '../components/ui/Toggle'
+import { usePermissions } from '../hooks/usePermissions'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useAuthStore } from '../stores/authStore'
 import type { Alarm, Camera, CameraStreamDiagnostics, CameraStreamMetricSummary, SecurityPosture } from '../types/api'
@@ -261,12 +262,14 @@ function OperatorAssistPanel({
   health,
   streamTrends,
   security,
+  canAcknowledgeAlarms,
 }: {
   newAlarmCount: number
   watchedCount: number
   health: CameraStreamDiagnostics[]
   streamTrends: CameraStreamMetricSummary[]
   security: SecurityPosture | null
+  canAcknowledgeAlarms: boolean
 }) {
   const runningCount = health.filter((item) => item.producer_running).length
   const staleCount = health.filter((item) => (item.last_frame_age_seconds ?? 0) > 10).length
@@ -356,7 +359,7 @@ function OperatorAssistPanel({
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
           <span>Olay akisi: kamera kartina tikla, kutulu canli goruntuyu ac.</span>
           <span><Kbd>Space</Kbd> alarm sesini susturur.</span>
-          <span><Kbd>A</Kbd> aktif alarmi onaylar.</span>
+          {canAcknowledgeAlarms && <span><Kbd>A</Kbd> aktif alarmi onaylar.</span>}
           <span><Kbd>Esc</Kbd> detay/tam ekran kapatir.</span>
         </div>
       </div>
@@ -366,6 +369,7 @@ function OperatorAssistPanel({
 
 export function DashboardPage() {
   const role = useAuthStore((state) => state.role)
+  const { canAcknowledgeAlarms } = usePermissions()
   const defaultLayoutPreset = preferredPresetForRole(role)
   const [cols, setCols] = useState<GridCols>(() => (hasDashboardLayoutPreference() ? loadGridPref() : defaultLayoutPreset.cols))
   const [cameraSearch, setCameraSearch] = useState('')
@@ -520,6 +524,7 @@ export function DashboardPage() {
               >
                 <VolumeX size={14} />
               </button>
+              {canAcknowledgeAlarms && (
               <button
                 type="button"
                 title="Tüm yeni alarmları onayla"
@@ -530,9 +535,14 @@ export function DashboardPage() {
               >
                 <CheckCircle size={14} />
               </button>
+              )}
               <span className="hidden items-center gap-1.5 border-l border-danger/25 pl-2 text-[11px] text-danger lg:flex">
                 <Kbd>Space</Kbd><span>Sustur</span>
-                <Kbd>A</Kbd><span>Onayla</span>
+                {canAcknowledgeAlarms && (
+                  <>
+                    <Kbd>A</Kbd><span>Onayla</span>
+                  </>
+                )}
               </span>
             </div>
           )}
@@ -609,6 +619,7 @@ export function DashboardPage() {
           health={health}
           streamTrends={streamTrends}
           security={securityPosture}
+          canAcknowledgeAlarms={canAcknowledgeAlarms}
         />
       )}
 
