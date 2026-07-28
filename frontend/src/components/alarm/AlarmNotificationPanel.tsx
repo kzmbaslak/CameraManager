@@ -1,7 +1,7 @@
 // Persistent alarm action panel shown above every page.
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect } from 'react'
-import { AlertTriangle, BellOff, CheckCircle, Eye, VolumeX, XCircle } from 'lucide-react'
+import { AlertTriangle, BellOff, CheckCircle, Clock3, Eye, VolumeX, XCircle } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import 'dayjs/locale/tr'
@@ -26,6 +26,8 @@ function ShortcutLegend() {
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-text-secondary">
       <Kbd>Space</Kbd><span>Sustur</span>
+      <Kbd>S</Kbd><span>30 sn</span>
+      <Kbd>M</Kbd><span>5 dk</span>
       <Kbd>A</Kbd><span>Onayla</span>
       <Kbd>Enter</Kbd><span>Canlı</span>
     </div>
@@ -174,7 +176,8 @@ export function AlarmNotificationPanel() {
 
   const handleAcknowledge = (alarm: Alarm) => acknowledge.mutate(alarm.id)
   const handleFalseAlarm = (alarm: Alarm) => falseAlarm.mutate(alarm.id)
-  const handleMute = () => muteSoundFor(5 * 60 * 1000)
+  const handleShortMute = () => muteSoundFor(30 * 1000)
+  const handleLongMute = () => muteSoundFor(5 * 60 * 1000)
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -186,12 +189,14 @@ export function AlarmNotificationPanel() {
         e.preventDefault()
         stopSound()
       }
+      if (e.key === 's' || e.key === 'S') muteSoundFor(30 * 1000)
+      if (e.key === 'm' || e.key === 'M') muteSoundFor(5 * 60 * 1000)
       if (e.key === 'a' || e.key === 'A') acknowledge.mutate(firstAlarm.id)
       if (e.key === 'Enter') setExpandedCamera(firstAlarm.camera_id, firstAlarm.id)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [acknowledge, notifications, setExpandedCamera, stopSound])
+  }, [acknowledge, muteSoundFor, notifications, setExpandedCamera, stopSound])
 
   return (
     <div className="fixed right-4 top-4 z-[100] flex max-h-[calc(100vh-2rem)] flex-col items-end gap-2">
@@ -206,8 +211,18 @@ export function AlarmNotificationPanel() {
             <Button
               size="sm"
               variant="secondary"
+              icon={<Clock3 size={13} />}
+              onClick={handleShortMute}
+              title="Yeni alarm seslerini 30 saniye boyunca susturur; alarm kartlari gorunur kalir."
+            >
+              30 sn Sessiz
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
               icon={<VolumeX size={13} />}
-              onClick={handleMute}
+              onClick={handleLongMute}
+              title="Yeni alarm seslerini 5 dakika boyunca susturur; alarm kartlari gorunur kalir."
             >
               5 dk Sessiz
             </Button>

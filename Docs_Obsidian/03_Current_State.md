@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-28: Alarm bildirim paneline kisa sessize alma eklendi. Operator yeni alarm kartlari gorunur kalirken `30 sn Sessiz` veya `5 dk Sessiz` aksiyonlariyla sesi gecici susturabilir; `S` kisa sessiz, `M` uzun sessiz ve `Space` anlik sesi kesme kisa yollari panelde gosterilir.
 - 2026-07-28: Insan tespiti kutulari operator ayarina baglandi. Genel Ayarlar icindeki "Insan Kutulari" anahtari canli grid, tam ekran izleme ve kayit playback uzerindeki BoundingBoxOverlay cizimlerini kalici olarak acip kapatir; alarm aksiyonlari ve kanit metadata'si etkilenmez.
 - 2026-07-28: ONVIF profil uyumluluk gorunurlugu eklendi. Kamera ONVIF onizleme sonucu Profile S/T/G/M icin capability ve stream tabanli "likely" gostergeleri, event subscription, snapshot ve H.264/H.265 destek ozetini arayuzde gosterir; bunun resmi sertifikasyon beyanı degil pratik uyumluluk sinyali oldugu notlarda belirtilir.
 - 2026-07-28: Cihaz sertlestirme gorunurlugu genisletildi. `/api/security/posture` kamera/NVR toplam sayisi, parolasiz cihazlar, varsayilan RTSP/ONVIF port kullanan cihazlar, ONVIF capability testi bekleyen kameralar ve PTZ destekli kamera sayisini raporlar; Dashboard Guvenlik Kontrolu karti parolasiz cihaz ve ONVIF bekleyen kamera sayisini ilk ekrana tasir.

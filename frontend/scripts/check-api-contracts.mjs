@@ -43,6 +43,7 @@ const camerasPage = read('src/pages/CamerasPage.tsx')
 const cameraFullscreenModal = read('src/components/camera/CameraFullscreenModal.tsx')
 const frontendApiTypes = read('src/types/api.ts')
 const alarmsPage = read('src/pages/AlarmsPage.tsx')
+const alarmNotificationPanel = read('src/components/alarm/AlarmNotificationPanel.tsx')
 const permissionsHook = read('src/hooks/usePermissions.ts')
 const generatedOpenApiTypes = read('src/types/openapi.generated.ts')
 const backendAlarmRoutes = read('../backend/src/presentation/api/routes/alarms.py')
@@ -120,6 +121,10 @@ assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply 
 assertContains(alarmsPage, 'handleDownloadEvidenceManifest', 'evidence manifest UI action')
 assertContains(alarmsPage, 'handleDownloadEvidenceReport', 'evidence report UI action')
 assertContains(alarmsPage, 'Kanit raporu indirildi', 'evidence report success toast')
+assertContains(alarmNotificationPanel, '30 sn Sessiz', 'alarm notification short mute action')
+assertContains(alarmNotificationPanel, "e.key === 's'", 'alarm notification short mute shortcut')
+assertContains(alarmNotificationPanel, "e.key === 'm'", 'alarm notification long mute shortcut')
+assertContains(alarmNotificationPanel, 'muteSoundFor(30 * 1000)', 'alarm notification short mute duration')
 assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
 assertContains(
   backendAlarmRoutes,
