@@ -85,6 +85,17 @@ function segmentTimelineStyle(segment: RecordingSegment, start: number, end: num
   return { left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }
 }
 
+function detectionOffsetSeconds(segment: RecordingSegment, metadata: RecordingMetadata | null) {
+  if (!metadata?.detected_at) return null
+  const startedAt = dayjs(segment.started_at)
+  const detectedAt = dayjs(metadata.detected_at)
+  if (!startedAt.isValid() || !detectedAt.isValid()) return null
+  const offset = detectedAt.diff(startedAt, 'millisecond') / 1000
+  if (offset < 0) return 0
+  if (segment.duration_seconds != null) return Math.min(offset, segment.duration_seconds)
+  return offset
+}
+
 export function RecordingsPage() {
   const { canViewRecordings, canManageRecordings } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
@@ -97,6 +108,11 @@ export function RecordingsPage() {
   const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string; metadata: RecordingMetadata | null } | null>(null)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [loadingAction, setLoadingAction] = useState<{ id: number; action: 'play' | 'download' } | null>(null)
+  const previewDetectionOffset = preview ? detectionOffsetSeconds(preview.segment, preview.metadata) : null
+  const previewDuration = preview?.segment.duration_seconds ?? null
+  const previewDetectionPercent = previewDetectionOffset !== null && previewDuration && Number.isFinite(previewDuration)
+    ? clampPercent((previewDetectionOffset / previewDuration) * 100)
+    : null
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -233,6 +249,14 @@ export function RecordingsPage() {
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(url)
+  }
+
+  const seekPreview = (seconds: number) => {
+    const video = previewVideoRef.current
+    if (!video) return
+    const duration = Number.isFinite(video.duration) ? video.duration : preview?.segment.duration_seconds ?? seconds
+    video.currentTime = Math.min(Math.max(seconds, 0), Math.max(duration, 0))
+    void video.play().catch(() => undefined)
   }
 
   const columns = [
@@ -506,6 +530,26 @@ export function RecordingsPage() {
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              {previewDetectionOffset !== null && (
+                <div className="flex items-center gap-1 rounded-md border border-border bg-bg-secondary p-1" aria-label="Olay ani hizli atlama">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => seekPreview(Math.max(previewDetectionOffset - 5, 0))}
+                    title="Alarm anindan 5 saniye onceye git"
+                  >
+                    -5 sn
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => seekPreview(previewDetectionOffset)}
+                    title="Alarm anina git"
+                  >
+                    Alarm ani
+                  </Button>
+                </div>
+              )}
               <div className="flex items-center gap-1 rounded-md border border-border bg-bg-secondary p-1" aria-label="Playback hiz kontrolu">
                 <Gauge size={14} className="mx-1 text-text-secondary" />
                 {PLAYBACK_SPEED_OPTIONS.map((speed) => (
@@ -553,6 +597,38 @@ export function RecordingsPage() {
               sourceHeight={preview.metadata?.frame_height ?? preview.segment.height}
               fit="contain"
             />
+          </div>
+          <div className="border-t border-border px-4 py-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary">
+              <span>
+                Olay penceresi: {preview.segment.duration_seconds == null ? '-' : `${preview.segment.duration_seconds.toFixed(1)} sn`}
+              </span>
+              <span>
+                {previewDetectionOffset !== null
+                  ? `Alarm ani: ${previewDetectionOffset.toFixed(1)} sn`
+                  : 'Alarm ani metadata bulunamadi'}
+              </span>
+            </div>
+            <div className="relative h-3 rounded-full border border-border bg-bg-secondary">
+              <div className="absolute inset-y-0 left-0 w-1/3 rounded-l-full bg-info/25" title="Alarm oncesi pencere" />
+              <div className="absolute inset-y-0 left-1/3 w-1/3 bg-warning/25" title="Alarm ani cevresi" />
+              <div className="absolute inset-y-0 right-0 w-1/3 rounded-r-full bg-success/20" title="Alarm sonrasi pencere" />
+              {previewDetectionPercent !== null && (
+                <button
+                  type="button"
+                  aria-label="Alarm ani isaretine git"
+                  title="Alarm anina git"
+                  onClick={() => seekPreview(previewDetectionOffset ?? 0)}
+                  className="absolute top-1/2 h-5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-danger shadow-[0_0_0_2px_rgba(0,0,0,0.35)] focus:outline-none focus:ring-2 focus:ring-accent"
+                  style={{ left: `${previewDetectionPercent}%` }}
+                />
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-text-secondary">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-sm bg-info/40" /> Oncesi</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-sm bg-warning/40" /> Olay</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-4 rounded-sm bg-success/30" /> Sonrasi</span>
+            </div>
           </div>
         </div>
       )}
