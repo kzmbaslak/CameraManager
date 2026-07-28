@@ -50,6 +50,7 @@ const cameraFullscreenModal = read('src/components/camera/CameraFullscreenModal.
 const frontendApiTypes = read('src/types/api.ts')
 const alarmsPage = read('src/pages/AlarmsPage.tsx')
 const alarmNotificationPanel = read('src/components/alarm/AlarmNotificationPanel.tsx')
+const alarmRow = read('src/components/alarm/AlarmRow.tsx')
 const permissionsHook = read('src/hooks/usePermissions.ts')
 const generatedOpenApiTypes = read('src/types/openapi.generated.ts')
 const backendAlarmRoutes = read('../backend/src/presentation/api/routes/alarms.py')
@@ -136,6 +137,7 @@ assertContains(alarmNotificationPanel, "e.key === 's'", 'alarm notification shor
 assertContains(alarmNotificationPanel, "e.key === 'm'", 'alarm notification long mute shortcut')
 assertContains(alarmNotificationPanel, "canOperateAlarms) acknowledge.mutate", 'alarm notification acknowledge shortcut permission gate')
 assertContains(alarmNotificationPanel, 'muteSoundFor(30 * 1000)', 'alarm notification short mute duration')
+assertNotMatches(alarmRow, /Ä±|Ä°|Ã|Â|Å|âœ/, 'alarm row visible text must not contain mojibake sequences')
 assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
 assertContains(
   backendAlarmRoutes,

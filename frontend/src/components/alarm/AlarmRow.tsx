@@ -110,7 +110,7 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
               variant="secondary"
               icon={<Eye size={13} />}
               onClick={() => onInspect(alarm)}
-              aria-label={`${cameraName ?? `Kamera ${alarm.camera_id}`} alarmÄ±nÄ± incele`}
+              aria-label={`${cameraName ?? `Kamera ${alarm.camera_id}`} alarmını incele`}
             >
               Incele
             </Button>
