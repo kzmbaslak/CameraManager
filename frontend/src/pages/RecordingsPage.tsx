@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Database, Download, Film, Filter, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
+import { Clock3, Database, Download, Film, Filter, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
 import { camerasApi } from '../api/cameras'
 import { recordingsApi } from '../api/recordings'
 import { Badge } from '../components/ui/Badge'
@@ -55,6 +55,35 @@ function cameraName(cameraById: Record<number, Camera>, cameraId: number) {
   return cameraById[cameraId]?.name ?? `Kamera #${cameraId}`
 }
 
+function timelineBounds(segments: RecordingSegment[], range: DateRange) {
+  const rangeStart = dateRangeStart(range)
+  const fallbackEnd = dayjs()
+  const fallbackStart = rangeStart ? dayjs(rangeStart) : fallbackEnd.subtract(24, 'hour')
+  const timestamps = segments.flatMap((segment) => [
+    dayjs(segment.started_at).valueOf(),
+    segment.ended_at ? dayjs(segment.ended_at).valueOf() : fallbackEnd.valueOf(),
+  ]).filter(Number.isFinite)
+  if (!timestamps.length) {
+    return { start: fallbackStart.valueOf(), end: fallbackEnd.valueOf() }
+  }
+  const start = range === 'all' ? Math.min(...timestamps) : Math.min(fallbackStart.valueOf(), ...timestamps)
+  const end = Math.max(fallbackEnd.valueOf(), ...timestamps)
+  return end <= start ? { start, end: start + 60_000 } : { start, end }
+}
+
+function clampPercent(value: number) {
+  return Math.min(Math.max(value, 0), 100)
+}
+
+function segmentTimelineStyle(segment: RecordingSegment, start: number, end: number) {
+  const total = Math.max(end - start, 1)
+  const segmentStart = dayjs(segment.started_at).valueOf()
+  const segmentEnd = segment.ended_at ? dayjs(segment.ended_at).valueOf() : Date.now()
+  const left = clampPercent(((segmentStart - start) / total) * 100)
+  const width = Math.max(1.2, clampPercent(((segmentEnd - segmentStart) / total) * 100))
+  return { left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }
+}
+
 export function RecordingsPage() {
   const { canViewRecordings, canManageRecordings } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
@@ -105,10 +134,28 @@ export function RecordingsPage() {
     () => Object.fromEntries(cameras.map((camera) => [camera.id, camera])),
     [cameras],
   )
-  const segments = recordingsQuery.data?.items ?? []
+  const segments = useMemo(() => recordingsQuery.data?.items ?? [], [recordingsQuery.data?.items])
   const totalBytes = segments.reduce((sum, segment) => sum + (segment.size_bytes ?? 0), 0)
   const eventCount = segments.filter((segment) => segment.recording_type === 'event').length
   const openCount = segments.filter((segment) => segment.status === 'recording').length
+  const timeline = useMemo(() => {
+    const bounds = timelineBounds(segments, range)
+    const grouped = new Map<number, RecordingSegment[]>()
+    for (const segment of segments) {
+      const items = grouped.get(segment.camera_id) ?? []
+      items.push(segment)
+      grouped.set(segment.camera_id, items)
+    }
+    return {
+      ...bounds,
+      rows: Array.from(grouped.entries())
+        .map(([cameraId, items]) => ({
+          cameraId,
+          items: items.sort((left, right) => dayjs(left.started_at).valueOf() - dayjs(right.started_at).valueOf()),
+        }))
+        .sort((left, right) => cameraName(cameraById, left.cameraId).localeCompare(cameraName(cameraById, right.cameraId))),
+    }
+  }, [cameraById, range, segments])
 
   useEffect(() => () => {
     if (preview?.url) URL.revokeObjectURL(preview.url)
@@ -364,6 +411,60 @@ export function RecordingsPage() {
             onChange={(event) => setLimit(Math.min(Math.max(Number(event.target.value) || 1, 1), 500))}
           />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-bg-card p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <Clock3 size={16} />
+            Kamera Zaman Cizelgesi
+          </div>
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <span>{dayjs(timeline.start).format('DD.MM HH:mm')}</span>
+            <span className="h-px w-8 bg-border" />
+            <span>{dayjs(timeline.end).format('DD.MM HH:mm')}</span>
+          </div>
+        </div>
+        {timeline.rows.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border bg-bg-secondary p-4 text-sm text-text-secondary">
+            Secili filtrelerde zaman cizelgesi icin kayit bulunamadi.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {timeline.rows.map((row) => (
+              <div key={row.cameraId} className="grid gap-2 lg:grid-cols-[180px_minmax(0,1fr)]">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-text-primary">{cameraName(cameraById, row.cameraId)}</span>
+                  <Badge variant="neutral">{row.items.length}</Badge>
+                </div>
+                <div className="relative h-9 rounded-md border border-border bg-bg-secondary">
+                  <div className="absolute left-1/3 top-0 h-full w-px bg-border/70" />
+                  <div className="absolute left-2/3 top-0 h-full w-px bg-border/70" />
+                  {row.items.map((segment) => (
+                    <button
+                      key={segment.id}
+                      type="button"
+                      aria-label={`${cameraName(cameraById, segment.camera_id)} ${formatDate(segment.started_at)} kaydini oynat`}
+                      title={`${formatDate(segment.started_at)} - ${segment.recording_type === 'event' ? 'Olay' : 'Surekli'} - ${segment.status}`}
+                      onClick={() => playSegment(segment)}
+                      className={`absolute top-1 h-7 rounded-sm border transition-all hover:top-0.5 hover:h-8 focus:outline-none focus:ring-2 focus:ring-accent ${
+                        segment.recording_type === 'event'
+                          ? 'border-warning bg-warning/80 hover:bg-warning'
+                          : 'border-info bg-info/60 hover:bg-info'
+                      } ${segment.status !== 'complete' ? 'opacity-60' : ''}`}
+                      style={segmentTimelineStyle(segment, timeline.start, timeline.end)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-5 rounded-sm bg-warning" /> Olay</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-5 rounded-sm bg-info" /> Surekli</span>
+              <span>Bloklara tiklayarak kaydi oynatin.</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {recordingsQuery.isLoading ? (

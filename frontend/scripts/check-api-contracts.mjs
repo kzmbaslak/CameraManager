@@ -68,6 +68,8 @@ assertContains(recordingsPage, 'recordingsApi.fileBlob', 'recording page file ac
 assertContains(recordingsPage, 'recordingsApi.metadata', 'recording page metadata action')
 assertContains(recordingsPage, '<video', 'recording page playback preview')
 assertContains(recordingsPage, 'BoundingBoxOverlay', 'recording page playback bbox overlay')
+assertContains(recordingsPage, 'Kamera Zaman Cizelgesi', 'recording page visual timeline')
+assertContains(recordingsPage, 'segmentTimelineStyle', 'recording page timeline segment positioning')
 assertContains(recordingsPage, 'canManageRecordings &&', 'recording page prune permission gate')
 assertContains(appRouter, 'path="recordings"', 'recording route')
 assertContains(sidebar, "to: '/recordings'", 'recording sidebar item')
