@@ -12,6 +12,8 @@ interface BoundingBoxOverlayProps {
   sourceWidth?: number | null
   sourceHeight?: number | null
   fit?: ObjectFitMode
+  emphasis?: 'grid' | 'live'
+  stale?: boolean
 }
 
 function transformBox(
@@ -80,6 +82,8 @@ export function BoundingBoxOverlay({
   sourceWidth,
   sourceHeight,
   fit = 'cover',
+  emphasis = 'grid',
+  stale = false,
 }: BoundingBoxOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -98,8 +102,10 @@ export function BoundingBoxOverlay({
       : []
     if (!items.length) return
 
-    ctx.lineWidth = Math.max(2, Math.round(containerWidth / 320))
-    ctx.font = 'bold 11px Inter, sans-serif'
+    ctx.lineWidth = emphasis === 'live'
+      ? Math.max(3, Math.round(containerWidth / 260))
+      : Math.max(2, Math.round(containerWidth / 340))
+    ctx.font = `bold ${emphasis === 'live' ? 13 : 11}px Inter, sans-serif`
 
     for (const detection of items) {
       const scaled = clampBox(transformBox(
@@ -114,24 +120,26 @@ export function BoundingBoxOverlay({
 
       const confidence = detection.confidence ? ` ${Math.round(detection.confidence * 100)}%` : ''
       const label = `Insan${confidence}`
-      const labelW = ctx.measureText(label).width + 10
-      const labelH = 18
+      const labelW = ctx.measureText(label).width + 12
+      const labelH = emphasis === 'live' ? 22 : 18
       const labelY = Math.max(0, scaled.y - labelH)
       const labelX = Math.min(scaled.x, Math.max(0, containerWidth - labelW))
 
       ctx.save()
-      ctx.strokeStyle = '#f97316'
-      ctx.shadowColor = 'rgba(249, 115, 22, 0.8)'
-      ctx.shadowBlur = 8
+      ctx.strokeStyle = stale ? '#fbbf24' : '#f97316'
+      ctx.shadowColor = stale ? 'rgba(251, 191, 36, 0.7)' : 'rgba(249, 115, 22, 0.85)'
+      ctx.shadowBlur = emphasis === 'live' ? 12 : 8
+      if (stale) ctx.setLineDash([8, 5])
       ctx.strokeRect(scaled.x, scaled.y, scaled.width, scaled.height)
+      ctx.setLineDash([])
       ctx.restore()
 
-      ctx.fillStyle = 'rgba(249, 115, 22, 0.96)'
+      ctx.fillStyle = stale ? 'rgba(251, 191, 36, 0.96)' : 'rgba(249, 115, 22, 0.96)'
       ctx.fillRect(labelX, labelY, labelW, labelH)
       ctx.fillStyle = '#111827'
-      ctx.fillText(label, labelX + 5, labelY + 13)
+      ctx.fillText(label, labelX + 6, labelY + (emphasis === 'live' ? 16 : 13))
     }
-  }, [box, detections, containerWidth, containerHeight, sourceWidth, sourceHeight, fit])
+  }, [box, detections, containerWidth, containerHeight, sourceWidth, sourceHeight, fit, emphasis, stale])
 
   return (
     <canvas

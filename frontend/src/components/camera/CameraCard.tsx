@@ -11,7 +11,7 @@ import { Button } from '../ui/Button'
 import type { Alarm, Camera } from '../../types/api'
 import type { StreamProfile } from '../../hooks/useCameraStream'
 
-function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
+function isRecentDetection(detectedAt: string | null, ttlMs = 15_000) {
   if (!detectedAt) return false
   const timestamp = Date.parse(detectedAt)
   return Number.isFinite(timestamp) && Date.now() - timestamp <= ttlMs
@@ -59,6 +59,12 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
   const hasFreshDetection = isRecentDetection(detectedAt)
   const activeDetections = hasFreshDetection ? detections : []
   const fallbackBox = latestAlarm?.bounding_box ?? null
+  const visibleDetectionCount = activeDetections.length || (fallbackBox ? 1 : 0)
+  const bestConfidence = activeDetections.length
+    ? Math.round(Math.max(...activeDetections.map((item) => item.confidence || 0)) * 100)
+    : latestAlarm?.confidence
+    ? Math.round(latestAlarm.confidence * 100)
+    : null
   const isAlarmActive = alarmTriggered || hasFreshDetection || Boolean(latestAlarm?.bounding_box)
   const actionableAlarmId = latestAlarm?.status === 'new' || latestAlarm?.status === 'acknowledged'
     ? latestAlarm.id
@@ -128,6 +134,7 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
           sourceWidth={frameWidth}
           sourceHeight={frameHeight}
           fit="cover"
+          stale={!activeDetections.length && Boolean(fallbackBox)}
         />
 
         {camera.status === 'active' && (
@@ -143,9 +150,15 @@ export function CameraCard({ camera, latestAlarm, streamProfile = 'grid' }: Came
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute left-2 right-2 top-2 z-20 rounded bg-danger/95 px-2 py-1 text-center text-xs font-semibold uppercase tracking-wide text-white"
+            className="absolute left-2 right-2 top-2 z-20 flex items-center justify-between gap-2 rounded bg-danger/95 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-white"
           >
+            <span className="sr-only">Insan Tespit Edildi</span>
             İnsan Tespit Edildi
+            {visibleDetectionCount > 0 && (
+              <span className="shrink-0 rounded bg-black/25 px-1.5 py-0.5 text-[10px] tracking-normal">
+                {visibleDetectionCount} kisi{bestConfidence !== null ? ` / %${bestConfidence}` : ''}
+              </span>
+            )}
           </motion.div>
         )}
 

@@ -30,7 +30,7 @@ const ptzSpeedProfiles: Record<PtzSpeedProfile, { label: string; speed: number; 
   fast: { label: 'Hizli', speed: 0.75, durationMs: 500 },
 }
 
-function isRecentDetection(detectedAt: string | null, ttlMs = 5_000) {
+function isRecentDetection(detectedAt: string | null, ttlMs = 15_000) {
   if (!detectedAt) return false
   const timestamp = Date.parse(detectedAt)
   return Number.isFinite(timestamp) && Date.now() - timestamp <= ttlMs
@@ -97,6 +97,10 @@ export function CameraFullscreenModal() {
   const actionableAlarmId = expandedAlarmId ?? alarmId
   const hasFreshDetection = isRecentDetection(detectedAt)
   const activeDetections = hasFreshDetection ? detections : []
+  const visibleDetectionCount = activeDetections.length
+  const bestConfidence = activeDetections.length
+    ? Math.round(Math.max(...activeDetections.map((item) => item.confidence || 0)) * 100)
+    : null
   const isAlarmActive = alarmTriggered || hasFreshDetection
 
   const acknowledge = useMutation({
@@ -196,6 +200,7 @@ export function CameraFullscreenModal() {
       if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
       if (e.key === 'Escape') setExpandedCamera(null)
       if ((e.key === 'a' || e.key === 'A') && actionableAlarmId) acknowledge.mutate(actionableAlarmId)
+      if (e.key === 'm' || e.key === 'M') stopSound()
       if (e.code === 'Space') {
         e.preventDefault()
         stopSound()
@@ -296,6 +301,7 @@ export function CameraFullscreenModal() {
                 sourceWidth={frameWidth}
                 sourceHeight={frameHeight}
                 fit="contain"
+                emphasis="live"
               />
 
               {isAlarmActive && (
@@ -304,7 +310,14 @@ export function CameraFullscreenModal() {
                   animate={{ opacity: 1, y: 0 }}
                   className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3 rounded-lg bg-danger/95 px-4 py-3 text-white shadow-lg"
                 >
-                  <span className="text-sm font-semibold">İnsan Tespit Edildi</span>
+                  <span className="text-sm font-semibold">
+                    Insan Tespit Edildi
+                    {visibleDetectionCount > 0 && (
+                      <span className="ml-2 rounded bg-black/20 px-2 py-0.5 text-xs">
+                        {visibleDetectionCount} kisi{bestConfidence !== null ? ` / %${bestConfidence}` : ''}
+                      </span>
+                    )}
+                  </span>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <Button
                       size="sm"
@@ -458,7 +471,8 @@ export function CameraFullscreenModal() {
                   </strong>
                 </span>
                 <span className="ml-auto flex items-center gap-1.5 text-text-secondary">
-                  <Kbd>Space</Kbd><span>Sustur</span>
+                  <Kbd>M</Kbd><span>Sustur</span>
+                  <Kbd>Space</Kbd><span>Ses</span>
                   <Kbd>A</Kbd><span>Onayla</span>
                   <Kbd>Esc</Kbd><span>Kapat</span>
                 </span>
