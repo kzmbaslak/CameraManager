@@ -226,6 +226,11 @@ def security_posture(
     recording_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
     recording_continuous_active_start = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START", "").strip() or None
     recording_continuous_active_end = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_END", "").strip() or None
+    continuous_recording_excluded_camera_count = (
+        db.query(CameraModel)
+        .filter(CameraModel.continuous_recording_enabled.is_(False))
+        .count()
+    )
     try:
         recording_event_pre_seconds = float(os.environ.get("RECORDING_EVENT_PRE_SECONDS", os.environ.get("RECORDING_EVENT_CLIP_SECONDS", "6")) or "6")
     except ValueError:
@@ -326,6 +331,7 @@ def security_posture(
         "recording_event_pre_seconds": min(max(recording_event_pre_seconds, 1.0), 30.0),
         "recording_event_post_seconds": min(max(recording_event_post_seconds, 0.0), 30.0),
         "recording_continuous_enabled": recording_continuous_enabled,
+        "continuous_recording_excluded_camera_count": continuous_recording_excluded_camera_count,
         "recording_continuous_segment_seconds": min(max(recording_continuous_segment_seconds, 10), 900),
         "recording_continuous_fps": min(max(recording_continuous_fps, 1.0), 10.0),
         "recording_continuous_active_start": recording_continuous_active_start,

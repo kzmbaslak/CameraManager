@@ -23,6 +23,7 @@ export interface CameraUpdate {
   ai_active_start?: string | null
   ai_active_end?: string | null
   ai_roi_polygon?: string | null
+  continuous_recording_enabled?: boolean
 }
 
 export const camerasApi = {

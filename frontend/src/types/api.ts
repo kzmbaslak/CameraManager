@@ -30,6 +30,7 @@ export interface Camera {
   ai_active_start: string | null
   ai_active_end: string | null
   ai_roi_polygon: string | null
+  continuous_recording_enabled: boolean
   brand: string | null
   model: string | null
   nvr_id: number | null
@@ -66,6 +67,7 @@ export interface CameraCreate {
   ai_active_start?: string | null
   ai_active_end?: string | null
   ai_roi_polygon?: string | null
+  continuous_recording_enabled?: boolean
 }
 
 export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline' | 'camera_health_degraded'
@@ -624,6 +626,7 @@ export interface SecurityPosture {
   recording_event_pre_seconds: number
   recording_event_post_seconds: number
   recording_continuous_enabled: boolean
+  continuous_recording_excluded_camera_count: number
   recording_continuous_segment_seconds: number
   recording_continuous_fps: number
   recording_continuous_active_start: string | null

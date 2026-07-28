@@ -50,6 +50,7 @@ class CameraModel(Base):
     ai_active_start = Column(String, nullable=True)
     ai_active_end = Column(String, nullable=True)
     ai_roi_polygon = Column(String, nullable=True)
+    continuous_recording_enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     brand = Column(String, nullable=True)

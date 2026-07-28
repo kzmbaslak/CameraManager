@@ -175,7 +175,7 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
-  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '' })
+  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', continuous_recording_enabled: true })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
@@ -184,7 +184,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'Kamera eklendi', description: form.name })
       onClose()
-      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '' })
+      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', continuous_recording_enabled: true })
       setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
@@ -213,7 +213,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
     }),
   })
 
-  const set = (field: keyof CameraCreate, value: string | number) =>
+  const set = (field: keyof CameraCreate, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -271,6 +271,17 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} error={fieldErrors.password} />
+        <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.continuous_recording_enabled ?? true}
+            onChange={(e) => set('continuous_recording_enabled', e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+          />
+          <span>
+            Global surekli kayit aciksa bu kamerayi kayda dahil et. Kapaliysa sadece insan alarmi olay klibi uretilir.
+          </span>
+        </label>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -650,6 +661,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     ai_active_start: camera.ai_active_start ?? '',
     ai_active_end: camera.ai_active_end ?? '',
     ai_roi_polygon: camera.ai_roi_polygon ?? '',
+    continuous_recording_enabled: camera.continuous_recording_enabled,
     site: camera.site ?? '',
     building: camera.building ?? '',
     floor: camera.floor ?? '',
@@ -819,6 +831,17 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
           )}
           {testResult && <RtspDiagnosticResultPanel result={testResult} />}
         </div>
+        <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.continuous_recording_enabled ?? true}
+            onChange={(e) => setForm((f) => ({ ...f, continuous_recording_enabled: e.target.checked }))}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+          />
+          <span>
+            Global surekli kayit aciksa bu kamerayi kayda dahil et. Kapaliysa sadece insan alarmi olay klibi uretilir.
+          </span>
+        </label>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -1088,6 +1111,20 @@ export function CamerasPage() {
           </div>
         )
       },
+    },
+    {
+      key: 'recording',
+      header: 'Kayit',
+      render: (c: Camera) => (
+        <div className="flex flex-col gap-1">
+          <Badge variant={c.continuous_recording_enabled ? 'success' : 'warning'}>
+            {c.continuous_recording_enabled ? 'Surekli dahil' : 'Olay klibi'}
+          </Badge>
+          <span className="text-[10px] text-[var(--text-secondary)]">
+            {c.continuous_recording_enabled ? 'Global policy aciksa kaydeder' : 'Sadece alarm aninda klip'}
+          </span>
+        </div>
+      ),
     },
     {
       key: 'ai',

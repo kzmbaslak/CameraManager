@@ -38,6 +38,7 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
             ai_alarm_cooldown_seconds=45,
             ai_frame_stride=2,
             ai_inference_width=512,
+            continuous_recording_enabled=False,
             site="Central",
             building="Block A",
             floor="2",
@@ -50,6 +51,7 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
         self.assertEqual(loaded.name, "Gate 1")
         self.assertEqual(loaded.ai_confidence_threshold, 0.62)
         self.assertEqual(loaded.ai_frame_stride, 2)
+        self.assertIs(loaded.continuous_recording_enabled, False)
         self.assertEqual(loaded.site, "Central")
         self.assertEqual(loaded.building, "Block A")
         self.assertEqual(loaded.floor, "2")
@@ -58,12 +60,14 @@ class CameraRepositoryIntegrationTests(unittest.TestCase):
 
         loaded.ai_confidence_threshold = 0.78
         loaded.ai_frame_stride = 3
+        loaded.continuous_recording_enabled = True
         loaded.zone = "South Hall"
         loaded.onvif_ptz_supported = False
         updated = self.repo.update(loaded)
 
         self.assertEqual(updated.ai_confidence_threshold, 0.78)
         self.assertEqual(updated.ai_frame_stride, 3)
+        self.assertIs(updated.continuous_recording_enabled, True)
         self.assertEqual(updated.zone, "South Hall")
         self.assertIs(updated.onvif_ptz_supported, False)
 

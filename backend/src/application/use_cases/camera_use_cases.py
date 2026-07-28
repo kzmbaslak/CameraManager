@@ -40,6 +40,7 @@ class CameraUseCases:
         ai_active_start: Optional[str] = None,
         ai_active_end: Optional[str] = None,
         ai_roi_polygon: Optional[str] = None,
+        continuous_recording_enabled: bool = True,
     ) -> Camera:
         if not name or not host:
             raise ValueError("Kamera adı ve sunucu adresi zorunludur.")
@@ -89,6 +90,7 @@ class CameraUseCases:
             existing.ai_active_start = ai_active_start
             existing.ai_active_end = ai_active_end
             existing.ai_roi_polygon = ai_roi_polygon
+            existing.continuous_recording_enabled = continuous_recording_enabled
             if encrypted_password is not None:
                 existing.encrypted_password = self._encrypt_password(encrypted_password)
                 existing.password_updated_at = utc_now()
@@ -128,6 +130,7 @@ class CameraUseCases:
             ai_active_start=ai_active_start,
             ai_active_end=ai_active_end,
             ai_roi_polygon=ai_roi_polygon,
+            continuous_recording_enabled=continuous_recording_enabled,
         )
         return self.camera_repository.add(camera)
 

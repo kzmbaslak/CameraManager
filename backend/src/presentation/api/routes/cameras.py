@@ -338,6 +338,7 @@ async def add_camera(
             ai_active_start=camera_data.ai_active_start,
             ai_active_end=camera_data.ai_active_end,
             ai_roi_polygon=camera_data.ai_roi_polygon,
+            continuous_recording_enabled=camera_data.continuous_recording_enabled,
         )
         # RTSP doğrulaması başarılıysa kamerayı hemen aktif et ve akışı başlat
         camera = use_cases.update_camera_status(camera.id, CameraStatus.ACTIVE)
@@ -354,6 +355,7 @@ async def add_camera(
                 "floor": camera.floor,
                 "zone": camera.zone,
                 "password_configured": bool(password),
+                "continuous_recording_enabled": camera.continuous_recording_enabled,
                 "password_updated_at": camera.password_updated_at.isoformat() + "Z" if camera.password_updated_at else None,
             },
         )
@@ -903,12 +905,16 @@ async def update_camera(
     if data.ai_roi_polygon is not None:
         camera.ai_roi_polygon = data.ai_roi_polygon
         ai_settings_changed = True
+    recording_policy_changed = False
+    if data.continuous_recording_enabled is not None:
+        camera.continuous_recording_enabled = data.continuous_recording_enabled
+        recording_policy_changed = True
     updated_camera = use_cases.update_camera(camera, plain_password=data.password if data.password is not None else None)
 
     # Bağlantı ayarları değiştiyse yayını sıfırla ve yeniden bağlandır
     if connection_changed:
         await sm.reset_stream(camera_id)
-    elif ai_settings_changed:
+    elif ai_settings_changed or recording_policy_changed:
         await sm.ensure_running_state(camera_id)
 
     write_audit_event(
@@ -919,6 +925,8 @@ async def update_camera(
             "camera_id": camera_id,
             "connection_changed": connection_changed,
             "ai_settings_changed": ai_settings_changed,
+            "recording_policy_changed": recording_policy_changed,
+            "continuous_recording_enabled": updated_camera.continuous_recording_enabled,
             "password_rotated": password_rotated,
             "site": updated_camera.site,
             "building": updated_camera.building,

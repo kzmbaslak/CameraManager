@@ -34,6 +34,7 @@ class Camera:
     ai_active_start: Optional[str] = None
     ai_active_end: Optional[str] = None
     ai_roi_polygon: Optional[str] = None
+    continuous_recording_enabled: bool = True
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     brand: Optional[str] = None      # ONVIF'ten veya kullanıcıdan gelen marka

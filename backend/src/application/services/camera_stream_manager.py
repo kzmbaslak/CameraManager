@@ -206,7 +206,9 @@ class CameraStreamManager:
                     f"status={cam.status.value} ai={cam.ai_detection_enabled} "
                     f"host={cam.host}:{cam.rtsp_port}{cam.rtsp_path or ''}"
                 )
-                if cam.status == CameraStatus.ACTIVE and (cam.ai_detection_enabled or self._continuous_recording_enabled()):
+                if cam.status == CameraStatus.ACTIVE and (
+                    cam.ai_detection_enabled or self._continuous_recording_enabled_for_camera(cam)
+                ):
                     await self._ensure_producer(cam.id)
                     started += 1
             if started:
@@ -247,12 +249,12 @@ class CameraStreamManager:
             self._stop_flags[camera_id] = True
             return
 
-        status, ai_enabled = camera_state
+        status, ai_enabled, continuous_recording_enabled = camera_state
         if status != CameraStatus.ACTIVE:
             self._stop_flags[camera_id] = True
             return
 
-        needs_producer = ai_enabled or self._continuous_recording_enabled() or bool(self._subscribers.get(camera_id))
+        needs_producer = ai_enabled or continuous_recording_enabled or bool(self._subscribers.get(camera_id))
         if needs_producer:
             await self._ensure_producer(camera_id)
         else:
@@ -305,12 +307,12 @@ class CameraStreamManager:
             while not self._stop_flags.get(camera_id, False):
                 t0 = loop.time()
                 try:
-                    frame, camera_active, ai_enabled, ai_frame_stride = await loop.run_in_executor(
+                    frame, camera_active, ai_enabled, ai_frame_stride, continuous_recording_enabled = await loop.run_in_executor(
                         self._executor, lambda: self._read_frame_sync(camera_id, frame_source)
                     )
                 except Exception as exc:
                     logger.warning(f"[StreamManager] Kamera {camera_id} kare okuma hatası: {exc}")
-                    frame, camera_active, ai_enabled, ai_frame_stride = None, True, self._sync_check_ai_enabled_cached(camera_id), 1
+                    frame, camera_active, ai_enabled, ai_frame_stride, continuous_recording_enabled = None, True, self._sync_check_ai_enabled_cached(camera_id), 1, False
 
                 if not camera_active:
                     logger.info(f"[StreamManager] Kamera {camera_id} pasif/silinmiş — producer durduruluyor.")
@@ -318,7 +320,7 @@ class CameraStreamManager:
 
                 if frame is not None:
                     self._append_recording_frame(camera_id, frame)
-                    self._handle_continuous_recording_frame(camera_id, frame)
+                    self._handle_continuous_recording_frame(camera_id, frame, continuous_recording_enabled)
                     ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                     if ret:
                         self._broadcast(camera_id, {
@@ -340,7 +342,7 @@ class CameraStreamManager:
                     self._schedule_ai_detection(camera_id, frame.copy())
 
                 # AI kapalı ve hiç izleyici yoksa RTSP oturumunu kısa bir süre sıcak tut.
-                if not has_subscribers and not ai_enabled and not self._continuous_recording_enabled():
+                if not has_subscribers and not ai_enabled and not continuous_recording_enabled:
                     if idle_since is None:
                         idle_since = loop.time()
                     elif loop.time() - idle_since >= self._idle_grace_seconds:
@@ -494,6 +496,9 @@ class CameraStreamManager:
     def _continuous_recording_enabled(self) -> bool:
         return os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
 
+    def _continuous_recording_enabled_for_camera(self, camera) -> bool:
+        return self._continuous_recording_enabled() and bool(getattr(camera, "continuous_recording_enabled", True))
+
     @staticmethod
     def _parse_active_time(value: str):
         value = value.strip()
@@ -543,8 +548,8 @@ class CameraStreamManager:
         cutoff = time.monotonic() - self._event_buffer_seconds()
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
 
-    def _handle_continuous_recording_frame(self, camera_id: int, frame) -> None:
-        if not self._continuous_recording_enabled() or not self._continuous_recording_active_now():
+    def _handle_continuous_recording_frame(self, camera_id: int, frame, enabled_for_camera: bool) -> None:
+        if not enabled_for_camera or not self._continuous_recording_active_now():
             self._continuous_recording_buffers.pop(camera_id, None)
             self._continuous_recording_started_at.pop(camera_id, None)
             self._last_continuous_recording_frame_at.pop(camera_id, None)
@@ -775,14 +780,14 @@ class CameraStreamManager:
         finally:
             db.close()
 
-    def _sync_get_state(self, camera_id: int) -> Optional[Tuple[CameraStatus, bool]]:
+    def _sync_get_state(self, camera_id: int) -> Optional[Tuple[CameraStatus, bool, bool]]:
         db = self._open_db()
         try:
             repo = self._camera_repo(db)
             cam = repo.get_by_id(camera_id)
             if not cam:
                 return None
-            return cam.status, cam.ai_detection_enabled
+            return cam.status, cam.ai_detection_enabled, self._continuous_recording_enabled_for_camera(cam)
         finally:
             db.close()
 
@@ -831,10 +836,11 @@ class CameraStreamManager:
 
             camera = camera_repo.get_by_id(camera_id)
             if not camera or camera.status == CameraStatus.INACTIVE:
-                return None, False, False, 1
+                return None, False, False, 1, False
 
             self._ai_enabled_cache[camera_id] = camera.ai_detection_enabled
             self._ai_frame_stride_cache[camera_id] = max(1, getattr(camera, "ai_frame_stride", 1) or 1)
+            continuous_recording_enabled = self._continuous_recording_enabled_for_camera(camera)
 
             use_case = ProcessFrameUseCase(
                 camera_repository=camera_repo,
@@ -847,9 +853,9 @@ class CameraStreamManager:
             # Önceden yüklenmiş kamera objesi geçiriliyor — çift DB sorgusunu önler
             frame = use_case.read_frame(camera_id, camera=camera)
             if frame is None:
-                return None, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id]
+                return None, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
 
-            return frame, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id]
+            return frame, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
         finally:
             db.close()
 

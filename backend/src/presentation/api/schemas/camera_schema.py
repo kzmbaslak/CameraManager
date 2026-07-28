@@ -65,6 +65,7 @@ class CameraCreate(BaseModel):
     ai_active_start: Optional[str] = Field(default=None, max_length=5)
     ai_active_end: Optional[str] = Field(default=None, max_length=5)
     ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
+    continuous_recording_enabled: bool = True
 
     @field_validator("host")
     @classmethod
@@ -114,6 +115,7 @@ class CameraUpdate(BaseModel):
     ai_active_start: Optional[str] = Field(default=None, max_length=5)
     ai_active_end: Optional[str] = Field(default=None, max_length=5)
     ai_roi_polygon: Optional[str] = Field(default=None, max_length=4000)
+    continuous_recording_enabled: Optional[bool] = None
 
     @field_validator("host")
     @classmethod
@@ -163,6 +165,7 @@ class CameraResponse(BaseModel):
     ai_active_start: Optional[str] = None
     ai_active_end: Optional[str] = None
     ai_roi_polygon: Optional[str] = None
+    continuous_recording_enabled: bool = True
     created_at: Optional[datetime] = None
     brand: Optional[str] = None
     model: Optional[str] = None

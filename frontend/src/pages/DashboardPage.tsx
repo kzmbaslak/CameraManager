@@ -295,6 +295,7 @@ function OperatorAssistPanel({
   const overduePasswordCount = security?.overdue_device_password_count ?? 0
   const unsecuredDeviceCount = security?.device_without_password_count ?? 0
   const uncheckedOnvifCount = security?.camera_onvif_capability_unknown_count ?? 0
+  const recordingExcludedCount = security?.continuous_recording_excluded_camera_count ?? 0
 
   return (
     <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-4">
@@ -345,6 +346,7 @@ function OperatorAssistPanel({
                 : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · rapor ${security.alarm_report_email_configured ? 'e-posta' : security.alarm_report_webhook_configured ? 'webhook' : 'lokal'} · PTZ ${security.camera_ptz_supported_count}`
               : 'Guvenlik durusu okunuyor'}
             {security ? ` · parola ${overduePasswordCount > 0 ? `${overduePasswordCount} gecikmis` : `${security.device_password_rotation_days} gun uygun`}` : ''}
+            {security?.recording_continuous_enabled ? ` · kayit haric ${recordingExcludedCount}` : ''}
           </p>
         </div>
       </div>

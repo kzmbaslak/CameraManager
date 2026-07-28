@@ -32,6 +32,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             ai_active_start=model.ai_active_start,
             ai_active_end=model.ai_active_end,
             ai_roi_polygon=model.ai_roi_polygon,
+            continuous_recording_enabled=True if model.continuous_recording_enabled is None else bool(model.continuous_recording_enabled),
             created_at=model.created_at,
             updated_at=model.updated_at,
             brand=model.brand,
@@ -67,6 +68,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
             ai_active_start=entity.ai_active_start,
             ai_active_end=entity.ai_active_end,
             ai_roi_polygon=entity.ai_roi_polygon,
+            continuous_recording_enabled=entity.continuous_recording_enabled,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
             brand=entity.brand,
@@ -172,6 +174,7 @@ class SqlAlchemyCameraRepository(ICameraRepository):
         model.ai_active_start = camera.ai_active_start
         model.ai_active_end = camera.ai_active_end
         model.ai_roi_polygon = camera.ai_roi_polygon
+        model.continuous_recording_enabled = camera.continuous_recording_enabled
         model.brand = camera.brand
         model.model = camera.model
         model.nvr_id = camera.nvr_id
