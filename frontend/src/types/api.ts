@@ -609,6 +609,9 @@ export interface SecurityPosture {
   recording_retention_days: number
   recording_max_storage_mb: number
   recording_prune_interval_minutes: number
+  recording_continuous_enabled: boolean
+  recording_continuous_segment_seconds: number
+  recording_continuous_fps: number
   findings: SecurityPostureFinding[]
 }
 

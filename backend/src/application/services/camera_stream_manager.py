@@ -86,6 +86,9 @@ class CameraStreamManager:
         self._ai_frame_counters: Dict[int, int] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
         self._recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
+        self._continuous_recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
+        self._continuous_recording_started_at: Dict[int, float] = {}
+        self._last_continuous_recording_frame_at: Dict[int, float] = {}
         self._last_ai_inference_ms: Dict[int, float] = {}
         self._avg_ai_inference_ms: Dict[int, float] = {}
         self._idle_grace_seconds = 10.0
@@ -203,7 +206,7 @@ class CameraStreamManager:
                     f"status={cam.status.value} ai={cam.ai_detection_enabled} "
                     f"host={cam.host}:{cam.rtsp_port}{cam.rtsp_path or ''}"
                 )
-                if cam.status == CameraStatus.ACTIVE and cam.ai_detection_enabled:
+                if cam.status == CameraStatus.ACTIVE and (cam.ai_detection_enabled or self._continuous_recording_enabled()):
                     await self._ensure_producer(cam.id)
                     started += 1
             if started:
@@ -249,7 +252,7 @@ class CameraStreamManager:
             self._stop_flags[camera_id] = True
             return
 
-        needs_producer = ai_enabled or bool(self._subscribers.get(camera_id))
+        needs_producer = ai_enabled or self._continuous_recording_enabled() or bool(self._subscribers.get(camera_id))
         if needs_producer:
             await self._ensure_producer(camera_id)
         else:
@@ -315,6 +318,7 @@ class CameraStreamManager:
 
                 if frame is not None:
                     self._append_recording_frame(camera_id, frame)
+                    self._handle_continuous_recording_frame(camera_id, frame)
                     ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                     if ret:
                         self._broadcast(camera_id, {
@@ -336,7 +340,7 @@ class CameraStreamManager:
                     self._schedule_ai_detection(camera_id, frame.copy())
 
                 # AI kapalı ve hiç izleyici yoksa RTSP oturumunu kısa bir süre sıcak tut.
-                if not has_subscribers and not ai_enabled:
+                if not has_subscribers and not ai_enabled and not self._continuous_recording_enabled():
                     if idle_since is None:
                         idle_since = loop.time()
                     elif loop.time() - idle_since >= self._idle_grace_seconds:
@@ -467,6 +471,23 @@ class CameraStreamManager:
             value = 6.0
         return min(max(value, 1.0), 15.0)
 
+    def _continuous_recording_enabled(self) -> bool:
+        return os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+
+    def _continuous_segment_seconds(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_CONTINUOUS_SEGMENT_SECONDS", "60") or "60")
+        except ValueError:
+            value = 60.0
+        return min(max(value, 10.0), 900.0)
+
+    def _continuous_recording_fps(self) -> float:
+        try:
+            value = float(os.environ.get("RECORDING_CONTINUOUS_FPS", "2") or "2")
+        except ValueError:
+            value = 2.0
+        return min(max(value, 1.0), 10.0)
+
     def _append_recording_frame(self, camera_id: int, frame) -> None:
         now = time.monotonic()
         buffer = self._recording_buffers.setdefault(camera_id, deque())
@@ -481,6 +502,33 @@ class CameraStreamManager:
             return []
         cutoff = time.monotonic() - self._event_clip_seconds()
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
+
+    def _handle_continuous_recording_frame(self, camera_id: int, frame) -> None:
+        if not self._continuous_recording_enabled():
+            self._continuous_recording_buffers.pop(camera_id, None)
+            self._continuous_recording_started_at.pop(camera_id, None)
+            self._last_continuous_recording_frame_at.pop(camera_id, None)
+            return
+        now = time.monotonic()
+        fps = self._continuous_recording_fps()
+        last_sampled_at = self._last_continuous_recording_frame_at.get(camera_id, 0.0)
+        if now - last_sampled_at < (1.0 / fps):
+            return
+        self._last_continuous_recording_frame_at[camera_id] = now
+        buffer = self._continuous_recording_buffers.setdefault(camera_id, deque())
+        if camera_id not in self._continuous_recording_started_at:
+            self._continuous_recording_started_at[camera_id] = now
+        buffer.append((now, frame.copy()))
+        if now - self._continuous_recording_started_at[camera_id] < self._continuous_segment_seconds():
+            return
+        frames = [item.copy() for _, item in buffer]
+        buffer.clear()
+        self._continuous_recording_started_at[camera_id] = now
+        try:
+            loop = asyncio.get_running_loop()
+            loop.run_in_executor(self._executor, lambda: self._save_continuous_recording_clip_sync(camera_id, frames))
+        except RuntimeError:
+            self._save_continuous_recording_clip_sync(camera_id, frames)
 
     def _save_event_recording_clip_sync(self, camera_id: int, alarm_id: int, frames: list, detection_payload: dict | None = None) -> None:
         if not frames:
@@ -531,6 +579,60 @@ class CameraStreamManager:
             db.close()
         if metadata_path:
             logger.info("[Recording] Event clip detection metadata yazildi: %s", metadata_path.name)
+
+    def _save_continuous_recording_clip_sync(self, camera_id: int, frames: list) -> None:
+        if not frames:
+            return
+        storage_dir = recording_storage_dir() / f"cam_{camera_id}"
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        created_at = utc_now()
+        output_path = storage_dir / f"continuous_{created_at.strftime('%Y%m%d_%H%M%S')}.mp4"
+        height, width = frames[0].shape[:2]
+        fps = self._continuous_recording_fps()
+        writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+        if not writer.isOpened():
+            logger.warning(f"[Recording] Kamera {camera_id} continuous clip yazici acilamadi: {output_path.name}")
+            return
+        written = 0
+        try:
+            for frame in frames:
+                if frame.shape[:2] != (height, width):
+                    frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+                writer.write(frame)
+                written += 1
+        finally:
+            writer.release()
+        if written == 0 or not output_path.exists():
+            return
+        duration_seconds = written / fps
+        db = self._open_db()
+        try:
+            repo = self._recording_repo(db)
+            repo.add(RecordingSegment(
+                id=None,
+                camera_id=camera_id,
+                started_at=created_at,
+                ended_at=utc_now(),
+                recording_type="continuous",
+                status="complete",
+                file_path=str(output_path),
+                file_sha256=self._file_sha256(output_path),
+                size_bytes=output_path.stat().st_size,
+                codec="mp4v",
+                width=width,
+                height=height,
+                fps=fps,
+                alarm_id=None,
+                created_at=created_at,
+            ))
+            logger.info(
+                "[Recording] Kamera %s continuous segment yazildi: %s frame, %.1f sn",
+                camera_id,
+                written,
+                duration_seconds,
+            )
+        finally:
+            db.close()
 
     def _write_event_detection_metadata(self, output_path, camera_id: int, alarm_id: int, detection_payload: dict | None):
         """Event clip yanina playback bbox metadata sidecar'i yazar."""

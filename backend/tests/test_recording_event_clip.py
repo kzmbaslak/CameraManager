@@ -16,18 +16,21 @@ from src.infrastructure.database.repositories.recording_repository import SqlAlc
 
 class RecordingEventClipTests(unittest.TestCase):
     def setUp(self):
-        engine = create_engine(
+        self.engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-        Base.metadata.create_all(bind=engine)
-        self.session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        Base.metadata.create_all(bind=self.engine)
+        self.session_factory = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         self.tmp = tempfile.TemporaryDirectory()
         self.previous_storage = os.environ.get("RECORDING_STORAGE_DIR")
         self.previous_fps = os.environ.get("RECORDING_EVENT_CLIP_FPS")
+        self.previous_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED")
+        self.previous_continuous_fps = os.environ.get("RECORDING_CONTINUOUS_FPS")
         os.environ["RECORDING_STORAGE_DIR"] = self.tmp.name
         os.environ["RECORDING_EVENT_CLIP_FPS"] = "2"
+        os.environ["RECORDING_CONTINUOUS_FPS"] = "2"
 
     def tearDown(self):
         if self.previous_storage is None:
@@ -38,7 +41,16 @@ class RecordingEventClipTests(unittest.TestCase):
             os.environ.pop("RECORDING_EVENT_CLIP_FPS", None)
         else:
             os.environ["RECORDING_EVENT_CLIP_FPS"] = self.previous_fps
+        if self.previous_continuous_enabled is None:
+            os.environ.pop("RECORDING_CONTINUOUS_ENABLED", None)
+        else:
+            os.environ["RECORDING_CONTINUOUS_ENABLED"] = self.previous_continuous_enabled
+        if self.previous_continuous_fps is None:
+            os.environ.pop("RECORDING_CONTINUOUS_FPS", None)
+        else:
+            os.environ["RECORDING_CONTINUOUS_FPS"] = self.previous_continuous_fps
         self.tmp.cleanup()
+        self.engine.dispose()
 
     def test_event_clip_writes_video_and_records_segment(self):
         manager = CameraStreamManager(
@@ -81,6 +93,35 @@ class RecordingEventClipTests(unittest.TestCase):
         self.assertTrue(os.path.exists(metadata_path))
         with open(metadata_path, "r", encoding="utf-8") as file:
             self.assertIn('"confidence":0.91', file.read())
+
+    def test_continuous_clip_writes_video_and_records_segment(self):
+        manager = CameraStreamManager(
+            ai_service=None,
+            db_session_factory=self.session_factory,
+            recording_repository_factory=SqlAlchemyRecordingSegmentRepository,
+        )
+        frames = [
+            np.zeros((32, 48, 3), dtype=np.uint8),
+            np.full((32, 48, 3), 200, dtype=np.uint8),
+        ]
+
+        manager._save_continuous_recording_clip_sync(camera_id=4, frames=frames)
+
+        db = self.session_factory()
+        try:
+            repo = SqlAlchemyRecordingSegmentRepository(db)
+            segments = list(repo.list_segments(camera_id=4, limit=10))
+        finally:
+            db.close()
+        self.assertEqual(len(segments), 1)
+        self.assertEqual(segments[0].recording_type, "continuous")
+        self.assertIsNone(segments[0].alarm_id)
+        self.assertEqual(segments[0].width, 48)
+        self.assertEqual(segments[0].height, 32)
+        self.assertEqual(segments[0].fps, 2.0)
+        self.assertTrue(segments[0].file_sha256)
+        self.assertGreater(segments[0].size_bytes or 0, 0)
+        self.assertTrue(os.path.exists(segments[0].file_path))
 
 
 if __name__ == "__main__":

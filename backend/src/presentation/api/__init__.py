@@ -177,10 +177,21 @@ def security_posture(
     recording_retention = recording_retention_days()
     recording_quota = recording_quota_mb()
     recording_prune_interval = recording_prune_interval_minutes()
+    recording_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    try:
+        recording_continuous_segment_seconds = int(float(os.environ.get("RECORDING_CONTINUOUS_SEGMENT_SECONDS", "60") or "60"))
+    except ValueError:
+        recording_continuous_segment_seconds = 60
+    try:
+        recording_continuous_fps = float(os.environ.get("RECORDING_CONTINUOUS_FPS", "2") or "2")
+    except ValueError:
+        recording_continuous_fps = 2.0
     if recording_quota == 0:
         findings.append({"severity": "medium", "message": "RECORDING_MAX_STORAGE_MB tanimlanmali; kayit disk kotasi kapali."})
     if recording_prune_interval == 0:
         findings.append({"severity": "medium", "message": "RECORDING_PRUNE_INTERVAL_MINUTES pozitif olmali; otomatik kayit temizligi kapali."})
+    if not recording_continuous_enabled:
+        findings.append({"severity": "low", "message": "RECORDING_CONTINUOUS_ENABLED=true degil; yalnizca olay bazli kayit aktif."})
 
     audit_webhook_url = os.environ.get("AUDIT_WEBHOOK_URL", "").strip()
     audit_webhook_configured = False
@@ -225,6 +236,9 @@ def security_posture(
         "recording_retention_days": recording_retention,
         "recording_max_storage_mb": recording_quota,
         "recording_prune_interval_minutes": recording_prune_interval,
+        "recording_continuous_enabled": recording_continuous_enabled,
+        "recording_continuous_segment_seconds": min(max(recording_continuous_segment_seconds, 10), 900),
+        "recording_continuous_fps": min(max(recording_continuous_fps, 1.0), 10.0),
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",
