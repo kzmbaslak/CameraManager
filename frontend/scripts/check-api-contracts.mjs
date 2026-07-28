@@ -31,6 +31,12 @@ function assertMatches(source, pattern, label) {
   }
 }
 
+function assertNotMatches(source, pattern, label) {
+  if (pattern.test(source)) {
+    throw new Error(`${label}: unexpected pattern ${pattern}`)
+  }
+}
+
 const alarmsApi = read('src/api/alarms.ts')
 const camerasApi = read('src/api/cameras.ts')
 const recordingsApi = read('src/api/recordings.ts')
@@ -164,6 +170,16 @@ assertContains(cameraFullscreenModal, 'humanDetectionBoxesVisible', 'fullscreen 
 assertContains(read('src/components/camera/CameraCard.tsx'), 'humanDetectionBoxesVisible', 'camera card bbox visibility setting')
 assertContains(systemSettingsStore, 'humanDetectionBoxesVisible: true', 'system settings bbox visibility default')
 assertContains(settingsPage, 'Insan Kutulari', 'settings page bbox visibility control')
+assertMatches(
+  settingsPage,
+  /<Badge variant="neutral" className="mb-2">İzleyici<\/Badge>[\s\S]*<li>✗ Alarm onaylama<\/li>/,
+  'settings viewer role card denies alarm acknowledge',
+)
+assertNotMatches(
+  settingsPage,
+  /<Badge variant="neutral" className="mb-2">İzleyici<\/Badge>[\s\S]*<li>✓ Alarm onaylama<\/li>/,
+  'settings viewer role card must not allow alarm acknowledge',
+)
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), '_save_continuous_recording_clip_sync', 'backend continuous recording writer')
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), '_event_post_seconds', 'backend event recording post buffer')
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), 'RECORDING_CONTINUOUS_ENABLED', 'backend continuous recording env gate')

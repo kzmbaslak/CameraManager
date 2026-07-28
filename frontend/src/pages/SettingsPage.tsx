@@ -751,7 +751,7 @@ export function SettingsPage() {
               <li>✗ NVR yönetimi</li>
               <li>✗ Kullanıcı yönetimi</li>
               <li>✗ Sistem yedeği indirme</li>
-              <li>✓ Alarm onaylama</li>
+              <li>✗ Alarm onaylama</li>
             </ul>
           </div>
         </div>
