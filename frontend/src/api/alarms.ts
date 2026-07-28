@@ -79,6 +79,12 @@ export const alarmsApi = {
     return data
   },
 
+  /** Yol sizdirmayan okunabilir kanit raporunu Markdown blob olarak getirir. */
+  evidenceReport: async (alarmId: number): Promise<Blob> => {
+    const { data } = await client.get<Blob>(`/alarms/${alarmId}/evidence-report`, { responseType: 'blob' })
+    return data
+  },
+
   /** Yanlis alarm geri bildirimlerinden kamera bazli confidence esigi onerisi alir. */
   thresholdSuggestions: async (params?: {
     limit?: number

@@ -271,6 +271,7 @@ function AlarmDetailDrawer({
   onResolve,
   onFalsePositive,
   onDownloadEvidenceManifest,
+  onDownloadEvidenceReport,
   acknowledging,
   saving,
   resolving,
@@ -292,6 +293,7 @@ function AlarmDetailDrawer({
   onResolve: (payload: { resolution_reason: string | null; false_positive?: boolean }) => void
   onFalsePositive: () => void
   onDownloadEvidenceManifest: () => void
+  onDownloadEvidenceReport: () => void
   acknowledging: boolean
   saving: boolean
   resolving: boolean
@@ -397,6 +399,14 @@ function AlarmDetailDrawer({
                   onClick={onDownloadEvidenceManifest}
                 >
                   Manifest
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Download size={14} />}
+                  onClick={onDownloadEvidenceReport}
+                >
+                  Rapor
                 </Button>
               </div>
             )}
@@ -770,6 +780,23 @@ export function AlarmsPage() {
     }
   }
 
+  const handleDownloadEvidenceReport = async (alarm: Alarm) => {
+    try {
+      const blob = await alarmsApi.evidenceReport(alarm.id)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `alarm-${alarm.id}-kanit-raporu.md`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      showToast({ variant: 'success', title: 'Kanit raporu indirildi', description: `Alarm #${alarm.id} okunabilir rapor olarak hazirlandi.` })
+    } catch (err) {
+      showToast({ variant: 'danger', title: 'Rapor indirilemedi', description: getApiErrorMessage(err, 'Kanit raporu alinamadi.') })
+    }
+  }
+
   const handleApplyThresholdSuggestions = () => {
     if (applicableThresholdSuggestionIds.length === 0) {
       showToast({ variant: 'info', title: 'Uygulanacak oneri yok', description: 'Listede confidence esigi onerilen kamera bulunmuyor.' })
@@ -1006,6 +1033,7 @@ export function AlarmsPage() {
           onResolve={(payload) => resolveAlarm.mutate({ id: selectedAlarm.id, payload })}
           onFalsePositive={() => falsePositiveAlarm.mutate(selectedAlarm.id)}
           onDownloadEvidenceManifest={() => handleDownloadEvidenceManifest(selectedAlarm)}
+          onDownloadEvidenceReport={() => handleDownloadEvidenceReport(selectedAlarm)}
           acknowledging={acknowledge.isPending && acknowledge.variables === selectedAlarm.id}
           saving={updateAlarm.isPending && updateAlarm.variables?.id === selectedAlarm.id}
           resolving={resolveAlarm.isPending && resolveAlarm.variables?.id === selectedAlarm.id}

@@ -2,7 +2,7 @@ import hashlib
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from typing import List, Optional
 from src.application.services.alarm_threshold_suggestions import build_threshold_suggestions
 from src.presentation.api.dependencies import (
@@ -176,6 +176,75 @@ def _recording_evidence_file_items(
             status=status_value,
         ))
     return items
+
+
+def _build_evidence_manifest(
+    alarm,
+    alarm_id: int,
+    files: list[AlarmEvidenceFileItem],
+) -> AlarmEvidenceManifest:
+    return AlarmEvidenceManifest(
+        alarm_id=alarm.id or alarm_id,
+        camera_id=alarm.camera_id,
+        alarm_type=alarm.alarm_type,
+        status=alarm.status,
+        severity=alarm.severity,
+        false_positive=alarm.false_positive,
+        confidence=alarm.confidence,
+        bounding_box=alarm.bounding_box,
+        created_at=alarm.created_at,
+        acknowledged_at=alarm.acknowledged_at,
+        resolved_at=alarm.resolved_at,
+        generated_at=utc_now(),
+        files=files,
+    )
+
+
+def _render_evidence_report(manifest: AlarmEvidenceManifest) -> str:
+    """Kanit manifestinden paylasilabilir, yol sizdirmayan Markdown rapor uretir."""
+    lines = [
+        f"# Alarm Kanit Raporu #{manifest.alarm_id}",
+        "",
+        "## Olay",
+        f"- Alarm ID: {manifest.alarm_id}",
+        f"- Kamera ID: {manifest.camera_id}",
+        f"- Tip: {manifest.alarm_type}",
+        f"- Durum: {manifest.status}",
+        f"- Onem: {manifest.severity}",
+        f"- Yanlis alarm: {'evet' if manifest.false_positive else 'hayir'}",
+        f"- Guven: {manifest.confidence if manifest.confidence is not None else '-'}",
+        f"- Olusturma: {manifest.created_at.isoformat() if manifest.created_at else '-'}",
+        f"- Onay: {manifest.acknowledged_at.isoformat() if manifest.acknowledged_at else '-'}",
+        f"- Cozum: {manifest.resolved_at.isoformat() if manifest.resolved_at else '-'}",
+        f"- Rapor zamani: {manifest.generated_at.isoformat()}",
+        "",
+        "## Bounding Box",
+    ]
+    if manifest.bounding_box:
+        lines.append(
+            f"- x={manifest.bounding_box.x}, y={manifest.bounding_box.y}, "
+            f"w={manifest.bounding_box.width}, h={manifest.bounding_box.height}"
+        )
+    else:
+        lines.append("- Kayitli bbox yok.")
+    lines.extend([
+        "",
+        "## Dosyalar",
+        "| Varyant | Durum | Dosya | Boyut | SHA-256 |",
+        "| --- | --- | --- | ---: | --- |",
+    ])
+    for item in manifest.files:
+        lines.append(
+            f"| {item.variant} | {item.status} | {item.filename or '-'} | "
+            f"{item.size_bytes if item.size_bytes is not None else '-'} | {item.sha256 or '-'} |"
+        )
+    lines.extend([
+        "",
+        "## Not",
+        "Bu rapor fiziksel dosya yolu veya gizli kamera/NVR kimlik bilgisi icermez.",
+        "",
+    ])
+    return "\n".join(lines)
 
 
 def _build_threshold_suggestions(
@@ -437,20 +506,46 @@ def get_alarm_evidence_manifest(
             "file_hashes": {item.variant: item.sha256 for item in files if item.sha256},
         },
     )
-    return AlarmEvidenceManifest(
-        alarm_id=alarm.id or alarm_id,
-        camera_id=alarm.camera_id,
-        alarm_type=alarm.alarm_type,
-        status=alarm.status,
-        severity=alarm.severity,
-        false_positive=alarm.false_positive,
-        confidence=alarm.confidence,
-        bounding_box=alarm.bounding_box,
-        created_at=alarm.created_at,
-        acknowledged_at=alarm.acknowledged_at,
-        resolved_at=alarm.resolved_at,
-        generated_at=utc_now(),
-        files=files,
+    return _build_evidence_manifest(alarm, alarm_id, files)
+
+
+@router.get("/{alarm_id}/evidence-report")
+def get_alarm_evidence_report(
+    alarm_id: int,
+    request: Request,
+    repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    recording_repo: SqlAlchemyRecordingSegmentRepository = Depends(get_recording_segment_repository),
+    current_user: dict = Depends(get_evidence_export_user),
+):
+    """Alarm kanitlarini okunabilir Markdown rapor olarak dondurur."""
+    alarm = repo.get_by_id(alarm_id)
+    if not alarm:
+        raise HTTPException(status_code=404, detail="Alarm bulunamadi.")
+    files = [
+        _evidence_file_item("raw", alarm.snapshot_path, alarm.snapshot_sha256),
+        _evidence_file_item("annotated", alarm.snapshot_annotated_path, alarm.snapshot_annotated_sha256),
+    ]
+    files.extend(_recording_evidence_file_items(alarm_id, recording_repo))
+    manifest = _build_evidence_manifest(alarm, alarm_id, files)
+    report = _render_evidence_report(manifest)
+    write_audit_event(
+        "alarm.evidence_report.export",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "alarm_id": alarm_id,
+            "camera_id": alarm.camera_id,
+            "file_count": sum(1 for item in files if item.available),
+            "report_format": "markdown",
+        },
+    )
+    return PlainTextResponse(
+        report,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="alarm-{alarm_id}-evidence-report.md"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

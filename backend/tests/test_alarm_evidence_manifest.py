@@ -6,10 +6,12 @@ from pathlib import Path
 os.environ.setdefault("CAMERA_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 os.environ.setdefault("JWT_SECRET_KEY", "0123456789abcdef0123456789abcdef")
 
-from src.presentation.api.routes.alarms import _evidence_file_item
+from src.presentation.api.routes.alarms import _evidence_file_item, _render_evidence_report
 from src.presentation.api.routes.alarms import _recording_evidence_file_items
 from src.domain.entities.recording_segment import RecordingSegment
 from src.infrastructure.time_utils import utc_now
+from src.presentation.api.schemas.alarm_schema import AlarmEvidenceFileItem, AlarmEvidenceManifest
+from src.domain.entities.alarm import AlarmSeverity, AlarmStatus, AlarmType
 
 
 class FakeRecordingRepository:
@@ -172,6 +174,38 @@ class AlarmEvidenceManifestTests(unittest.TestCase):
         self.assertFalse(items[0].available)
         self.assertEqual(items[0].filename, "open.mp4")
         self.assertEqual(items[0].status, "not_complete")
+
+    def test_evidence_report_contains_hashes_without_paths(self):
+        manifest = AlarmEvidenceManifest(
+            alarm_id=5,
+            camera_id=2,
+            alarm_type=AlarmType.HUMAN_DETECTED,
+            status=AlarmStatus.NEW,
+            severity=AlarmSeverity.HIGH,
+            false_positive=False,
+            confidence=0.91,
+            bounding_box={"x": 1, "y": 2, "width": 3, "height": 4},
+            created_at=utc_now(),
+            generated_at=utc_now(),
+            files=[
+                AlarmEvidenceFileItem(
+                    variant="raw",
+                    available=True,
+                    filename="alarm.jpg",
+                    sha256="a" * 64,
+                    size_bytes=123,
+                    status="ok",
+                )
+            ],
+        )
+
+        report = _render_evidence_report(manifest)
+
+        self.assertIn("# Alarm Kanit Raporu #5", report)
+        self.assertIn("alarm.jpg", report)
+        self.assertIn("a" * 64, report)
+        self.assertNotIn("snapshots/", report)
+        self.assertNotIn("C:\\", report)
 
 
 if __name__ == "__main__":
