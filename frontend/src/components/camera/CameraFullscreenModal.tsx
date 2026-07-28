@@ -44,6 +44,16 @@ function Kbd({ children }: { children: string }) {
   )
 }
 
+function locationAffinityScore(candidate: { site?: string | null; building?: string | null; floor?: string | null; zone?: string | null }, anchor: { site?: string | null; building?: string | null; floor?: string | null; zone?: string | null } | null) {
+  if (!anchor) return 0
+  let score = 0
+  if (candidate.zone && candidate.zone === anchor.zone) score += 8
+  if (candidate.floor && candidate.floor === anchor.floor) score += 4
+  if (candidate.building && candidate.building === anchor.building) score += 2
+  if (candidate.site && candidate.site === anchor.site) score += 1
+  return score
+}
+
 export function CameraFullscreenModal() {
   const {
     expandedCameraId,
@@ -85,6 +95,9 @@ export function CameraFullscreenModal() {
     .sort((left, right) => {
       if (left.id === expandedCameraId) return -1
       if (right.id === expandedCameraId) return 1
+      const leftScore = locationAffinityScore(left, camera)
+      const rightScore = locationAffinityScore(right, camera)
+      if (leftScore !== rightScore) return rightScore - leftScore
       return left.id - right.id
     })
     .slice(0, layout)
@@ -470,6 +483,11 @@ export function CameraFullscreenModal() {
                     {camera.onvif_ptz_supported === true ? 'Destekli' : camera.onvif_ptz_supported === false ? 'Destek yok' : 'ONVIF test bekliyor'}
                   </strong>
                 </span>
+                {layout > 1 && (
+                  <span className="text-text-secondary">
+                    Iliskili kameralar: <strong className="text-text-primary">ayni lokasyon once</strong>
+                  </span>
+                )}
                 <span className="ml-auto flex items-center gap-1.5 text-text-secondary">
                   <Kbd>M</Kbd><span>Sustur</span>
                   <Kbd>Space</Kbd><span>Ses</span>
