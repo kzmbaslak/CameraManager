@@ -1,12 +1,13 @@
 // Left navigation shell for the operator console.
 import { NavLink } from 'react-router-dom'
-import { Bell, Camera, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Users } from 'lucide-react'
+import { Bell, Camera, Film, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Users } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 
 const navItems = [
   { to: '/', label: 'Canli Izleme', icon: LayoutDashboard, exact: true },
   { to: '/cameras', label: 'Kameralar', icon: Camera, exact: false },
   { to: '/recorders', label: 'Kayit Cihazlari', icon: Server, exact: false },
+  { to: '/recordings', label: 'Kayitlar', icon: Film, exact: false },
   { to: '/alarms', label: 'Alarmlar', icon: Bell, exact: false },
   { to: '/users', label: 'Sistem ve Kullanicilar', icon: Users, exact: false },
 ]

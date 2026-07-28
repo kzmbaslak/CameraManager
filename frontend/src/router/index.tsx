@@ -9,6 +9,7 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage').then((m) => ({
 const CamerasPage = lazy(() => import('../pages/CamerasPage').then((m) => ({ default: m.CamerasPage })))
 const NVRPage = lazy(() => import('../pages/NVRPage').then((m) => ({ default: m.NVRPage })))
 const AlarmsPage = lazy(() => import('../pages/AlarmsPage').then((m) => ({ default: m.AlarmsPage })))
+const RecordingsPage = lazy(() => import('../pages/RecordingsPage').then((m) => ({ default: m.RecordingsPage })))
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 function RouteLoader() {
@@ -42,6 +43,7 @@ export function AppRouter() {
             <Route index element={<DashboardPage />} />
             <Route path="cameras" element={<CamerasPage />} />
             <Route path="recorders" element={<NVRPage />} />
+            <Route path="recordings" element={<RecordingsPage />} />
             <Route path="nvr" element={<Navigate to="/recorders" replace />} />
             <Route path="alarms" element={<AlarmsPage />} />
             <Route path="users" element={<SettingsPage />} />
