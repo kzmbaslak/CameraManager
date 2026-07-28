@@ -162,6 +162,33 @@ def security_posture(
         .filter(NVRModel.password_updated_at.is_(None))
         .count()
     )
+    camera_total_count = db.query(CameraModel).count()
+    nvr_total_count = db.query(NVRModel).count()
+    camera_without_password_count = (
+        db.query(CameraModel)
+        .filter(or_(CameraModel.encrypted_password.is_(None), CameraModel.encrypted_password == ""))
+        .count()
+    )
+    nvr_without_password_count = (
+        db.query(NVRModel)
+        .filter(or_(NVRModel.encrypted_password.is_(None), NVRModel.encrypted_password == ""))
+        .count()
+    )
+    device_without_password_count = camera_without_password_count + nvr_without_password_count
+    camera_default_rtsp_port_count = db.query(CameraModel).filter(CameraModel.rtsp_port == 554).count()
+    camera_default_onvif_port_count = db.query(CameraModel).filter(CameraModel.onvif_port == 80).count()
+    nvr_default_onvif_port_count = db.query(NVRModel).filter(NVRModel.onvif_port == 80).count()
+    device_default_onvif_port_count = camera_default_onvif_port_count + nvr_default_onvif_port_count
+    camera_onvif_capability_unknown_count = (
+        db.query(CameraModel)
+        .filter(CameraModel.onvif_capabilities_checked_at.is_(None))
+        .count()
+    )
+    camera_ptz_supported_count = (
+        db.query(CameraModel)
+        .filter(CameraModel.onvif_ptz_supported.is_(True))
+        .count()
+    )
     overdue_device_password_count = overdue_camera_password_count + overdue_nvr_password_count
     missing_device_password_rotation_count = missing_camera_rotation_count + missing_nvr_rotation_count
     if overdue_device_password_count > 0:
@@ -170,6 +197,25 @@ def security_posture(
             "message": (
                 f"{overdue_device_password_count} kamera/NVR parolasi "
                 f"{device_password_rotation_days} gunluk rotasyon politikasini asti."
+            ),
+        })
+    if device_without_password_count > 0:
+        findings.append({
+            "severity": "high",
+            "message": f"{device_without_password_count} kamera/NVR icin cihaz parolasi kayitli degil; ONVIF/RTSP yetkileri dogrulanamiyor.",
+        })
+    if camera_onvif_capability_unknown_count > 0:
+        findings.append({
+            "severity": "medium",
+            "message": f"{camera_onvif_capability_unknown_count} kamera icin ONVIF capability/PTZ testi henuz dogrulanmadi.",
+        })
+    if camera_default_rtsp_port_count > 0 or device_default_onvif_port_count > 0:
+        findings.append({
+            "severity": "low",
+            "message": (
+                f"{camera_default_rtsp_port_count} kamera varsayilan RTSP 554, "
+                f"{device_default_onvif_port_count} cihaz varsayilan ONVIF 80 portunu kullaniyor; "
+                "ag segmentasyonu ve firewall politikasi kontrol edilmeli."
             ),
         })
 
@@ -248,6 +294,16 @@ def security_posture(
         "device_password_rotation_days": device_password_rotation_days,
         "device_password_rotation_compliant": overdue_device_password_count == 0,
         "device_password_total_count": camera_password_device_count + nvr_password_device_count,
+        "device_total_count": camera_total_count + nvr_total_count,
+        "device_without_password_count": device_without_password_count,
+        "camera_without_password_count": camera_without_password_count,
+        "nvr_without_password_count": nvr_without_password_count,
+        "camera_default_rtsp_port_count": camera_default_rtsp_port_count,
+        "camera_default_onvif_port_count": camera_default_onvif_port_count,
+        "nvr_default_onvif_port_count": nvr_default_onvif_port_count,
+        "device_default_onvif_port_count": device_default_onvif_port_count,
+        "camera_onvif_capability_unknown_count": camera_onvif_capability_unknown_count,
+        "camera_ptz_supported_count": camera_ptz_supported_count,
         "overdue_device_password_count": overdue_device_password_count,
         "missing_device_password_rotation_count": missing_device_password_rotation_count,
         "overdue_camera_password_count": overdue_camera_password_count,

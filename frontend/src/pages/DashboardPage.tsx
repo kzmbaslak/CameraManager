@@ -293,6 +293,8 @@ function OperatorAssistPanel({
     trendReconnects >= 3
   const setupMissingCount = security?.setup_checks.filter((check) => !check.ok).length ?? 0
   const overduePasswordCount = security?.overdue_device_password_count ?? 0
+  const unsecuredDeviceCount = security?.device_without_password_count ?? 0
+  const uncheckedOnvifCount = security?.camera_onvif_capability_unknown_count ?? 0
 
   return (
     <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-4">
@@ -339,8 +341,8 @@ function OperatorAssistPanel({
           <p className="truncate text-sm text-text-primary">
             {security
               ? security.findings.length > 0
-                ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · host ${security.trusted_hosts_configured ? 'sinirli' : 'acik'} · log ${security.app_log_rotation_configured ? 'rotasyon' : 'eksik'}`
-                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · log ${security.app_log_json_format ? 'JSON' : 'text'} · maske ${security.app_log_sensitive_query_masking ? 'aktif' : 'eksik'}`
+                ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · cihaz ${unsecuredDeviceCount} parolasiz · ONVIF ${uncheckedOnvifCount} bekliyor`
+                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · log ${security.app_log_json_format ? 'JSON' : 'text'} · PTZ ${security.camera_ptz_supported_count}`
               : 'Guvenlik durusu okunuyor'}
             {security ? ` · parola ${overduePasswordCount > 0 ? `${overduePasswordCount} gecikmis` : `${security.device_password_rotation_days} gun uygun`}` : ''}
           </p>

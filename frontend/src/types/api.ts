@@ -597,6 +597,16 @@ export interface SecurityPosture {
   device_password_rotation_days: number
   device_password_rotation_compliant: boolean
   device_password_total_count: number
+  device_total_count: number
+  device_without_password_count: number
+  camera_without_password_count: number
+  nvr_without_password_count: number
+  camera_default_rtsp_port_count: number
+  camera_default_onvif_port_count: number
+  nvr_default_onvif_port_count: number
+  device_default_onvif_port_count: number
+  camera_onvif_capability_unknown_count: number
+  camera_ptz_supported_count: number
   overdue_device_password_count: number
   missing_device_password_rotation_count: number
   overdue_camera_password_count: number
