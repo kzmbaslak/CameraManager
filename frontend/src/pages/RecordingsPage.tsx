@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Clock3, Database, Download, Film, Filter, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
+import { Clock3, Database, Download, Film, Filter, Gauge, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
 import { camerasApi } from '../api/cameras'
 import { recordingsApi } from '../api/recordings'
 import { Badge } from '../components/ui/Badge'
@@ -24,6 +24,7 @@ const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
   { value: '30d', label: 'Son 30 Gun' },
   { value: 'all', label: 'Tumu' },
 ]
+const PLAYBACK_SPEED_OPTIONS = [0.5, 1, 2, 4]
 
 function dateRangeStart(range: DateRange) {
   if (range === 'all') return undefined
@@ -91,8 +92,10 @@ export function RecordingsPage() {
   const [range, setRange] = useState<DateRange>('24h')
   const [limit, setLimit] = useState(100)
   const previewFrameRef = useRef<HTMLDivElement>(null)
+  const previewVideoRef = useRef<HTMLVideoElement>(null)
   const [previewDims, setPreviewDims] = useState({ w: 960, h: 540 })
   const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string; metadata: RecordingMetadata | null } | null>(null)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [loadingAction, setLoadingAction] = useState<{ id: number; action: 'play' | 'download' } | null>(null)
 
   const { data: cameras = [] } = useQuery({
@@ -170,6 +173,12 @@ export function RecordingsPage() {
     observer.observe(previewFrameRef.current)
     return () => observer.disconnect()
   }, [preview])
+
+  useEffect(() => {
+    if (previewVideoRef.current) {
+      previewVideoRef.current.playbackRate = playbackSpeed
+    }
+  }, [playbackSpeed, preview])
 
   const fetchSegmentBlob = async (segment: RecordingSegment, action: 'play' | 'download') => {
     if (segment.status !== 'complete') {
@@ -496,21 +505,41 @@ export function RecordingsPage() {
                 {formatDate(preview.segment.started_at)} / {preview.segment.duration_seconds == null ? '-' : `${preview.segment.duration_seconds.toFixed(1)} sn`}
               </p>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<X size={14} />}
-              onClick={() => setPreview((current) => {
-                if (current?.url) URL.revokeObjectURL(current.url)
-                return null
-              })}
-              title="Oynaticiyi kapat"
-            >
-              Kapat
-            </Button>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <div className="flex items-center gap-1 rounded-md border border-border bg-bg-secondary p-1" aria-label="Playback hiz kontrolu">
+                <Gauge size={14} className="mx-1 text-text-secondary" />
+                {PLAYBACK_SPEED_OPTIONS.map((speed) => (
+                  <button
+                    key={speed}
+                    type="button"
+                    aria-label={`Playback hizi ${speed}x`}
+                    title={`Playback hizi ${speed}x`}
+                    onClick={() => setPlaybackSpeed(speed)}
+                    className={`h-7 min-w-9 rounded px-2 text-xs font-semibold transition-colors ${
+                      playbackSpeed === speed ? 'bg-accent text-white' : 'text-text-secondary hover:bg-bg-card hover:text-text-primary'
+                    }`}
+                  >
+                    {speed}x
+                  </button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<X size={14} />}
+                onClick={() => setPreview((current) => {
+                  if (current?.url) URL.revokeObjectURL(current.url)
+                  return null
+                })}
+                title="Oynaticiyi kapat"
+              >
+                Kapat
+              </Button>
+            </div>
           </div>
           <div ref={previewFrameRef} className="relative aspect-video w-full bg-black">
             <video
+              ref={previewVideoRef}
               src={preview.url}
               controls
               className="h-full w-full object-contain"

@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-28: Kayit playback hiz kontrolu eklendi. `/recordings` oynaticisi 0.5x, 1x, 2x ve 4x hiz secenekleriyle operatorun uzun olay kliplerini daha hizli taramasini veya kritik anlari yavas izleyebilmesini saglar; secili hiz acik oynaticida video `playbackRate` degerine uygulanir.
 - 2026-07-28: Kayitlar sayfasina kamera bazli gorsel zaman cizelgesi eklendi. Secili filtredeki segmentler kamera satirlarina gruplanir, olay/surekli kayit bloklari renklerle ayrilir ve blok tiklamasi ayni yetkili playback akisini acarak operatorun olay klibini tablodan aramadan bulmasini saglar.
 - 2026-07-28: Kayit playback bbox metadata ilk fazi eklendi. Event clip uretiminde alarm anindaki detection listesi MP4 yanina `.detections.json` sidecar olarak yazilir; `GET /api/recordings/{segment_id}/metadata` bu metadata'yi path sizdirmadan dondurur ve `/recordings` oynaticisi video uzerinde insan kutularini `BoundingBoxOverlay` ile gosterir.
 - 2026-07-28: Otomatik kayit retention calistiricisi eklendi. Uygulama lifespan baslangicinda `RecordingRetentionRunner` baslar, `RECORDING_PRUNE_INTERVAL_MINUTES` periyoduyla tamamlanmis segmentlerde retention/kota prune calistirir, `0` degeriyle kapatilabilir ve dosya silme varsa `recording.prune.automatic` audit olayi yazar. `/api/security/posture` otomatik prune periyodunu raporlar.
