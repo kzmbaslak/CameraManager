@@ -42,3 +42,8 @@ class RecordingUseCases:
             until=until,
             limit=safe_limit,
         )
+
+    def list_alarm_segments(self, alarm_id: int) -> Sequence[RecordingSegment]:
+        if alarm_id <= 0:
+            return []
+        return self._recording_repository.list_by_alarm_id(alarm_id)

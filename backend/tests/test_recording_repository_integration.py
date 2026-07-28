@@ -78,6 +78,7 @@ class RecordingRepositoryIntegrationTests(unittest.TestCase):
             recording_type="continuous",
             status="recording",
             file_path="C:/recordings/cam-1/open.mp4",
+            alarm_id=11,
         ))
 
         segments = self.repo.list_segments(camera_id=1, since=now, limit=10)
@@ -89,6 +90,10 @@ class RecordingRepositoryIntegrationTests(unittest.TestCase):
         self.assertIsNotNone(fetched)
         self.assertEqual(fetched.camera_id, 1)
         self.assertIsNone(self.repo.get_by_id(0))
+
+        alarm_segments = self.repo.list_by_alarm_id(11)
+        self.assertEqual(len(alarm_segments), 1)
+        self.assertEqual(alarm_segments[0].status, "recording")
 
 
 if __name__ == "__main__":

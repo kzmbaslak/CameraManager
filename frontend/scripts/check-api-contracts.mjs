@@ -87,6 +87,8 @@ assertContains(
   '"applied_confidence_threshold"',
   'threshold apply audit applied threshold',
 )
+assertContains(backendAlarmRoutes, '_recording_evidence_file_items', 'alarm manifest recording evidence helper')
+assertContains(backendAlarmRoutes, 'video_event_', 'alarm manifest recording evidence variant')
 assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions', 'generated OpenAPI threshold read path')
 assertContains(generatedOpenApiTypes, '/api/alarms/threshold-suggestions/apply', 'generated OpenAPI threshold apply path')
 assertContains(generatedOpenApiTypes, '/api/alarms/{alarm_id}/evidence-manifest', 'generated OpenAPI evidence manifest path')

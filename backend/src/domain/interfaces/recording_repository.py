@@ -27,6 +27,9 @@ class IRecordingSegmentRepository(Protocol):
     ) -> Sequence[RecordingSegment]:
         ...
 
+    def list_by_alarm_id(self, alarm_id: int) -> Sequence[RecordingSegment]:
+        ...
+
     def list_completed_before(self, cutoff: datetime, limit: int = 1000) -> Sequence[RecordingSegment]:
         ...
 

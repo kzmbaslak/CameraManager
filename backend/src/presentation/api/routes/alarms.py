@@ -12,11 +12,14 @@ from src.presentation.api.dependencies import (
     get_camera_repository,
     get_current_user,
     get_evidence_export_user,
+    get_recording_segment_repository,
     get_stream_manager,
 )
 from src.application.services.camera_stream_manager import CameraStreamManager
 from src.infrastructure.database.repositories.alarm_repository import SqlAlchemyAlarmRepository
 from src.infrastructure.database.repositories.camera_repository import SqlAlchemyCameraRepository
+from src.infrastructure.database.repositories.recording_repository import SqlAlchemyRecordingSegmentRepository
+from src.infrastructure.recording.retention import recording_storage_dir
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.infrastructure.time_utils import utc_now
 from src.presentation.api.schemas.alarm_schema import (
@@ -122,6 +125,57 @@ def _evidence_file_item(variant: str, snapshot_path: str | None, stored_hash: st
         size_bytes=os.path.getsize(absolute_path),
         status=status,
     )
+
+
+def _recording_evidence_file_items(
+    alarm_id: int,
+    repository: SqlAlchemyRecordingSegmentRepository,
+) -> list[AlarmEvidenceFileItem]:
+    """Alarm bagli video segmentlerini evidence manifestine yol sizdirmadan ekler."""
+    storage_root = str(recording_storage_dir())
+    items: list[AlarmEvidenceFileItem] = []
+    for index, segment in enumerate(repository.list_by_alarm_id(alarm_id), start=1):
+        variant = f"video_event_{index}"
+        absolute_path = os.path.abspath(segment.file_path)
+        try:
+            inside_storage = os.path.commonpath([storage_root, absolute_path]) == storage_root
+        except ValueError:
+            inside_storage = False
+        if not inside_storage:
+            items.append(AlarmEvidenceFileItem(variant=variant, available=False, status="unsafe_path"))
+            continue
+        if segment.status != "complete" or segment.ended_at is None:
+            items.append(AlarmEvidenceFileItem(
+                variant=variant,
+                available=False,
+                filename=os.path.basename(segment.file_path),
+                sha256=segment.file_sha256,
+                size_bytes=segment.size_bytes,
+                status="not_complete",
+            ))
+            continue
+        if not os.path.isfile(absolute_path):
+            items.append(AlarmEvidenceFileItem(
+                variant=variant,
+                available=False,
+                filename=os.path.basename(segment.file_path),
+                sha256=segment.file_sha256,
+                size_bytes=segment.size_bytes,
+                status="missing",
+            ))
+            continue
+        with open(absolute_path, "rb") as file:
+            video_sha256 = hashlib.sha256(file.read()).hexdigest()
+        status_value = "ok" if segment.file_sha256 in {None, video_sha256} else "hash_mismatch"
+        items.append(AlarmEvidenceFileItem(
+            variant=variant,
+            available=True,
+            filename=os.path.basename(segment.file_path),
+            sha256=video_sha256,
+            size_bytes=os.path.getsize(absolute_path),
+            status=status_value,
+        ))
+    return items
 
 
 def _build_threshold_suggestions(
@@ -347,6 +401,7 @@ def get_alarm_evidence_manifest(
     alarm_id: int,
     request: Request,
     repo: SqlAlchemyAlarmRepository = Depends(get_alarm_repository),
+    recording_repo: SqlAlchemyRecordingSegmentRepository = Depends(get_recording_segment_repository),
     current_user: dict = Depends(get_evidence_export_user),
 ):
     """Alarm kanit dosyalari icin yol sizdirmayan hash ve metadata manifesti dondurur."""
@@ -358,6 +413,7 @@ def get_alarm_evidence_manifest(
         _evidence_file_item("raw", alarm.snapshot_path, alarm.snapshot_sha256),
         _evidence_file_item("annotated", alarm.snapshot_annotated_path, alarm.snapshot_annotated_sha256),
     ]
+    files.extend(_recording_evidence_file_items(alarm_id, recording_repo))
     raw_file = files[0]
     annotated_file = files[1]
     changed = False

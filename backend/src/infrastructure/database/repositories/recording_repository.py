@@ -87,6 +87,17 @@ class SqlAlchemyRecordingSegmentRepository:
         )
         return [self._to_entity(model) for model in models]
 
+    def list_by_alarm_id(self, alarm_id: int) -> Sequence[RecordingSegment]:
+        if alarm_id <= 0:
+            return []
+        models = (
+            self._db.query(RecordingSegmentModel)
+            .filter(RecordingSegmentModel.alarm_id == alarm_id)
+            .order_by(RecordingSegmentModel.started_at.asc(), RecordingSegmentModel.id.asc())
+            .all()
+        )
+        return [self._to_entity(model) for model in models]
+
     def list_completed_before(self, cutoff: datetime, limit: int = 1000) -> Sequence[RecordingSegment]:
         models = (
             self._db.query(RecordingSegmentModel)
