@@ -22,6 +22,11 @@ class RecordingUseCases:
             raise ValueError("Kayit bitis zamani baslangictan once olamaz.")
         return self._recording_repository.add(segment)
 
+    def get_segment(self, segment_id: int) -> RecordingSegment | None:
+        if segment_id <= 0:
+            return None
+        return self._recording_repository.get_by_id(segment_id)
+
     def list_segments(
         self,
         *,

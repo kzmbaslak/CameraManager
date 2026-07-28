@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 
 from src.application.use_cases.recording_use_cases import RecordingUseCases
 from src.domain.entities.recording_segment import RecordingSegment
-from src.infrastructure.recording.retention import RecordingRetentionService
+from src.infrastructure.recording.retention import RecordingRetentionService, recording_storage_dir
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.presentation.api.dependencies import (
     get_recording_manage_user,
@@ -26,6 +28,27 @@ from src.presentation.api.schemas.recording_schema import (
 
 
 router = APIRouter(prefix="/recordings", tags=["Recordings"])
+
+
+def _safe_recording_file_path(segment: RecordingSegment, storage_root: Path | None = None) -> Path:
+    """Kayit dosyasini storage kok dizini disina cikmadan cozer."""
+    root = (storage_root or recording_storage_dir()).resolve()
+    path = Path(segment.file_path).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kayit dosyasi guvenli depolama dizini disinda.",
+        )
+    if segment.status != "complete" or segment.ended_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Kayit segmenti henuz tamamlanmamis.",
+        )
+    if not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kayit dosyasi bulunamadi.")
+    return path
 
 
 def _segment_response(segment: RecordingSegment) -> RecordingSegmentResponse:
@@ -67,6 +90,42 @@ def list_recording_segments(
         items=[_segment_response(segment) for segment in segments],
         total=len(segments),
         limit=limit,
+    )
+
+
+@router.get("/{segment_id}/file")
+def get_recording_file(
+    segment_id: int,
+    use_cases: RecordingUseCases = Depends(get_recording_use_cases),
+    current_user: dict = Depends(get_recording_view_user),
+):
+    """Kayit segmenti dosyasini path sizdirmadan ve audit izli olarak dondurur."""
+    segment = use_cases.get_segment(segment_id)
+    if segment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kayit segmenti bulunamadi.")
+    path = _safe_recording_file_path(segment)
+    write_audit_event(
+        "recording.file.access",
+        actor=current_user.get("sub"),
+        metadata={
+            "segment_id": segment.id,
+            "camera_id": segment.camera_id,
+            "alarm_id": segment.alarm_id,
+            "recording_type": segment.recording_type,
+            "filename": path.name,
+            "file_sha256": segment.file_sha256,
+            "size_bytes": segment.size_bytes,
+        },
+    )
+    return FileResponse(
+        path=path,
+        media_type="video/mp4",
+        filename=path.name,
+        headers={
+            "X-Recording-Segment-Id": str(segment.id or segment_id),
+            "X-Recording-SHA256": segment.file_sha256 or "",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

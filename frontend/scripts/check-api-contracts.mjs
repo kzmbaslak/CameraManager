@@ -57,9 +57,12 @@ assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint
 assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(camerasApi, '/ptz/patrol', 'camera PTZ patrol endpoint')
 assertContains(recordingsApi, '/recordings/', 'recording segment list endpoint')
+assertContains(recordingsApi, '/recordings/${segmentId}/file', 'recording file endpoint')
 assertContains(recordingsApi, '/recordings/maintenance/prune', 'recording prune endpoint')
 assertContains(recordingsPage, 'recordingsApi.list', 'recording page list action')
 assertContains(recordingsPage, 'recordingsApi.prune', 'recording page prune action')
+assertContains(recordingsPage, 'recordingsApi.fileBlob', 'recording page file access action')
+assertContains(recordingsPage, '<video', 'recording page playback preview')
 assertContains(recordingsPage, 'canManageRecordings &&', 'recording page prune permission gate')
 assertContains(appRouter, 'path="recordings"', 'recording route')
 assertContains(sidebar, "to: '/recordings'", 'recording sidebar item')
@@ -110,6 +113,7 @@ assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/patrol', 'generated OpenAPI PTZ patrol path')
 assertContains(generatedOpenApiTypes, '/api/recordings/', 'generated OpenAPI recording list path')
+assertContains(generatedOpenApiTypes, '/api/recordings/{segment_id}/file', 'generated OpenAPI recording file path')
 assertContains(generatedOpenApiTypes, '/api/recordings/maintenance/prune', 'generated OpenAPI recording prune path')
 
 assertMatches(

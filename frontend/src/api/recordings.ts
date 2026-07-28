@@ -19,4 +19,10 @@ export const recordingsApi = {
     const { data } = await client.post<RecordingPruneResult>('/recordings/maintenance/prune', undefined, { params })
     return data
   },
+
+  /** Kayit dosyasini yetkili API uzerinden blob olarak indirir. */
+  fileBlob: async (segmentId: number): Promise<Blob> => {
+    const { data } = await client.get<Blob>(`/recordings/${segmentId}/file`, { responseType: 'blob' })
+    return data
+  },
 }

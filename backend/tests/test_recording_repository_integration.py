@@ -70,7 +70,7 @@ class RecordingRepositoryIntegrationTests(unittest.TestCase):
 
     def test_open_segment_overlaps_since_filter(self):
         now = utc_now()
-        self.repo.add(RecordingSegment(
+        saved = self.repo.add(RecordingSegment(
             id=None,
             camera_id=1,
             started_at=now - timedelta(minutes=3),
@@ -84,6 +84,11 @@ class RecordingRepositoryIntegrationTests(unittest.TestCase):
 
         self.assertEqual(len(segments), 1)
         self.assertEqual(segments[0].status, "recording")
+
+        fetched = self.repo.get_by_id(saved.id or 0)
+        self.assertIsNotNone(fetched)
+        self.assertEqual(fetched.camera_id, 1)
+        self.assertIsNone(self.repo.get_by_id(0))
 
 
 if __name__ == "__main__":

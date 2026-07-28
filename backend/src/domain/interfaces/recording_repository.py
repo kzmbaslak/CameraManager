@@ -14,6 +14,9 @@ class IRecordingSegmentRepository(Protocol):
     def add(self, segment: RecordingSegment) -> RecordingSegment:
         ...
 
+    def get_by_id(self, segment_id: int) -> RecordingSegment | None:
+        ...
+
     def list_segments(
         self,
         *,

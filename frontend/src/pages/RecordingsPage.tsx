@@ -1,8 +1,8 @@
 // Kayit segmentleri ve playback envanteri ekrani.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Database, Film, Filter, RotateCcw, Trash2 } from 'lucide-react'
+import { Database, Download, Film, Filter, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
 import { camerasApi } from '../api/cameras'
 import { recordingsApi } from '../api/recordings'
 import { Badge } from '../components/ui/Badge'
@@ -60,6 +60,8 @@ export function RecordingsPage() {
   const [selectedCameraId, setSelectedCameraId] = useState('all')
   const [range, setRange] = useState<DateRange>('24h')
   const [limit, setLimit] = useState(100)
+  const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string } | null>(null)
+  const [loadingAction, setLoadingAction] = useState<{ id: number; action: 'play' | 'download' } | null>(null)
 
   const { data: cameras = [] } = useQuery({
     queryKey: ['cameras'],
@@ -104,6 +106,57 @@ export function RecordingsPage() {
   const totalBytes = segments.reduce((sum, segment) => sum + (segment.size_bytes ?? 0), 0)
   const eventCount = segments.filter((segment) => segment.recording_type === 'event').length
   const openCount = segments.filter((segment) => segment.status === 'recording').length
+
+  useEffect(() => () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url)
+  }, [preview?.url])
+
+  const fetchSegmentBlob = async (segment: RecordingSegment, action: 'play' | 'download') => {
+    if (segment.status !== 'complete') {
+      showToast({
+        variant: 'warning',
+        title: 'Kayit tamamlanmamis',
+        description: 'Devam eden segmentler tamamlanmadan oynatilamaz veya indirilemez.',
+      })
+      return null
+    }
+    setLoadingAction({ id: segment.id, action })
+    try {
+      return await recordingsApi.fileBlob(segment.id)
+    } catch (err) {
+      showToast({
+        variant: 'danger',
+        title: action === 'play' ? 'Kayit oynatilamadi' : 'Kayit indirilemedi',
+        description: getApiErrorMessage(err, 'Dosya erisimi, yetki veya retention durumunu kontrol edin.'),
+      })
+      return null
+    } finally {
+      setLoadingAction(null)
+    }
+  }
+
+  const playSegment = async (segment: RecordingSegment) => {
+    const blob = await fetchSegmentBlob(segment, 'play')
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    setPreview((current) => {
+      if (current?.url) URL.revokeObjectURL(current.url)
+      return { segment, url }
+    })
+  }
+
+  const downloadSegment = async (segment: RecordingSegment) => {
+    const blob = await fetchSegmentBlob(segment, 'download')
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = segment.filename || `recording-${segment.id}.mp4`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+  }
 
   const columns = [
     {
@@ -163,6 +216,34 @@ export function RecordingsPage() {
         <span className="block max-w-44 truncate font-mono text-xs text-text-secondary" title={segment.file_sha256 ?? undefined}>
           {segment.file_sha256 ?? '-'}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Islem',
+      render: (segment: RecordingSegment) => (
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<PlayCircle size={14} />}
+            loading={loadingAction?.id === segment.id && loadingAction.action === 'play'}
+            onClick={() => playSegment(segment)}
+            title="Kaydi oynat"
+          >
+            Oynat
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Download size={14} />}
+            loading={loadingAction?.id === segment.id && loadingAction.action === 'download'}
+            onClick={() => downloadSegment(segment)}
+            title="Kaydi indir"
+          >
+            Indir
+          </Button>
+        </div>
       ),
     },
   ]
@@ -280,6 +361,39 @@ export function RecordingsPage() {
           keyFn={(segment) => segment.id}
           emptyText="Kayit segmenti bulunamadi"
         />
+      )}
+
+      {preview && (
+        <div className="rounded-lg border border-border bg-bg-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-text-primary">
+                {cameraName(cameraById, preview.segment.camera_id)} - {preview.segment.filename}
+              </p>
+              <p className="text-xs text-text-secondary">
+                {formatDate(preview.segment.started_at)} / {preview.segment.duration_seconds == null ? '-' : `${preview.segment.duration_seconds.toFixed(1)} sn`}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<X size={14} />}
+              onClick={() => setPreview((current) => {
+                if (current?.url) URL.revokeObjectURL(current.url)
+                return null
+              })}
+              title="Oynaticiyi kapat"
+            >
+              Kapat
+            </Button>
+          </div>
+          <video
+            src={preview.url}
+            controls
+            className="aspect-video w-full bg-black"
+            aria-label={`${cameraName(cameraById, preview.segment.camera_id)} kayit oynatici`}
+          />
+        </div>
       )}
 
       <div className="rounded-lg border border-border bg-bg-secondary p-4 text-xs text-text-secondary">

@@ -58,6 +58,12 @@ class SqlAlchemyRecordingSegmentRepository:
         self._db.refresh(model)
         return self._to_entity(model)
 
+    def get_by_id(self, segment_id: int) -> RecordingSegment | None:
+        if segment_id <= 0:
+            return None
+        model = self._db.query(RecordingSegmentModel).filter(RecordingSegmentModel.id == segment_id).first()
+        return self._to_entity(model) if model else None
+
     def list_segments(
         self,
         *,
