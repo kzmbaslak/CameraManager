@@ -474,6 +474,26 @@ class CameraStreamManager:
     def _continuous_recording_enabled(self) -> bool:
         return os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
 
+    @staticmethod
+    def _parse_active_time(value: str):
+        value = value.strip()
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value, "%H:%M").time()
+        except ValueError:
+            return None
+
+    def _continuous_recording_active_now(self, now: datetime | None = None) -> bool:
+        start = self._parse_active_time(os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START", ""))
+        end = self._parse_active_time(os.environ.get("RECORDING_CONTINUOUS_ACTIVE_END", ""))
+        if start is None or end is None or start == end:
+            return True
+        current = (now or datetime.now()).time()
+        if start < end:
+            return start <= current < end
+        return current >= start or current < end
+
     def _continuous_segment_seconds(self) -> float:
         try:
             value = float(os.environ.get("RECORDING_CONTINUOUS_SEGMENT_SECONDS", "60") or "60")
@@ -504,7 +524,7 @@ class CameraStreamManager:
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
 
     def _handle_continuous_recording_frame(self, camera_id: int, frame) -> None:
-        if not self._continuous_recording_enabled():
+        if not self._continuous_recording_enabled() or not self._continuous_recording_active_now():
             self._continuous_recording_buffers.pop(camera_id, None)
             self._continuous_recording_started_at.pop(camera_id, None)
             self._last_continuous_recording_frame_at.pop(camera_id, None)

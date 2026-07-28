@@ -178,6 +178,8 @@ def security_posture(
     recording_quota = recording_quota_mb()
     recording_prune_interval = recording_prune_interval_minutes()
     recording_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+    recording_continuous_active_start = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START", "").strip() or None
+    recording_continuous_active_end = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_END", "").strip() or None
     try:
         recording_continuous_segment_seconds = int(float(os.environ.get("RECORDING_CONTINUOUS_SEGMENT_SECONDS", "60") or "60"))
     except ValueError:
@@ -239,6 +241,8 @@ def security_posture(
         "recording_continuous_enabled": recording_continuous_enabled,
         "recording_continuous_segment_seconds": min(max(recording_continuous_segment_seconds, 10), 900),
         "recording_continuous_fps": min(max(recording_continuous_fps, 1.0), 10.0),
+        "recording_continuous_active_start": recording_continuous_active_start,
+        "recording_continuous_active_end": recording_continuous_active_end,
         "content_security_policy_enabled": True,
         "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",

@@ -3,6 +3,7 @@
 import os
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 
 import numpy as np
 from sqlalchemy import create_engine
@@ -28,6 +29,8 @@ class RecordingEventClipTests(unittest.TestCase):
         self.previous_fps = os.environ.get("RECORDING_EVENT_CLIP_FPS")
         self.previous_continuous_enabled = os.environ.get("RECORDING_CONTINUOUS_ENABLED")
         self.previous_continuous_fps = os.environ.get("RECORDING_CONTINUOUS_FPS")
+        self.previous_active_start = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_START")
+        self.previous_active_end = os.environ.get("RECORDING_CONTINUOUS_ACTIVE_END")
         os.environ["RECORDING_STORAGE_DIR"] = self.tmp.name
         os.environ["RECORDING_EVENT_CLIP_FPS"] = "2"
         os.environ["RECORDING_CONTINUOUS_FPS"] = "2"
@@ -49,6 +52,14 @@ class RecordingEventClipTests(unittest.TestCase):
             os.environ.pop("RECORDING_CONTINUOUS_FPS", None)
         else:
             os.environ["RECORDING_CONTINUOUS_FPS"] = self.previous_continuous_fps
+        if self.previous_active_start is None:
+            os.environ.pop("RECORDING_CONTINUOUS_ACTIVE_START", None)
+        else:
+            os.environ["RECORDING_CONTINUOUS_ACTIVE_START"] = self.previous_active_start
+        if self.previous_active_end is None:
+            os.environ.pop("RECORDING_CONTINUOUS_ACTIVE_END", None)
+        else:
+            os.environ["RECORDING_CONTINUOUS_ACTIVE_END"] = self.previous_active_end
         self.tmp.cleanup()
         self.engine.dispose()
 
@@ -93,6 +104,36 @@ class RecordingEventClipTests(unittest.TestCase):
         self.assertTrue(os.path.exists(metadata_path))
         with open(metadata_path, "r", encoding="utf-8") as file:
             self.assertIn('"confidence":0.91', file.read())
+
+    def test_continuous_recording_schedule_handles_day_and_overnight_windows(self):
+        manager = CameraStreamManager(ai_service=None)
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_START"] = "08:00"
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_END"] = "18:00"
+
+        self.assertTrue(manager._continuous_recording_active_now(datetime(2026, 7, 28, 12, 0)))
+        self.assertFalse(manager._continuous_recording_active_now(datetime(2026, 7, 28, 23, 0)))
+
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_START"] = "22:00"
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_END"] = "06:00"
+
+        self.assertTrue(manager._continuous_recording_active_now(datetime(2026, 7, 28, 23, 0)))
+        self.assertTrue(manager._continuous_recording_active_now(datetime(2026, 7, 28, 3, 0)))
+        self.assertFalse(manager._continuous_recording_active_now(datetime(2026, 7, 28, 12, 0)))
+
+    def test_continuous_recording_ignores_frames_outside_schedule(self):
+        manager = CameraStreamManager(ai_service=None)
+        os.environ["RECORDING_CONTINUOUS_ENABLED"] = "true"
+        now = datetime.now()
+        start = now + timedelta(hours=2)
+        end = now + timedelta(hours=3)
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_START"] = start.strftime("%H:%M")
+        os.environ["RECORDING_CONTINUOUS_ACTIVE_END"] = end.strftime("%H:%M")
+
+        frame = np.zeros((32, 48, 3), dtype=np.uint8)
+        manager._continuous_recording_buffers[5] = []
+        manager._handle_continuous_recording_frame(camera_id=5, frame=frame)
+
+        self.assertNotIn(5, manager._continuous_recording_buffers)
 
     def test_continuous_clip_writes_video_and_records_segment(self):
         manager = CameraStreamManager(

@@ -612,6 +612,8 @@ export interface SecurityPosture {
   recording_continuous_enabled: boolean
   recording_continuous_segment_seconds: number
   recording_continuous_fps: number
+  recording_continuous_active_start: string | null
+  recording_continuous_active_end: string | null
   findings: SecurityPostureFinding[]
 }
 
