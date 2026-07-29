@@ -6,6 +6,7 @@ export const recordingsApi = {
   /** Kayit segmentlerini kamera ve zaman araligina gore listeler. */
   list: async (params: {
     camera_id?: number
+    alarm_id?: number
     since?: string
     until?: string
     limit?: number

@@ -1,7 +1,8 @@
 // Alarm yönetimi sayfası — filtreleme (kamera, tip, durum, tarih), listeleme, onaylama
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, Download, Filter, Play, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { CheckCircle, Download, Film, Filter, Play, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { AlarmRow } from '../components/alarm/AlarmRow'
@@ -286,8 +287,10 @@ function AlarmDetailDrawer({
   snapshotLoading,
   canOperateAlarms,
   canExportEvidence,
+  canViewRecordings,
   onClose,
   onOpenLive,
+  onOpenRecordings,
   onAcknowledge,
   onSave,
   onResolve,
@@ -308,8 +311,10 @@ function AlarmDetailDrawer({
   snapshotLoading: boolean
   canOperateAlarms: boolean
   canExportEvidence: boolean
+  canViewRecordings: boolean
   onClose: () => void
   onOpenLive: () => void
+  onOpenRecordings: () => void
   onAcknowledge: () => void
   onSave: (payload: { assigned_to: string | null; operator_note: string | null; severity: AlarmSeverity }) => void
   onResolve: (payload: { resolution_reason: string | null; false_positive?: boolean }) => void
@@ -548,6 +553,11 @@ function AlarmDetailDrawer({
           <Button variant="secondary" icon={<Play size={14} />} onClick={onOpenLive} className="flex-1">
             Canli Ac
           </Button>
+          {canViewRecordings && (
+            <Button variant="secondary" icon={<Film size={14} />} onClick={onOpenRecordings} className="flex-1">
+              Olay Kaydi
+            </Button>
+          )}
           {canOperateAlarms && alarm.status === 'new' && (
             <Button variant="danger" icon={<CheckCircle size={14} />} loading={acknowledging} onClick={onAcknowledge} className="flex-1">
               Onayla
@@ -560,7 +570,8 @@ function AlarmDetailDrawer({
 }
 
 export function AlarmsPage() {
-  const { canAcknowledgeAlarms, canOperateAlarms, canExportEvidence, canEditCameras } = usePermissions()
+  const { canAcknowledgeAlarms, canOperateAlarms, canExportEvidence, canEditCameras, canViewRecordings } = usePermissions()
+  const navigate = useNavigate()
   const [cameraFilter, setCameraFilter] = useState<number | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | 'all'>('all')
   const [typeFilter, setTypeFilter] = useState<AlarmType | 'all'>('all')
@@ -1047,9 +1058,14 @@ export function AlarmsPage() {
           snapshotLoading={snapshotLoading}
           canOperateAlarms={canOperateAlarms}
           canExportEvidence={canExportEvidence}
+          canViewRecordings={canViewRecordings}
           onClose={() => setSelectedAlarm(null)}
           onOpenLive={() => {
             setExpandedCamera(selectedAlarm.camera_id, selectedAlarm.id)
+            setSelectedAlarm(null)
+          }}
+          onOpenRecordings={() => {
+            navigate(`/recordings?alarm_id=${selectedAlarm.id}&camera_id=${selectedAlarm.camera_id}&range=all`)
             setSelectedAlarm(null)
           }}
           onAcknowledge={() => acknowledge.mutate(selectedAlarm.id)}

@@ -1,6 +1,7 @@
 // Kayit segmentleri ve playback envanteri ekrani.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { Clock3, Database, Download, Film, Filter, Gauge, PlayCircle, RotateCcw, Trash2, X } from 'lucide-react'
 import { camerasApi } from '../api/cameras'
@@ -101,8 +102,14 @@ export function RecordingsPage() {
   const { canViewRecordings, canManageRecordings } = usePermissions()
   const showToast = useToastStore((state) => state.showToast)
   const showHumanDetectionBoxes = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
-  const [selectedCameraId, setSelectedCameraId] = useState('all')
-  const [range, setRange] = useState<DateRange>('24h')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedAlarmId = Number(searchParams.get('alarm_id') || 0) || null
+  const initialCameraId = searchParams.get('camera_id')
+  const initialRange = searchParams.get('range') as DateRange | null
+  const [selectedCameraId, setSelectedCameraId] = useState(initialCameraId && /^\d+$/.test(initialCameraId) ? initialCameraId : 'all')
+  const [range, setRange] = useState<DateRange>(
+    initialRange && DATE_RANGE_OPTIONS.some((option) => option.value === initialRange) ? initialRange : '24h',
+  )
   const [limit, setLimit] = useState(100)
   const previewFrameRef = useRef<HTMLDivElement>(null)
   const previewVideoRef = useRef<HTMLVideoElement>(null)
@@ -124,8 +131,15 @@ export function RecordingsPage() {
 
   const queryParams = {
     camera_id: selectedCameraId === 'all' ? undefined : Number(selectedCameraId),
+    alarm_id: linkedAlarmId ?? undefined,
     since: dateRangeStart(range),
     limit,
+  }
+
+  const clearLinkedAlarm = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('alarm_id')
+    setSearchParams(next, { replace: true })
   }
 
   const recordingsQuery = useQuery({
@@ -409,6 +423,14 @@ export function RecordingsPage() {
           <Filter size={16} />
           Filtreler
         </div>
+        {linkedAlarmId && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-text-secondary">
+            <span>Alarm #{linkedAlarmId} olay kayitlari gosteriliyor.</span>
+            <Button size="sm" variant="secondary" onClick={clearLinkedAlarm}>
+              Alarm Filtresini Kaldir
+            </Button>
+          </div>
+        )}
         <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_140px]">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-text-secondary">
             Kamera

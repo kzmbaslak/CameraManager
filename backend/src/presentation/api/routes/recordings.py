@@ -135,14 +135,25 @@ def _segment_response(segment: RecordingSegment) -> RecordingSegmentResponse:
 @router.get("/", response_model=RecordingSegmentListResponse)
 def list_recording_segments(
     camera_id: Optional[int] = Query(default=None, gt=0),
+    alarm_id: Optional[int] = Query(default=None, gt=0),
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
     limit: int = Query(default=100, ge=1, le=500),
     use_cases: RecordingUseCases = Depends(get_recording_use_cases),
     current_user: dict = Depends(get_recording_view_user),
 ):
-    """Kayit segmentlerini kamera ve zaman araligina gore dosya yolu sizdirmadan listeler."""
-    segments = list(use_cases.list_segments(camera_id=camera_id, since=since, until=until, limit=limit))
+    """Kayit segmentlerini alarm, kamera ve zaman araligina gore dosya yolu sizdirmadan listeler."""
+    if alarm_id is not None:
+        segments = list(use_cases.list_alarm_segments(alarm_id))
+        if camera_id is not None:
+            segments = [segment for segment in segments if segment.camera_id == camera_id]
+        if since is not None:
+            segments = [segment for segment in segments if segment.started_at >= since]
+        if until is not None:
+            segments = [segment for segment in segments if segment.started_at <= until]
+        segments = segments[:limit]
+    else:
+        segments = list(use_cases.list_segments(camera_id=camera_id, since=since, until=until, limit=limit))
     return RecordingSegmentListResponse(
         items=[_segment_response(segment) for segment in segments],
         total=len(segments),
