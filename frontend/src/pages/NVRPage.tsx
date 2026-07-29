@@ -216,6 +216,23 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
   )
 }
 
+/** ONVIF basarisiz oldugunda operatorun kontrol edecegi tanisal adimlari gosterir. */
+function NvrOnvifTroubleshooting({ diagnostics }: { diagnostics: NVRProbeDiagnostics }) {
+  if (diagnostics.onvif_ok) return null
+
+  return (
+    <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-[11px] text-[var(--text-secondary)]">
+      <p className="font-semibold uppercase tracking-wide text-[var(--text-primary)]">ONVIF Kontrol Listesi</p>
+      <ol className="mt-1.5 grid gap-1.5">
+        <li>1. NVR web arayuzunde ONVIF servisinin acik ve kullanici yetkisinin Profile S/Media erisimine sahip oldugunu dogrulayin.</li>
+        <li>2. Kayitli host ve ONVIF portunu kontrol edin; bazi cihazlarda 80 yerine 8000, 8080 veya uretici portu kullanilir.</li>
+        <li>3. Backend makinesinden NVR yonetim agina erisim oldugunu ve firewall/VLAN kurallarinin ONVIF ile RTSP portlarini engellemedigini dogrulayin.</li>
+        <li>4. ONVIF basarisiz ama RTSP fallback kanal bulduysa import edilebilir; bu durumda analitik metadata NVR'dan degil uygulama AI hattindan uretilir.</li>
+      </ol>
+    </div>
+  )
+}
+
 /** ONVIF veya RTSP kanal önizleme ve seçili/tümü içe aktarma modal'ı */
 function ChannelModal({
   nvr, open, onClose,
@@ -409,6 +426,7 @@ function ChannelModal({
                 {diagnostics.fallback_error && (
                   <p className="mt-1 text-[11px] text-[var(--text-secondary)]">RTSP fallback hata: {diagnostics.fallback_error}</p>
                 )}
+                <NvrOnvifTroubleshooting diagnostics={diagnostics} />
               </div>
             )}
 
