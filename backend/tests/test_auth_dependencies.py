@@ -2,6 +2,7 @@
 
 import os
 import unittest
+from unittest.mock import patch
 
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
@@ -69,6 +70,32 @@ class AuthDependencyTests(unittest.TestCase):
         self.assertEqual(summary["failed_login_limit"], 5)
         self.assertNotIn("10.0.0.5", str(summary))
         self.assertNotIn("admin", str(summary))
+
+    def test_login_rate_limit_writes_audit_event(self):
+        class Client:
+            host = "10.0.0.8"
+
+        class Request:
+            client = Client()
+
+        request = Request()
+        for _ in range(auth_route._MAX_FAILED_ATTEMPTS):
+            auth_route._record_failed_login(request, "Admin")
+
+        with patch.object(auth_route, "write_audit_event") as audit:
+            with self.assertRaises(HTTPException) as context:
+                auth_route._check_login_rate_limit(request, "Admin")
+
+        self.assertEqual(context.exception.status_code, 429)
+        audit.assert_called_once()
+        action, actor, success, source_ip, metadata = audit.call_args.args
+        self.assertEqual(action, "auth.login_rate_limited")
+        self.assertEqual(actor, "admin")
+        self.assertFalse(success)
+        self.assertEqual(source_ip, "10.0.0.8")
+        self.assertEqual(metadata["attempt_count"], auth_route._MAX_FAILED_ATTEMPTS)
+        self.assertEqual(metadata["limit"], auth_route._MAX_FAILED_ATTEMPTS)
+        self.assertEqual(metadata["window_seconds"], 300)
 
 
 if __name__ == "__main__":

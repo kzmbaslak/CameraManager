@@ -68,6 +68,18 @@ def _check_login_rate_limit(request: Request, username: str) -> None:
     attempts = _failed_logins[key]
     _prune_failed_login_attempts(now, key)
     if len(attempts) >= _MAX_FAILED_ATTEMPTS:
+        source_ip = request.client.host if request.client else None
+        write_audit_event(
+            "auth.login_rate_limited",
+            username.strip().lower(),
+            False,
+            source_ip,
+            {
+                "attempt_count": len(attempts),
+                "limit": _MAX_FAILED_ATTEMPTS,
+                "window_seconds": int(_FAILED_LOGIN_WINDOW.total_seconds()),
+            },
+        )
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Çok fazla başarısız giriş denemesi. Birkaç dakika sonra tekrar deneyin.",
