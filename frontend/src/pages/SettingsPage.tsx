@@ -219,6 +219,25 @@ const auditEventSummary = (event: AuditEvent) => {
   return auditEventMetadataText(event)
 }
 
+type AuditCategory = 'all' | 'auth' | 'alarm' | 'device' | 'recording' | 'system'
+
+const auditCategoryLabel: Record<AuditCategory, string> = {
+  all: 'Tum Olaylar',
+  auth: 'Kimlik',
+  alarm: 'Alarm',
+  device: 'Cihaz',
+  recording: 'Kayit',
+  system: 'Sistem',
+}
+
+const auditEventCategory = (action: string): AuditCategory => {
+  if (action.startsWith('auth.')) return 'auth'
+  if (action.startsWith('alarm.')) return 'alarm'
+  if (action.startsWith('camera.') || action.startsWith('nvr.')) return 'device'
+  if (action.startsWith('recording.')) return 'recording'
+  return 'system'
+}
+
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
 function GeneralSettingsPanel() {
   const themeMode = useSystemSettingsStore((s) => s.themeMode)
@@ -340,6 +359,7 @@ function GeneralSettingsPanel() {
 function AuditEventsPanel({ enabled }: { enabled: boolean }) {
   const [auditSearch, setAuditSearch] = useState('')
   const [auditStatus, setAuditStatus] = useState<'all' | 'success' | 'failure'>('all')
+  const [auditCategory, setAuditCategory] = useState<AuditCategory>('all')
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['audit-events'],
     queryFn: () => systemApi.auditEvents(50),
@@ -354,10 +374,13 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
         auditStatus === 'all' ||
         (auditStatus === 'success' && event.success) ||
         (auditStatus === 'failure' && !event.success)
+      const category = auditEventCategory(event.action)
+      const matchesCategory = auditCategory === 'all' || auditCategory === category
       const haystack = [
         event.timestamp,
         event.action,
         auditActionLabel(event.action),
+        auditCategoryLabel[category],
         event.actor ?? '',
         event.source_ip ?? '',
         event.event_hash ?? '',
@@ -366,18 +389,19 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
         auditEventMetadataText(event),
       ].join(' ').toLowerCase()
       const matchesSearch = !needle || haystack.includes(needle)
-      return matchesStatus && matchesSearch
+      return matchesStatus && matchesCategory && matchesSearch
     })
-  }, [auditSearch, auditStatus, events])
+  }, [auditCategory, auditSearch, auditStatus, events])
 
-  const hasAuditFilter = auditSearch.trim() !== '' || auditStatus !== 'all'
+  const hasAuditFilter = auditSearch.trim() !== '' || auditStatus !== 'all' || auditCategory !== 'all'
 
   const exportAuditCsv = () => {
     const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`
-    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Ham Aksiyon', 'Kullanici', 'IP', 'Hash Algoritmasi', 'Onceki Hash', 'Olay Hash', 'Detay', 'Ham Detay']
+    const headers = ['Zaman', 'Durum', 'Kategori', 'Aksiyon', 'Ham Aksiyon', 'Kullanici', 'IP', 'Hash Algoritmasi', 'Onceki Hash', 'Olay Hash', 'Detay', 'Ham Detay']
     const rows = filteredEvents.map((event) => [
       dayjs(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
       event.success ? 'Basarili' : 'Basarisiz',
+      auditCategoryLabel[auditEventCategory(event.action)],
       auditActionLabel(event.action),
       event.action,
       event.actor ?? '-',
@@ -436,6 +460,16 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
           <option value="success">Basarili</option>
           <option value="failure">Basarisiz</option>
         </select>
+        <select
+          value={auditCategory}
+          onChange={(e) => setAuditCategory(e.target.value as AuditCategory)}
+          aria-label="Audit olay tipi filtresi"
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        >
+          {Object.entries(auditCategoryLabel).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
         <Button
           size="sm"
           variant="secondary"
@@ -459,6 +493,7 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
             <thead className="sticky top-0 bg-[var(--bg-secondary)]">
               <tr className="border-b border-[var(--border)] text-left text-[var(--text-secondary)]">
                 <th className="px-3 py-2 font-medium">Zaman</th>
+                <th className="px-3 py-2 font-medium">Tip</th>
                 <th className="px-3 py-2 font-medium">Aksiyon</th>
                 <th className="px-3 py-2 font-medium">Kullanici</th>
                 <th className="px-3 py-2 font-medium">IP</th>
@@ -472,6 +507,7 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
                   <td className="whitespace-nowrap px-3 py-2 text-[var(--text-secondary)]">
                     {dayjs(event.timestamp).format('DD.MM.YYYY HH:mm:ss')}
                   </td>
+                  <td className="px-3 py-2 text-[var(--text-secondary)]">{auditCategoryLabel[auditEventCategory(event.action)]}</td>
                   <td className="px-3 py-2">
                     <Badge variant={event.success ? 'success' : 'danger'}>{auditActionLabel(event.action)}</Badge>
                   </td>

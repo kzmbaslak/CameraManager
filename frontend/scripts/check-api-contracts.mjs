@@ -196,6 +196,8 @@ assertContains(settingsPage, 'auditActionLabel', 'settings audit readable action
 assertContains(settingsPage, 'auth.login_rate_limited', 'settings audit login rate limit label')
 assertContains(settingsPage, 'auditEventSummary', 'settings audit readable event summary')
 assertContains(settingsPage, 'nvr.probe', 'settings audit NVR probe summary')
+assertContains(settingsPage, 'AuditCategory', 'settings audit category filter type')
+assertContains(settingsPage, 'Audit olay tipi filtresi', 'settings audit category filter control')
 assertMatches(
   settingsPage,
   /<Badge variant="neutral" className="mb-2">İzleyici<\/Badge>[\s\S]*<li>✗ Alarm onaylama<\/li>/,
