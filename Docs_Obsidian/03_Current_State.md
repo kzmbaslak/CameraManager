@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-07-28: Login brute-force gorunurlugu security posture'a eklendi. `/api/security/posture` aktif basarisiz login penceresini anahtar/IP/kullanici sizdirmadan toplam deneme, aktif anahtar, anahtar basina maksimum deneme, limit ve pencere suresi olarak raporlar; Dashboard Guvenlik Kontrolu aktif deneme varsa `login deneme` ozetini gosterir.
 - 2026-07-28: Alarm satiri gorunur metin/ARIA encoding duzeltildi. `AlarmRow` icindeki bozuk `alarmini incele` etiketi temizlendi ve contract kontrolu bu bilesende mojibake dizilerinin tekrar eklenmesini engeller.
 - 2026-07-28: Alarm operasyon yuzeyleri RBAC ile hizalandi. Viewer rolunde popup/canli gorunum ve lokal ses susturma kalir, ancak Sustur ve Onayla, Yanlis Alarm, Tumunu Onayla, kamera karti/tam ekran onay aksiyonlari ve `A` kisa yolu yalnizca `alarm.operate` yetkili admin/operator icin calisir/gorunur.
 - 2026-07-28: Rol yetki aciklamasi RBAC ile hizalandi. Sistem/Kullanicilar ekranindaki Izleyici rol karti artik alarm onaylama yetkisini kapali gosterir; contract kontrolu viewer icin bu yanlis izin metninin tekrar eklenmesini engeller.

@@ -34,13 +34,39 @@ def _rate_limit_key(request: Request, username: str) -> str:
     return f"{client_ip}:{username.strip().lower()}"
 
 
+def _prune_failed_login_attempts(now: datetime | None = None, key: str | None = None) -> None:
+    """Rate-limit penceresi disinda kalan basarisiz login denemelerini temizler."""
+    current = now or utc_now()
+    keys = [key] if key is not None else list(_failed_logins.keys())
+    for item_key in keys:
+        attempts = _failed_logins.get(item_key)
+        if attempts is None:
+            continue
+        while attempts and current - attempts[0] > _FAILED_LOGIN_WINDOW:
+            attempts.popleft()
+        if not attempts:
+            _failed_logins.pop(item_key, None)
+
+
+def failed_login_window_summary() -> dict[str, int]:
+    """Aktif basarisiz login penceresini hassas anahtar sizdirmadan ozetler."""
+    _prune_failed_login_attempts()
+    counts = [len(attempts) for attempts in _failed_logins.values()]
+    return {
+        "active_failed_login_key_count": len(counts),
+        "active_failed_login_attempt_count": sum(counts),
+        "max_failed_login_attempts_for_key": max(counts, default=0),
+        "failed_login_limit": _MAX_FAILED_ATTEMPTS,
+        "failed_login_window_seconds": int(_FAILED_LOGIN_WINDOW.total_seconds()),
+    }
+
+
 def _check_login_rate_limit(request: Request, username: str) -> None:
     """Kısa sürede çok fazla başarısız login denemesini engeller."""
     key = _rate_limit_key(request, username)
     now = utc_now()
     attempts = _failed_logins[key]
-    while attempts and now - attempts[0] > _FAILED_LOGIN_WINDOW:
-        attempts.popleft()
+    _prune_failed_login_attempts(now, key)
     if len(attempts) >= _MAX_FAILED_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -22,7 +22,7 @@ from src.infrastructure.time_utils import utc_now
 from src.presentation.api.dependencies import get_current_user, get_role_permissions, get_security_status_user
 from src.presentation.api.routes.alarms import router as alarms_router
 from src.presentation.api.routes.audit import router as audit_router
-from src.presentation.api.routes.auth import router as auth_router
+from src.presentation.api.routes.auth import failed_login_window_summary, router as auth_router
 from src.presentation.api.routes.backups import router as backups_router
 from src.presentation.api.routes.cameras import router as cameras_router
 from src.presentation.api.routes.nvrs import router as nvrs_router
@@ -290,6 +290,11 @@ def security_posture(
     for check in setup_checks:
         if not check["ok"]:
             findings.append({"severity": check["severity"], "message": check["message"]})
+    failed_login_summary = failed_login_window_summary()
+    if failed_login_summary["max_failed_login_attempts_for_key"] >= failed_login_summary["failed_login_limit"]:
+        findings.append({"severity": "high", "message": "Aktif login rate-limit kilidi var; audit kayitlarinda kaynak IP/kullanici incelenmeli."})
+    elif failed_login_summary["active_failed_login_attempt_count"] > 0:
+        findings.append({"severity": "low", "message": "Aktif basarisiz login denemeleri var; tekrar ederse hesap/kaynak incelemesi yapilmali."})
 
     return {
         "status": "attention" if findings else "hardened",
@@ -340,6 +345,7 @@ def security_posture(
         "setup_checks": setup_checks,
         "stream_token_transport": "websocket_first_message",
         "stream_token_ttl_seconds": 60,
+        **failed_login_summary,
         "findings": findings,
     }
 

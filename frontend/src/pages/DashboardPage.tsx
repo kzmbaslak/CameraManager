@@ -299,6 +299,7 @@ function OperatorAssistPanel({
   const unsecuredDeviceCount = security?.device_without_password_count ?? 0
   const uncheckedOnvifCount = security?.camera_onvif_capability_unknown_count ?? 0
   const recordingExcludedCount = security?.continuous_recording_excluded_camera_count ?? 0
+  const activeFailedLoginAttempts = security?.active_failed_login_attempt_count ?? 0
 
   return (
     <div className="grid shrink-0 grid-cols-1 gap-2 lg:grid-cols-4">
@@ -350,6 +351,7 @@ function OperatorAssistPanel({
               : 'Guvenlik durusu okunuyor'}
             {security ? ` · parola ${overduePasswordCount > 0 ? `${overduePasswordCount} gecikmis` : `${security.device_password_rotation_days} gun uygun`}` : ''}
             {security?.recording_continuous_enabled ? ` · kayit haric ${recordingExcludedCount}` : ''}
+            {activeFailedLoginAttempts > 0 ? ` · login deneme ${activeFailedLoginAttempts}/${security?.failed_login_limit ?? '-'}` : ''}
           </p>
         </div>
       </div>

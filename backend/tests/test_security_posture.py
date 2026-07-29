@@ -84,6 +84,10 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertEqual(result["device_default_onvif_port_count"], 2)
         self.assertEqual(result["camera_onvif_capability_unknown_count"], 2)
         self.assertEqual(result["camera_ptz_supported_count"], 1)
+        self.assertIn("active_failed_login_key_count", result)
+        self.assertIn("active_failed_login_attempt_count", result)
+        self.assertIn("failed_login_limit", result)
+        self.assertIn("failed_login_window_seconds", result)
         self.assertTrue(any("cihaz parolasi kayitli degil" in item["message"] for item in result["findings"]))
 
 

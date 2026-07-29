@@ -627,6 +627,11 @@ export interface SecurityPosture {
   setup_checks: SetupCheck[]
   stream_token_transport: string
   stream_token_ttl_seconds: number
+  active_failed_login_key_count: number
+  active_failed_login_attempt_count: number
+  max_failed_login_attempts_for_key: number
+  failed_login_limit: number
+  failed_login_window_seconds: number
   recording_storage_dir_configured: boolean
   recording_retention_days: number
   recording_max_storage_mb: number
