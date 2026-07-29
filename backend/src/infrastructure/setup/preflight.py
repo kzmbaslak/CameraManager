@@ -15,6 +15,12 @@ from src.infrastructure.database.models import UserModel
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 ENV_PATH = os.path.join(BACKEND_DIR, ".env")
 MODEL_PATH = os.path.join(BACKEND_DIR, "models", "yolov8n.onnx")
+EXPECTED_MIGRATION_SCRIPTS = (
+    "migrate_add_nvr_and_camera_fields.py",
+    "migrate_add_camera_ai_settings.py",
+    "migrate_add_alarm_operation_fields.py",
+    "migrate_add_camera_health_samples.py",
+)
 
 REQUIRED_SCHEMA: dict[str, set[str]] = {
     "cameras": {
@@ -47,6 +53,7 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "zone",
         "onvif_ptz_supported",
         "onvif_capabilities_checked_at",
+        "continuous_recording_enabled",
     },
     "nvrs": {"id", "name", "host", "onvif_port", "username", "encrypted_password", "password_updated_at", "brand", "model", "is_active"},
     "alarms": {
@@ -154,6 +161,22 @@ def _active_admin_check() -> SetupCheck:
     return SetupCheck("active_admin", True, "info", "Aktif admin kullanici var.")
 
 
+def _migration_script_inventory_check() -> SetupCheck:
+    missing_scripts = [
+        script
+        for script in EXPECTED_MIGRATION_SCRIPTS
+        if not os.path.isfile(os.path.join(BACKEND_DIR, "scripts", script))
+    ]
+    if missing_scripts:
+        return SetupCheck(
+            key="migration_script_inventory",
+            ok=False,
+            severity="medium",
+            message="Migration script envanteri eksik: " + ", ".join(missing_scripts),
+        )
+    return SetupCheck("migration_script_inventory", True, "info", "Migration script envanteri mevcut.")
+
+
 def collect_setup_checks() -> list[SetupCheck]:
     """Kurulumun çalışmaya hazır olup olmadığını gösteren kontrolleri döndürür."""
     env_file_present = os.path.isfile(ENV_PATH)
@@ -173,5 +196,6 @@ def collect_setup_checks() -> list[SetupCheck]:
         ),
         _schema_check(),
         _active_admin_check(),
+        _migration_script_inventory_check(),
     ]
     return checks

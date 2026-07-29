@@ -66,6 +66,7 @@ const backendRecordingRoutes = read('../backend/src/presentation/api/routes/reco
 const backendApiRoot = read('../backend/src/presentation/api/__init__.py')
 const backendMain = read('../backend/main.py')
 const backendAuthRoutes = read('../backend/src/presentation/api/routes/auth.py')
+const backendPreflight = read('../backend/src/infrastructure/setup/preflight.py')
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
 assertContains(authApi, '/auth/logout', 'auth logout endpoint')
@@ -146,6 +147,9 @@ assertContains(backendApiRoot, 'device_without_password_count', 'backend device 
 assertContains(backendApiRoot, 'camera_onvif_capability_unknown_count', 'backend ONVIF hardening posture field')
 assertContains(backendApiRoot, 'device_default_onvif_port_count', 'backend default ONVIF port posture field')
 assertContains(backendApiRoot, 'failed_login_window_summary', 'backend failed login posture summary')
+assertContains(backendPreflight, 'continuous_recording_enabled', 'setup preflight recording policy schema check')
+assertContains(backendPreflight, 'migration_script_inventory', 'setup preflight migration inventory check')
+assertContains(backendPreflight, 'EXPECTED_MIGRATION_SCRIPTS', 'setup preflight migration script manifest')
 assertContains(permissionsHook, 'canViewRecordings: isAdmin || isOperator', 'frontend recording view permission contract')
 assertContains(permissionsHook, 'canManageRecordings: isAdmin', 'frontend recording manage permission contract')
 assertContains(alarmsPage, 'canExportEvidence &&', 'threshold suggestions visibility is permission-gated')

@@ -91,6 +91,7 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertIn("failed_login_limit", result)
         self.assertIn("failed_login_window_seconds", result)
         self.assertTrue(result["secure_cookie_auth"])
+        self.assertTrue(any(check["key"] == "migration_script_inventory" for check in result["setup_checks"]))
         self.assertTrue(any("cihaz parolasi kayitli degil" in item["message"] for item in result["findings"]))
         self.assertFalse(any("HttpOnly/SameSite secure cookie" in item["message"] for item in result["findings"]))
 
