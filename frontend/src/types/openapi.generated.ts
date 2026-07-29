@@ -93,6 +93,11 @@ export const openApiOperations = [
   },
   {
     "method": "post",
+    "path": "/api/auth/logout",
+    "operationId": "logout_api_auth_logout_post"
+  },
+  {
+    "method": "post",
     "path": "/api/backup/system",
     "operationId": "download_system_backup_api_backup_system_post"
   },
@@ -352,6 +357,7 @@ export type OpenApiPath =
   | "/api/audit/events"
   | "/api/auth/change-password"
   | "/api/auth/login"
+  | "/api/auth/logout"
   | "/api/backup/system"
   | "/api/cameras/"
   | "/api/cameras/{camera_id}"
@@ -418,6 +424,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/audit/events"; operationId: "list_audit_events_api_audit_events_get" }
   | { method: "post"; path: "/api/auth/change-password"; operationId: "change_password_api_auth_change_password_post" }
   | { method: "post"; path: "/api/auth/login"; operationId: "login_api_auth_login_post" }
+  | { method: "post"; path: "/api/auth/logout"; operationId: "logout_api_auth_logout_post" }
   | { method: "post"; path: "/api/backup/system"; operationId: "download_system_backup_api_backup_system_post" }
   | { method: "get"; path: "/api/cameras/"; operationId: "list_cameras_api_cameras__get" }
   | { method: "post"; path: "/api/cameras/"; operationId: "add_camera_api_cameras__post" }

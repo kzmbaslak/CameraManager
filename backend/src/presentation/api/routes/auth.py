@@ -10,13 +10,15 @@ endpoint'lerde uygulanabilir.
 """
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
+import os
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 import bcrypt
+from jose import JWTError
 
 from src.presentation.api.dependencies import get_user_repository, get_current_user
 from src.infrastructure.database.repositories.user_repository import SqlAlchemyUserRepository
-from src.infrastructure.security.jwt_service import create_access_token
+from src.infrastructure.security.jwt_service import create_access_token, decode_access_token
 from src.infrastructure.security.audit_logger import write_audit_event
 from src.infrastructure.time_utils import utc_now
 from src.presentation.api.schemas.auth_schema import LoginRequest, TokenResponse, ChangePasswordRequest
@@ -26,6 +28,63 @@ router = APIRouter(prefix="/auth", tags=["Kimlik Doğrulama"])
 _FAILED_LOGIN_WINDOW = timedelta(minutes=5)
 _MAX_FAILED_ATTEMPTS = 5
 _failed_logins: dict[str, deque[datetime]] = defaultdict(deque)
+_AUTH_COOKIE_NAME = "access_token"
+
+
+def _secure_cookie_auth_enabled() -> bool:
+    """AUTH_COOKIE_MODE=secure ise ek HttpOnly cookie oturum destegi verir."""
+    return os.environ.get("AUTH_COOKIE_MODE", "").strip().lower() == "secure"
+
+
+def _access_token_cookie_max_age() -> int:
+    """Cookie yasamini access token suresiyle hizalar."""
+    try:
+        minutes = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "480") or "480")
+    except ValueError:
+        minutes = 480
+    return max(minutes, 1) * 60
+
+
+def _set_access_token_cookie(response: Response, token: str) -> None:
+    """Access token'i yalnizca opsiyonel secure cookie modu aciksa cookie'ye yazar."""
+    if not _secure_cookie_auth_enabled():
+        return
+    response.set_cookie(
+        key=_AUTH_COOKIE_NAME,
+        value=token,
+        max_age=_access_token_cookie_max_age(),
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        path="/api",
+    )
+
+
+def _clear_access_token_cookie(response: Response) -> None:
+    """Logout sirasinda opsiyonel auth cookie'yi temizler."""
+    response.delete_cookie(
+        key=_AUTH_COOKIE_NAME,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        path="/api",
+    )
+
+
+def _best_effort_logout_actor(request: Request) -> str:
+    """Logout audit'i icin Bearer veya cookie token'dan kullaniciyi best-effort cozer."""
+    authorization = request.headers.get("authorization", "")
+    token = None
+    if authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+    token = token or request.cookies.get(_AUTH_COOKIE_NAME)
+    if not token:
+        return "unknown"
+    try:
+        payload = decode_access_token(token)
+    except JWTError:
+        return "unknown"
+    return str(payload.get("sub") or "unknown")
 
 
 def _rate_limit_key(request: Request, username: str) -> str:
@@ -100,6 +159,7 @@ def _clear_failed_logins(request: Request, username: str) -> None:
 def login(
     credentials: LoginRequest,
     request: Request,
+    response: Response,
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ):
     _check_login_rate_limit(request, credentials.username)
@@ -122,7 +182,21 @@ def login(
     _clear_failed_logins(request, credentials.username)
     write_audit_event("auth.login", user.username, True, source_ip, {"role": user.role.value})
     token = create_access_token(username=user.username, role=user.role.value)
+    _set_access_token_cookie(response, token)
     return TokenResponse(access_token=token, username=user.username, role=user.role.value)
+
+
+@router.post("/logout")
+def logout(
+    response: Response,
+    request: Request,
+):
+    """Sunucu tarafinda opsiyonel secure auth cookie'yi temizler ve audit olayi yazar."""
+    source_ip = request.client.host if request.client else None
+    username = _best_effort_logout_actor(request)
+    _clear_access_token_cookie(response)
+    write_audit_event("auth.logout", username, True, source_ip)
+    return {"message": "Oturum kapatildi."}
 
 
 @router.post("/change-password")

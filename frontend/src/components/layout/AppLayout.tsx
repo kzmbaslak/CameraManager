@@ -8,6 +8,7 @@ import { CameraFullscreenModal } from '../camera/CameraFullscreenModal'
 import { ToastViewport } from '../ui/ToastViewport'
 import { Button } from '../ui/Button'
 import { useAuthStore } from '../../stores/authStore'
+import { authApi } from '../../api/auth'
 
 const SESSION_WARNING_MS = 5 * 60 * 1000
 const INITIAL_NOW = Date.now()
@@ -49,8 +50,10 @@ export function AppLayout() {
     remainingMinutes !== null && expiresAt !== null && expiresAt - now <= SESSION_WARNING_MS && expiresAt > now
 
   const handleLogout = () => {
-    logout()
-    window.location.href = '/login'
+    void authApi.logout().finally(() => {
+      logout()
+      window.location.href = '/login'
+    })
   }
 
   const toggleSidebarCollapsed = () => {

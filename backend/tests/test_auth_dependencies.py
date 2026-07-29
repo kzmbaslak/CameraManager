@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import bcrypt
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials
 
 os.environ.setdefault("CAMERA_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
@@ -54,6 +54,75 @@ class AuthDependencyTests(unittest.TestCase):
         self.assertEqual(current_user["sub"], "viewer1")
         self.assertEqual(current_user["role"], "viewer")
         self.assertEqual(current_user["purpose"], "access")
+
+    def test_accepts_access_token_from_secure_cookie_fallback(self):
+        token = create_access_token("operator1", "operator", expires_minutes=5)
+
+        current_user = get_current_user(None, token)
+
+        self.assertEqual(current_user["sub"], "operator1")
+        self.assertEqual(current_user["role"], "operator")
+
+    def test_secure_cookie_mode_sets_httponly_login_cookie(self):
+        class Client:
+            host = "10.0.0.10"
+
+        class Request:
+            client = Client()
+
+        class UserRepo:
+            def get_by_username(self, username):
+                return User(
+                    id=1,
+                    username=username,
+                    password_hash=bcrypt.hashpw(b"correct-password", bcrypt.gensalt()).decode("utf-8"),
+                    role=UserRole.OPERATOR,
+                    is_active=True,
+                )
+
+        previous = os.environ.get("AUTH_COOKIE_MODE")
+        os.environ["AUTH_COOKIE_MODE"] = "secure"
+        try:
+            response = Response()
+            with patch.object(auth_route, "write_audit_event"):
+                auth_route.login(
+                    auth_route.LoginRequest(username="operator1", password="correct-password"),
+                    Request(),
+                    response,
+                    UserRepo(),
+                )
+        finally:
+            if previous is None:
+                os.environ.pop("AUTH_COOKIE_MODE", None)
+            else:
+                os.environ["AUTH_COOKIE_MODE"] = previous
+
+        cookie_header = response.headers.get("set-cookie", "")
+        self.assertIn("access_token=", cookie_header)
+        self.assertIn("HttpOnly", cookie_header)
+        self.assertIn("Secure", cookie_header)
+        self.assertIn("SameSite=strict", cookie_header)
+
+    def test_logout_clears_cookie_without_requiring_current_user_dependency(self):
+        class Client:
+            host = "10.0.0.11"
+
+        class Request:
+            client = Client()
+            headers = {}
+            cookies = {}
+
+        response = Response()
+        with patch.object(auth_route, "write_audit_event") as audit:
+            result = auth_route.logout(response, Request())
+
+        cookie_header = response.headers.get("set-cookie", "")
+        self.assertEqual(result["message"], "Oturum kapatildi.")
+        self.assertIn("access_token=", cookie_header)
+        self.assertIn("Max-Age=0", cookie_header)
+        audit.assert_called_once()
+        self.assertEqual(audit.call_args.args[0], "auth.logout")
+        self.assertEqual(audit.call_args.args[1], "unknown")
 
     def test_failed_login_summary_redacts_keys_and_counts_active_window(self):
         class Client:

@@ -22,6 +22,7 @@ class SecurityPostureTests(unittest.TestCase):
                 "CORS_ALLOWED_ORIGINS",
                 "TRUSTED_HOSTS",
                 "AUDIT_CHAIN_SECRET",
+                "AUTH_COOKIE_MODE",
             )
         }
         os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-with-more-than-32-characters"
@@ -29,6 +30,7 @@ class SecurityPostureTests(unittest.TestCase):
         os.environ["CORS_ALLOWED_ORIGINS"] = "https://console.example.local"
         os.environ["TRUSTED_HOSTS"] = "console.example.local"
         os.environ["AUDIT_CHAIN_SECRET"] = "test-audit-chain-secret-with-more-than-32"
+        os.environ["AUTH_COOKIE_MODE"] = "secure"
 
         engine = create_engine(
             "sqlite:///:memory:",
@@ -88,7 +90,9 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertIn("active_failed_login_attempt_count", result)
         self.assertIn("failed_login_limit", result)
         self.assertIn("failed_login_window_seconds", result)
+        self.assertTrue(result["secure_cookie_auth"])
         self.assertTrue(any("cihaz parolasi kayitli degil" in item["message"] for item in result["findings"]))
+        self.assertFalse(any("HttpOnly/SameSite secure cookie" in item["message"] for item in result["findings"]))
 
 
 if __name__ == "__main__":

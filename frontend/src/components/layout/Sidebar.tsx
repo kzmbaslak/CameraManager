@@ -2,6 +2,7 @@
 import { NavLink } from 'react-router-dom'
 import { Bell, Camera, Film, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Users } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import { authApi } from '../../api/auth'
 
 const navItems = [
   { to: '/', label: 'Canli Izleme', icon: LayoutDashboard, exact: true },
@@ -21,6 +22,10 @@ interface SidebarProps {
 
 export function Sidebar({ className = '', onNavigate, collapsed = false, onToggleCollapsed }: SidebarProps) {
   const { username, logout } = useAuthStore()
+
+  const handleLogout = () => {
+    void authApi.logout().finally(logout)
+  }
 
   return (
     <aside className={`flex h-screen shrink-0 flex-col border-r border-border bg-bg-secondary transition-[width] duration-150 ${collapsed ? 'w-16' : 'w-56'} ${className}`}>
@@ -68,7 +73,7 @@ export function Sidebar({ className = '', onNavigate, collapsed = false, onToggl
         <div className={`flex items-center rounded-md py-2 ${collapsed ? 'justify-center px-0' : 'justify-between px-2'}`}>
           {!collapsed && <span className="truncate text-sm font-medium text-text-primary">{username}</span>}
           <button
-            onClick={logout}
+            onClick={handleLogout}
             title="Cikis yap"
             aria-label="Cikis yap"
             className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-bg-card hover:text-danger"

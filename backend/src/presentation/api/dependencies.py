@@ -17,7 +17,9 @@ Singleton servisler uygulama ömrü boyunca tek bir kez oluşturulur:
 Repository ve use-case'ler her istekte FastAPI Depends() mekanizmasıyla
 taze veritabanı oturumu (Session) ile oluşturulur.
 """
-from fastapi import Depends
+from typing import Annotated, Optional
+
+from fastapi import Cookie, Depends
 from sqlalchemy.orm import Session
 
 from src.infrastructure.database.database import SessionLocal, get_db
@@ -218,6 +220,7 @@ def require_permission(permission: str):
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(_bearer),
+    cookie_token: Annotated[Optional[str], Cookie(alias="access_token")] = None,
 ) -> dict:
     """
     Authorization: Bearer <token> başlığından JWT'yi okur ve doğrular.
@@ -225,10 +228,11 @@ def get_current_user(
     Dönen dict: {"sub": username, "role": role}
     """
     from fastapi import HTTPException, status
-    if not credentials:
+    token = credentials.credentials if credentials else cookie_token
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kimlik doğrulama gerekli.")
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
         return payload
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Geçersiz veya süresi dolmuş token.")

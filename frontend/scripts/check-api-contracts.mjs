@@ -38,6 +38,7 @@ function assertNotMatches(source, pattern, label) {
 }
 
 const alarmsApi = read('src/api/alarms.ts')
+const authApi = read('src/api/auth.ts')
 const camerasApi = read('src/api/cameras.ts')
 const recordingsApi = read('src/api/recordings.ts')
 const recordingsPage = read('src/pages/RecordingsPage.tsx')
@@ -64,8 +65,10 @@ const backendDependencies = read('../backend/src/presentation/api/dependencies.p
 const backendRecordingRoutes = read('../backend/src/presentation/api/routes/recordings.py')
 const backendApiRoot = read('../backend/src/presentation/api/__init__.py')
 const backendMain = read('../backend/main.py')
+const backendAuthRoutes = read('../backend/src/presentation/api/routes/auth.py')
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
+assertContains(authApi, '/auth/logout', 'auth logout endpoint')
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
 assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoint')
 assertContains(alarmsApi, '/evidence-report', 'alarm evidence report endpoint')
@@ -126,6 +129,10 @@ assertContains(backendRecordingRoutes, 'alarm_id: Optional[int] = Query', 'backe
 assertContains(backendRecordingRoutes, 'list_alarm_segments(alarm_id)', 'backend recording alarm segment query')
 assertContains(backendRecordingRoutes, 'Depends(get_recording_manage_user)', 'backend recording prune permission')
 assertContains(backendDependencies, 'recording_retention_runner = RecordingRetentionRunner', 'backend recording retention runner singleton')
+assertContains(backendDependencies, 'Cookie(alias="access_token")', 'backend auth secure cookie fallback')
+assertContains(backendAuthRoutes, '@router.post("/logout")', 'backend auth logout route')
+assertContains(backendAuthRoutes, 'httponly=True', 'backend auth cookie httponly flag')
+assertContains(backendAuthRoutes, 'samesite="strict"', 'backend auth cookie samesite flag')
 assertContains(backendMain, 'recording_retention_runner.start()', 'backend recording retention runner startup')
 assertContains(backendMain, 'recording_retention_runner.stop()', 'backend recording retention runner shutdown')
 assertContains(backendApiRoot, 'recording_prune_interval_minutes', 'backend recording automatic prune posture field')
