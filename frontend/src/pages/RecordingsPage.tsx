@@ -1,5 +1,5 @@
 // Kayit segmentleri ve playback envanteri ekrani.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import dayjs from 'dayjs'
@@ -113,6 +113,7 @@ export function RecordingsPage() {
   const [limit, setLimit] = useState(100)
   const previewFrameRef = useRef<HTMLDivElement>(null)
   const previewVideoRef = useRef<HTMLVideoElement>(null)
+  const autoOpenedAlarmRef = useRef<number | null>(null)
   const [previewDims, setPreviewDims] = useState({ w: 960, h: 540 })
   const [preview, setPreview] = useState<{ segment: RecordingSegment; url: string; metadata: RecordingMetadata | null } | null>(null)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
@@ -212,7 +213,7 @@ export function RecordingsPage() {
     }
   }, [playbackSpeed, preview])
 
-  const fetchSegmentBlob = async (segment: RecordingSegment, action: 'play' | 'download') => {
+  const fetchSegmentBlob = useCallback(async (segment: RecordingSegment, action: 'play' | 'download') => {
     if (segment.status !== 'complete') {
       showToast({
         variant: 'warning',
@@ -234,9 +235,9 @@ export function RecordingsPage() {
     } finally {
       setLoadingAction(null)
     }
-  }
+  }, [showToast])
 
-  const playSegment = async (segment: RecordingSegment) => {
+  const playSegment = useCallback(async (segment: RecordingSegment) => {
     const blob = await fetchSegmentBlob(segment, 'play')
     if (!blob) return
     const metadata = await recordingsApi.metadata(segment.id).catch((err) => {
@@ -252,9 +253,22 @@ export function RecordingsPage() {
       if (current?.url) URL.revokeObjectURL(current.url)
       return { segment, url, metadata }
     })
-  }
+  }, [fetchSegmentBlob, showToast])
 
-  const downloadSegment = async (segment: RecordingSegment) => {
+  useEffect(() => {
+    if (!linkedAlarmId || recordingsQuery.isLoading || recordingsQuery.isError) return
+    if (autoOpenedAlarmRef.current === linkedAlarmId) return
+    if (preview?.segment.alarm_id === linkedAlarmId) return
+    const segment = segments.find((item) => item.alarm_id === linkedAlarmId && item.status === 'complete')
+    if (!segment) return
+    autoOpenedAlarmRef.current = linkedAlarmId
+    const timer = window.setTimeout(() => {
+      void playSegment(segment)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [linkedAlarmId, playSegment, preview?.segment.alarm_id, recordingsQuery.isError, recordingsQuery.isLoading, segments])
+
+  const downloadSegment = useCallback(async (segment: RecordingSegment) => {
     const blob = await fetchSegmentBlob(segment, 'download')
     if (!blob) return
     const url = URL.createObjectURL(blob)
@@ -265,7 +279,7 @@ export function RecordingsPage() {
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(url)
-  }
+  }, [fetchSegmentBlob])
 
   const seekPreview = (seconds: number) => {
     const video = previewVideoRef.current
@@ -425,7 +439,7 @@ export function RecordingsPage() {
         </div>
         {linkedAlarmId && (
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-text-secondary">
-            <span>Alarm #{linkedAlarmId} olay kayitlari gosteriliyor.</span>
+            <span>Alarm #{linkedAlarmId} olay kayitlari gosteriliyor. Tamamlanmis ilk klip otomatik acilir.</span>
             <Button size="sm" variant="secondary" onClick={clearLinkedAlarm}>
               Alarm Filtresini Kaldir
             </Button>
