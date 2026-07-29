@@ -13,6 +13,16 @@ interface AuthState {
   logout: () => void
 }
 
+const AUTH_SESSION_STORAGE_KEY = 'auth-session'
+
+function removePersistedAuthSession() {
+  try {
+    sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)
+  } catch {
+    // Storage kapaliysa in-memory logout yine uygulanir.
+  }
+}
+
 function getJwtExpiresAt(token: string): number | null {
   try {
     const payload = token.split('.')[1]
@@ -42,9 +52,10 @@ export const useAuthStore = create<AuthState>()(
       login: (token, username, role) => set({ token, username, role, expiresAt: getJwtExpiresAt(token) }),
       logout: () => {
         clearAllCameraStreams()
+        removePersistedAuthSession()
         set({ token: null, username: null, role: null, expiresAt: null })
       },
     }),
-    { name: 'auth-session', storage: createJSONStorage(() => sessionStorage) }
+    { name: AUTH_SESSION_STORAGE_KEY, storage: createJSONStorage(() => sessionStorage) }
   )
 )

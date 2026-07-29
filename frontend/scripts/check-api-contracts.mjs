@@ -202,6 +202,7 @@ assertContains(cameraFullscreenModal, 'canAcknowledgeAlarms && actionableAlarmId
 assertContains(cameraCard, 'humanDetectionBoxesVisible', 'camera card bbox visibility setting')
 assertContains(cameraCard, 'canAcknowledgeAlarms &&', 'camera card acknowledge permission gate')
 assertContains(authStore, 'clearAllCameraStreams()', 'auth logout clears live stream connections')
+assertContains(authStore, 'sessionStorage.removeItem(AUTH_SESSION_STORAGE_KEY)', 'auth logout removes persisted browser session')
 assertContains(cameraStreamRegistry, 'export function clearAllCameraStreams', 'camera stream registry exposes global cleanup')
 assertContains(cameraStreamRegistry, 'streams.clear()', 'camera stream cleanup clears registry')
 assertContains(dashboardPage, 'canAcknowledgeAlarms &&', 'dashboard acknowledge permission gate')
