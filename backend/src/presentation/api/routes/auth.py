@@ -134,8 +134,16 @@ def change_password(
 ):
     """Giriş yapmış olan kullanıcının kendi şifresini değiştirmesini sağlar."""
     username = current_user.get("sub")
+    source_ip = request.client.host if request.client else None
     user = user_repo.get_by_username(username)
     if not user or not user.is_active:
+        write_audit_event(
+            "auth.change_password",
+            username,
+            False,
+            source_ip,
+            {"reason": "user_not_found_or_inactive"},
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı.")
 
     # Mevcut şifreyi doğrula
@@ -144,13 +152,19 @@ def change_password(
         user.password_hash.encode("utf-8"),
     )
     if not password_matches:
+        write_audit_event(
+            "auth.change_password",
+            username,
+            False,
+            source_ip,
+            {"reason": "old_password_mismatch"},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mevcut şifre hatalı.")
 
     # Yeni şifreyi hashle ve güncelle
     new_hash = bcrypt.hashpw(data.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     user.password_hash = new_hash
     user_repo.update(user)
-    source_ip = request.client.host if request.client else None
     write_audit_event("auth.change_password", username, True, source_ip)
 
     return {"message": "Şifre başarıyla güncellendi."}
