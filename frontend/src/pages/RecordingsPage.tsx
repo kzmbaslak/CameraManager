@@ -47,6 +47,10 @@ function formatDate(value: string | null) {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
+function formatConfidence(value: number | null) {
+  return value == null ? '-' : `${Math.round(value * 100)}%`
+}
+
 function recordingStatusVariant(status: string) {
   if (status === 'complete') return 'success'
   if (status === 'recording') return 'info'
@@ -122,6 +126,10 @@ export function RecordingsPage() {
   const previewDuration = preview?.segment.duration_seconds ?? null
   const previewDetectionPercent = previewDetectionOffset !== null && previewDuration && Number.isFinite(previewDuration)
     ? clampPercent((previewDetectionOffset / previewDuration) * 100)
+    : null
+  const previewDetections = preview?.metadata?.detections ?? []
+  const previewMaxConfidence = previewDetections.length
+    ? Math.max(...previewDetections.map((detection) => detection.confidence))
     : null
 
   const { data: cameras = [] } = useQuery({
@@ -639,6 +647,28 @@ export function RecordingsPage() {
             )}
           </div>
           <div className="border-t border-border px-4 py-3">
+            <div className="mb-3 grid gap-2 md:grid-cols-4">
+              <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase text-text-secondary">Olay Inceleme</p>
+                <p className="mt-1 text-sm font-semibold text-text-primary">
+                  {preview.segment.alarm_id ? `Alarm #${preview.segment.alarm_id}` : 'Alarm bagi yok'}
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase text-text-secondary">Kutu Sayisi</p>
+                <p className="mt-1 text-sm font-semibold text-text-primary">{previewDetections.length}</p>
+              </div>
+              <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase text-text-secondary">En Yuksek Guven</p>
+                <p className="mt-1 text-sm font-semibold text-text-primary">{formatConfidence(previewMaxConfidence)}</p>
+              </div>
+              <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase text-text-secondary">Kanit Hash</p>
+                <p className="mt-1 truncate font-mono text-xs text-text-primary" title={preview.segment.file_sha256 ?? undefined}>
+                  {preview.segment.file_sha256 ?? '-'}
+                </p>
+              </div>
+            </div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary">
               <span>
                 Olay penceresi: {preview.segment.duration_seconds == null ? '-' : `${preview.segment.duration_seconds.toFixed(1)} sn`}
