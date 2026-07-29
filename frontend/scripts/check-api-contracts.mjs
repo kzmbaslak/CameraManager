@@ -206,6 +206,8 @@ assertContains(read('../backend/src/application/services/camera_stream_manager.p
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), '_event_post_seconds', 'backend event recording post buffer')
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), 'RECORDING_CONTINUOUS_ENABLED', 'backend continuous recording env gate')
 assertContains(read('../backend/src/application/services/camera_stream_manager.py'), 'RECORDING_CONTINUOUS_ACTIVE_START', 'backend continuous recording schedule gate')
+assertContains(read('../backend/src/presentation/api/routes/nvrs.py'), '"nvr.probe"', 'backend NVR probe audit event')
+assertContains(read('../backend/src/presentation/api/routes/nvrs.py'), '_audit_nvr_probe(request, current_user, nvr_id, diagnostics)', 'backend NVR probe audit route binding')
 assertContains(read('../backend/src/infrastructure/reports/alarm_report.py'), 'deliver_alarm_report_webhook', 'backend alarm report webhook delivery')
 assertContains(read('../backend/src/infrastructure/reports/alarm_report.py'), 'deliver_alarm_report_email', 'backend alarm report email delivery')
 assertContains(read('../backend/scripts/export_alarm_report.py'), '--skip-delivery', 'alarm report CLI delivery control')

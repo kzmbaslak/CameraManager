@@ -117,6 +117,31 @@ def _build_probe_diagnostics(**kwargs) -> NVRProbeDiagnostics:
     return NVRProbeDiagnostics(**kwargs)
 
 
+def _audit_nvr_probe(
+    request: Request,
+    current_user: dict,
+    nvr_id: int,
+    diagnostics: NVRProbeDiagnostics,
+) -> None:
+    """NVR kanal tarama sonucunu hassas RTSP URL veya parola yazmadan audit log'a ekler."""
+    write_audit_event(
+        "nvr.probe",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "nvr_id": nvr_id,
+            "source": diagnostics.source,
+            "onvif_ok": diagnostics.onvif_ok,
+            "fallback_used": diagnostics.fallback_used,
+            "profile_count": diagnostics.profile_count,
+            "stream_uri_count": diagnostics.stream_uri_count,
+            "channel_count": len(diagnostics.channels),
+            "new_channel_count": diagnostics.new_channel_count,
+            "existing_channel_count": diagnostics.existing_channel_count,
+        },
+    )
+
+
 def infer_stream_role(
     profile_name: str,
     profile_token: str,
@@ -596,6 +621,7 @@ def delete_nvr(
 @router.post("/{nvr_id}/probe", response_model=List[NVRChannelInfo])
 async def probe_nvr_channels(
     nvr_id: int,
+    request: Request,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
@@ -618,8 +644,9 @@ async def probe_nvr_channels(
             plain_pass = nvr.encrypted_password
 
     try:
-        channels = await get_nvr_channels_hybrid(nvr, plain_pass, probe_svc, cam_use_cases)
-        return channels
+        diagnostics = await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc, cam_use_cases)
+        _audit_nvr_probe(request, current_user, nvr_id, diagnostics)
+        return diagnostics.channels
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
 
@@ -627,6 +654,7 @@ async def probe_nvr_channels(
 @router.post("/{nvr_id}/probe/diagnostics", response_model=NVRProbeDiagnostics)
 async def probe_nvr_channels_diagnostics(
     nvr_id: int,
+    request: Request,
     nvr_use_cases: NVRUseCases = Depends(get_nvr_use_cases),
     cam_use_cases: CameraUseCases = Depends(get_camera_use_cases),
     probe_svc=Depends(get_nvr_probe_service),
@@ -645,7 +673,9 @@ async def probe_nvr_channels_diagnostics(
         except Exception:
             plain_pass = nvr.encrypted_password
 
-    return await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc, cam_use_cases)
+    diagnostics = await get_nvr_probe_diagnostics(nvr, plain_pass, probe_svc, cam_use_cases)
+    _audit_nvr_probe(request, current_user, nvr_id, diagnostics)
+    return diagnostics
 
 
 @router.post("/{nvr_id}/import", response_model=List[CameraResponse], status_code=201)
