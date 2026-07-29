@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.entities.camera import CameraStatus
 from src.presentation.api.security_validators import validate_host, validate_port, validate_scan_target
@@ -146,6 +146,8 @@ class CameraUpdate(BaseModel):
 class CameraResponse(BaseModel):
     """Kamera yaniti."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     host: str
@@ -176,9 +178,6 @@ class CameraResponse(BaseModel):
     zone: Optional[str] = None
     onvif_ptz_supported: Optional[bool] = None
     onvif_capabilities_checked_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class CameraPageResponse(BaseModel):
@@ -428,6 +427,8 @@ class CameraRtspDiagnostics(BaseModel):
 class CameraStreamDiagnostics(BaseModel):
     """Canli akis uretici ve RTSP saglik metrikleri."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     camera_id: int
     producer_running: bool
     producer_started_at: Optional[datetime] = None
@@ -460,12 +461,11 @@ class CameraStreamDiagnostics(BaseModel):
     last_failure_at: Optional[datetime] = None
     last_broadcast_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
 
 class CameraStreamMetricResponse(BaseModel):
     """Tek kamera stream performans gecmisi olcumu."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     camera_id: int
@@ -479,9 +479,6 @@ class CameraStreamMetricResponse(BaseModel):
     reconnects: int = 0
     open_failures: int = 0
     failure_count: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class CameraStreamMetricSummaryResponse(BaseModel):
@@ -507,6 +504,8 @@ class CameraStreamMetricSummaryResponse(BaseModel):
 class CameraHealthSampleResponse(BaseModel):
     """Tek kamera saglik gecmisi olcumu."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     camera_id: int
     checked_at: datetime
@@ -514,9 +513,6 @@ class CameraHealthSampleResponse(BaseModel):
     status: str
     latency_ms: Optional[float] = None
     failure_reason: Optional[str] = None
-
-    class Config:
-        from_attributes = True
 
 
 class CameraHealthSummaryResponse(BaseModel):

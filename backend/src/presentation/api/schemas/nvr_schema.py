@@ -7,7 +7,7 @@ yapilarini tanimlar. Parolalar yanitlarda hicbir zaman dondurulmez.
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.presentation.api.security_validators import validate_host, validate_port, validate_scan_target
 
@@ -33,6 +33,8 @@ class NVRCreate(BaseModel):
 
 
 class NVRResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     host: str
@@ -44,9 +46,6 @@ class NVRResponse(BaseModel):
     is_active: bool
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class NVRPageResponse(BaseModel):

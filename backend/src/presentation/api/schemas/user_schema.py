@@ -1,7 +1,7 @@
 """
 Kullanıcı (User) Pydantic şemaları — istek ve yanıt veri yapıları.
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 from src.domain.entities.user import UserRole
@@ -23,14 +23,13 @@ class UserUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     """API'nin kullanıcı bilgisi dönerken kullandığı yanıt modeli. Şifre hiçbir zaman döndürülmez."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     role: UserRole
     is_active: bool
     created_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
 
 
 class UserPageResponse(BaseModel):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from datetime import datetime
 from src.domain.entities.alarm import AlarmSeverity, AlarmStatus, AlarmType
@@ -10,6 +10,8 @@ class BoundingBoxSchema(BaseModel):
     height: int
 
 class AlarmResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     camera_id: int
     alarm_type: AlarmType
@@ -29,9 +31,6 @@ class AlarmResponse(BaseModel):
     created_at: Optional[datetime]
     acknowledged_at: Optional[datetime]
     resolved_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
 
 
 class AlarmTrainingFeedbackItem(BaseModel):
