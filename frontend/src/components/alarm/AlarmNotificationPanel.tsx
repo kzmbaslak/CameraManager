@@ -41,6 +41,30 @@ function ShortcutLegend({ canOperateAlarms }: { canOperateAlarms: boolean }) {
   )
 }
 
+function AlarmProcedureChecklist() {
+  return (
+    <div className="border-t border-border px-3 py-2">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
+        Mudahale Sirasi
+      </p>
+      <ol className="grid gap-1 text-[11px] text-text-secondary">
+        <li className="flex items-center gap-2">
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-info/15 text-[10px] font-bold text-info">1</span>
+          <span>Canli goruntuyu ac, insan konumunu kutudan dogrula.</span>
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-warning/15 text-[10px] font-bold text-warning">2</span>
+          <span>Yakindaki kameralarla yon ve devam eden hareketi kontrol et.</span>
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-success/15 text-[10px] font-bold text-success">3</span>
+          <span>Alarmi onayla veya yanlis alarm olarak kapat; gerekirse not ekle.</span>
+        </li>
+      </ol>
+    </div>
+  )
+}
+
 const typeLabel: Record<string, string> = {
   human_detected: 'İnsan Tespiti',
   motion_detected: 'Hareket',
@@ -142,6 +166,8 @@ function NotificationCard({
           <Eye size={14} />
         </div>
       </button>
+
+      <AlarmProcedureChecklist />
 
       <div className="grid grid-cols-2 gap-2 p-3">
         {canOperateAlarms ? (

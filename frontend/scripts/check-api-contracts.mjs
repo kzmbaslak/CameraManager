@@ -136,6 +136,8 @@ assertContains(alarmsPage, 'Kanit raporu indirildi', 'evidence report success to
 assertContains(alarmNotificationPanel, '30 sn Sessiz', 'alarm notification short mute action')
 assertContains(alarmNotificationPanel, 'BoundingBoxOverlay', 'alarm notification bbox overlay')
 assertContains(alarmNotificationPanel, 'humanDetectionBoxesVisible', 'alarm notification bbox visibility setting')
+assertContains(alarmNotificationPanel, 'Mudahale Sirasi', 'alarm notification operator procedure checklist')
+assertContains(alarmNotificationPanel, 'insan konumunu kutudan dogrula', 'alarm notification bbox verification step')
 assertContains(alarmNotificationPanel, 'canOperateAlarms', 'alarm notification operation permission gate')
 assertContains(alarmNotificationPanel, 'canOperateAlarms && notifications.length > 1', 'alarm notification bulk acknowledge permission gate')
 assertContains(alarmNotificationPanel, "e.key === 's'", 'alarm notification short mute shortcut')
