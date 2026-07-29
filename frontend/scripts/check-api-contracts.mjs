@@ -192,6 +192,10 @@ assertContains(dashboardPage, 'active_failed_login_attempt_count', 'dashboard fa
 assertContains(dashboardPage, 'login deneme', 'dashboard failed login posture label')
 assertContains(systemSettingsStore, 'humanDetectionBoxesVisible: true', 'system settings bbox visibility default')
 assertContains(settingsPage, 'Insan Kutulari', 'settings page bbox visibility control')
+assertContains(settingsPage, 'auditActionLabel', 'settings audit readable action labels')
+assertContains(settingsPage, 'auth.login_rate_limited', 'settings audit login rate limit label')
+assertContains(settingsPage, 'auditEventSummary', 'settings audit readable event summary')
+assertContains(settingsPage, 'nvr.probe', 'settings audit NVR probe summary')
 assertMatches(
   settingsPage,
   /<Badge variant="neutral" className="mb-2">İzleyici<\/Badge>[\s\S]*<li>✗ Alarm onaylama<\/li>/,

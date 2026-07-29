@@ -181,6 +181,44 @@ const auditEventMetadataText = (event: AuditEvent) => {
 
 const auditEventHashLabel = (event: AuditEvent) => event.event_hash?.slice(0, 12) ?? '-'
 
+const auditActionLabel = (action: string) => {
+  const labels: Record<string, string> = {
+    'auth.login': 'Oturum',
+    'auth.login_rate_limited': 'Login Kilidi',
+    'auth.change_password': 'Parola',
+    'nvr.probe': 'NVR Tarama',
+    'nvr.import': 'NVR Import',
+    'nvr.create': 'NVR Ekleme',
+    'nvr.update': 'NVR Duzenleme',
+    'nvr.delete': 'NVR Silme',
+    'alarm.acknowledge': 'Alarm Onay',
+    'alarm.resolve': 'Alarm Kapatma',
+    'alarm.false_positive': 'Yanlis Alarm',
+    'recording.file.access': 'Kayit Erisimi',
+  }
+  return labels[action] ?? action
+}
+
+const auditEventSummary = (event: AuditEvent) => {
+  const metadata = event.metadata ?? {}
+  if (event.action === 'auth.login_rate_limited') {
+    return `Deneme ${metadata.attempt_count ?? '-'} / limit ${metadata.limit ?? '-'}`
+  }
+  if (event.action === 'auth.change_password') {
+    if (event.success) return 'Parola degistirildi'
+    return metadata.reason === 'old_password_mismatch'
+      ? 'Eski parola hatali'
+      : metadata.reason === 'user_not_found_or_inactive'
+      ? 'Kullanici yok veya pasif'
+      : 'Parola degistirilemedi'
+  }
+  if (event.action === 'nvr.probe') {
+    const source = metadata.onvif_ok ? 'ONVIF' : metadata.fallback_used ? 'RTSP fallback' : 'Kanal yok'
+    return `${source}; ${metadata.channel_count ?? 0} kanal`
+  }
+  return auditEventMetadataText(event)
+}
+
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
 function GeneralSettingsPanel() {
   const themeMode = useSystemSettingsStore((s) => s.themeMode)
@@ -319,10 +357,12 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
       const haystack = [
         event.timestamp,
         event.action,
+        auditActionLabel(event.action),
         event.actor ?? '',
         event.source_ip ?? '',
         event.event_hash ?? '',
         event.previous_hash ?? '',
+        auditEventSummary(event),
         auditEventMetadataText(event),
       ].join(' ').toLowerCase()
       const matchesSearch = !needle || haystack.includes(needle)
@@ -334,16 +374,18 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
 
   const exportAuditCsv = () => {
     const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`
-    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Kullanici', 'IP', 'Hash Algoritmasi', 'Onceki Hash', 'Olay Hash', 'Detay']
+    const headers = ['Zaman', 'Durum', 'Aksiyon', 'Ham Aksiyon', 'Kullanici', 'IP', 'Hash Algoritmasi', 'Onceki Hash', 'Olay Hash', 'Detay', 'Ham Detay']
     const rows = filteredEvents.map((event) => [
       dayjs(event.timestamp).format('YYYY-MM-DD HH:mm:ss'),
       event.success ? 'Basarili' : 'Basarisiz',
+      auditActionLabel(event.action),
       event.action,
       event.actor ?? '-',
       event.source_ip ?? '-',
       event.hash_algorithm ?? '-',
       event.previous_hash ?? '-',
       event.event_hash ?? '-',
+      auditEventSummary(event),
       auditEventMetadataText(event),
     ])
     const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\r\n')
@@ -431,15 +473,15 @@ function AuditEventsPanel({ enabled }: { enabled: boolean }) {
                     {dayjs(event.timestamp).format('DD.MM.YYYY HH:mm:ss')}
                   </td>
                   <td className="px-3 py-2">
-                    <Badge variant={event.success ? 'success' : 'danger'}>{event.action}</Badge>
+                    <Badge variant={event.success ? 'success' : 'danger'}>{auditActionLabel(event.action)}</Badge>
                   </td>
                   <td className="px-3 py-2 text-[var(--text-primary)]">{event.actor ?? '-'}</td>
                   <td className="px-3 py-2 font-mono text-[var(--text-secondary)]">{event.source_ip ?? '-'}</td>
                   <td className="px-3 py-2 font-mono text-[var(--text-secondary)]" title={event.event_hash ?? 'Hash yok'}>
                     {auditEventHashLabel(event)}
                   </td>
-                  <td className="max-w-xs truncate px-3 py-2 font-mono text-[var(--text-secondary)]" title={auditEventMetadataText(event)}>
-                    {auditEventMetadataText(event)}
+                  <td className="max-w-xs truncate px-3 py-2 text-[var(--text-secondary)]" title={auditEventMetadataText(event)}>
+                    {auditEventSummary(event)}
                   </td>
                 </tr>
               ))}
