@@ -314,3 +314,28 @@ export function subscribeToCameraStream(cameraId: number, options: StreamSubscri
     }
   }
 }
+
+export function clearAllCameraStreams() {
+  for (const stream of streams.values()) {
+    stream.disposed = true
+    if (stream.retryTimer) clearTimeout(stream.retryTimer)
+    if (stream.reconnectTimer) clearTimeout(stream.reconnectTimer)
+    if (stream.disposeTimer) clearTimeout(stream.disposeTimer)
+    stream.retryTimer = null
+    stream.reconnectTimer = null
+    stream.disposeTimer = null
+    stream.pendingReconnect = false
+    clearObjectUrl(stream)
+    if (stream.websocket) {
+      try {
+        stream.websocket.close()
+      } catch {
+        // Baglanti zaten kapanmis olabilir.
+      }
+    }
+    stream.websocket = null
+    stream.state = { ...initialState(), connected: false }
+    emit(stream)
+  }
+  streams.clear()
+}

@@ -1,6 +1,7 @@
 // JWT oturum bilgisini kalıcı olarak tutan Zustand store'u.
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { clearAllCameraStreams } from '../hooks/cameraStreamRegistry'
 
 interface AuthState {
   token: string | null
@@ -39,7 +40,10 @@ export const useAuthStore = create<AuthState>()(
         return Boolean(expiresAt && Date.now() >= expiresAt)
       },
       login: (token, username, role) => set({ token, username, role, expiresAt: getJwtExpiresAt(token) }),
-      logout: () => set({ token: null, username: null, role: null, expiresAt: null }),
+      logout: () => {
+        clearAllCameraStreams()
+        set({ token: null, username: null, role: null, expiresAt: null })
+      },
     }),
     { name: 'auth-session', storage: createJSONStorage(() => sessionStorage) }
   )
