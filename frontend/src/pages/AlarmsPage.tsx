@@ -164,6 +164,28 @@ function buildTrainingFeedbackCsv(items: AlarmTrainingFeedbackItem[], cameraName
 // Filtre çubuğu alt bileşeni
 // ────────────────────────────────────────────
 
+function AlarmResponseProcedure() {
+  return (
+    <section className="mt-4 rounded-md border border-border bg-bg-secondary p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Mudahale Sirasi</p>
+      <ol className="mt-2 grid gap-2 text-xs text-text-secondary">
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-info/15 text-[10px] font-bold text-info">1</span>
+          <span>Canli goruntuyu acip kutulu kanit uzerinden insan konumunu dogrula.</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-warning/15 text-[10px] font-bold text-warning">2</span>
+          <span>Yakindaki kamera veya kayitlardan yon, sure ve olay devam ediyor mu bilgisini kontrol et.</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded bg-success/15 text-[10px] font-bold text-success">3</span>
+          <span>Operator notu ve cozum nedenini yaz; alarmi onayla, kapat veya yanlis alarm olarak isaretle.</span>
+        </li>
+      </ol>
+    </section>
+  )
+}
+
 interface FilterBarProps {
   cameras: { id: number; name: string; host: string }[]
   cameraFilter: number | 'all'
@@ -436,6 +458,8 @@ function AlarmDetailDrawer({
               {alarm.message}
             </p>
           )}
+
+          <AlarmResponseProcedure />
 
           {canOperateAlarms && (
             <>

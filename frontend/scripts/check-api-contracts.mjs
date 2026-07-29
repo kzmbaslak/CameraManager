@@ -133,6 +133,8 @@ assertContains(alarmsPage, 'applyThresholdSuggestions.mutate', 'threshold apply 
 assertContains(alarmsPage, 'handleDownloadEvidenceManifest', 'evidence manifest UI action')
 assertContains(alarmsPage, 'handleDownloadEvidenceReport', 'evidence report UI action')
 assertContains(alarmsPage, 'Kanit raporu indirildi', 'evidence report success toast')
+assertContains(alarmsPage, 'Mudahale Sirasi', 'alarm detail operator procedure checklist')
+assertContains(alarmsPage, 'kutulu kanit uzerinden insan konumunu dogrula', 'alarm detail bbox evidence verification step')
 assertContains(alarmNotificationPanel, '30 sn Sessiz', 'alarm notification short mute action')
 assertContains(alarmNotificationPanel, 'BoundingBoxOverlay', 'alarm notification bbox overlay')
 assertContains(alarmNotificationPanel, 'humanDetectionBoxesVisible', 'alarm notification bbox visibility setting')
