@@ -1,7 +1,8 @@
 // Backend API şemalarına karşılık gelen TypeScript tipleri
+import type { OpenApiSchemas } from './openapi.generated'
 
 // Backend CameraStatus enum değerleri lowercase
-export type CameraStatus = 'active' | 'inactive' | 'error'
+export type CameraStatus = OpenApiSchemas['CameraStatus']
 
 export interface PaginatedResponse<T> {
   items: T[]
@@ -44,42 +45,13 @@ export interface Camera {
   updated_at: string | null
 }
 
-export interface CameraCreate {
-  name: string
-  host: string
-  rtsp_port?: number
-  auto_rtsp_ports?: boolean
-  rtsp_path?: string
-  onvif_port?: number
-  username?: string
-  password?: string
-  brand?: string
-  model?: string
-  site?: string | null
-  building?: string | null
-  floor?: string | null
-  zone?: string | null
-  ai_confidence_threshold?: number
-  ai_iou_threshold?: number
-  ai_alarm_cooldown_seconds?: number
-  ai_frame_stride?: number
-  ai_inference_width?: number
-  ai_active_start?: string | null
-  ai_active_end?: string | null
-  ai_roi_polygon?: string | null
-  continuous_recording_enabled?: boolean
-}
+export type CameraCreate = OpenApiSchemas['CameraCreate']
 
-export type AlarmType = 'human_detected' | 'motion_detected' | 'camera_offline' | 'camera_health_degraded'
-export type AlarmStatus = 'new' | 'acknowledged' | 'resolved'
-export type AlarmSeverity = 'low' | 'medium' | 'high' | 'critical'
+export type AlarmType = OpenApiSchemas['AlarmType']
+export type AlarmStatus = OpenApiSchemas['AlarmStatus']
+export type AlarmSeverity = OpenApiSchemas['AlarmSeverity']
 
-export interface BoundingBox {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+export type BoundingBox = OpenApiSchemas['BoundingBoxSchema']
 
 export interface Detection {
   label: string
@@ -269,13 +241,7 @@ export interface StreamMessage {
   ai_inference_ms?: number | null
 }
 
-export interface CameraScanRequest {
-  ip_range: string
-  rtsp_port?: number
-  auto_rtsp_ports?: boolean
-  username?: string
-  password?: string
-}
+export type CameraScanRequest = OpenApiSchemas['CameraScanRequest']
 
 export interface CameraScanResult {
   ip: string
@@ -317,11 +283,7 @@ export type CameraPtzDirection =
   | 'zoom_out'
   | 'stop'
 
-export interface CameraPtzMoveRequest {
-  direction: CameraPtzDirection
-  speed?: number
-  duration_ms?: number
-}
+export type CameraPtzMoveRequest = OpenApiSchemas['CameraPtzMoveRequest']
 
 export interface CameraPtzMoveResponse {
   camera_id: number
@@ -357,10 +319,7 @@ export interface CameraPtzHomeResponse {
   message: string
 }
 
-export interface CameraPtzPatrolRequest {
-  preset_tokens: string[]
-  dwell_seconds?: number
-}
+export type CameraPtzPatrolRequest = OpenApiSchemas['CameraPtzPatrolRequest']
 
 export interface CameraPtzPatrolResponse {
   camera_id: number
@@ -370,23 +329,9 @@ export interface CameraPtzPatrolResponse {
   message: string
 }
 
-export interface CameraRtspPreviewRequest {
-  camera_id?: number
-  name?: string
-  host?: string
-  rtsp_port?: number
-  rtsp_path?: string
-  username?: string
-  password?: string
-}
+export type CameraRtspPreviewRequest = OpenApiSchemas['CameraRtspPreviewRequest']
 
-export interface CameraOnvifPreviewRequest {
-  camera_id?: number
-  host?: string
-  onvif_port?: number
-  username?: string
-  password?: string
-}
+export type CameraOnvifPreviewRequest = OpenApiSchemas['CameraOnvifPreviewRequest']
 
 export interface CameraOnvifProfileInfo {
   profile_token: string

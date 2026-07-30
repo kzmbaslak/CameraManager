@@ -1,6 +1,7 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
 import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse } from '../types/api'
+import type { OpenApiSchemas } from '../types/openapi.generated'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export interface CameraUpdate {
@@ -26,14 +27,7 @@ export interface CameraUpdate {
   continuous_recording_enabled?: boolean
 }
 
-export interface CameraBulkAiSettingsPayload {
-  camera_ids: number[]
-  ai_confidence_threshold: number
-  ai_iou_threshold: number
-  ai_alarm_cooldown_seconds: number
-  ai_frame_stride: number
-  ai_inference_width: number
-}
+export type CameraBulkAiSettingsPayload = OpenApiSchemas['CameraBulkAiSettingsRequest']
 
 export const camerasApi = {
   /** Sistemdeki tüm kameraları listeler. */
