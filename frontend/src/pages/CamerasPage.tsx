@@ -376,7 +376,7 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [rtspPort, setRtspPort] = useState(554)
   const [autoRtspPorts, setAutoRtspPorts] = useState(true)
   const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('admin123')
+  const [password, setPassword] = useState('')
   const [results, setResults] = useState<(CameraScanResult & { name: string; selected: boolean })[]>([])
   const [rowErrors, setRowErrors] = useState<Record<number, string>>({})
   const abortRef = useRef<AbortController | null>(null)
@@ -533,7 +533,12 @@ function ScanCamerasModal({ open, onClose }: { open: boolean; onClose: () => voi
               label="Şifre"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="off"
+              placeholder="Bos birakilirsa sifresiz denenir"
             />
+            <span className="text-[10px] text-[var(--text-secondary)] -mt-2">
+              Guvenlik icin varsayilan parola doldurulmaz; cihaz parolasini biliyorsaniz girin.
+            </span>
           </div>
         </div>
 

@@ -702,7 +702,7 @@ function DiscoverModal({
   const [ipRange, setIpRange] = useState('192.168.1.0/24')
   const [rtspPort, setRtspPort] = useState(554)
   const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('admin123')
+  const [password, setPassword] = useState('')
 
   const rangeAbortRef = useRef<AbortController | null>(null)
 
@@ -906,7 +906,12 @@ function DiscoverModal({
                   label="Tarama Şifresi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="off"
+                  placeholder="Bos birakilirsa sifresiz denenir"
                 />
+                <span className="text-[10px] text-[var(--text-secondary)] -mt-2">
+                  Guvenlik icin varsayilan parola doldurulmaz; cihaz parolasini biliyorsaniz girin.
+                </span>
               </div>
             </div>
             <div className="flex justify-end border-b border-[var(--border)] pb-3">
