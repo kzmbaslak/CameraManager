@@ -15,13 +15,6 @@ from src.infrastructure.database.models import UserModel
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 ENV_PATH = os.path.join(BACKEND_DIR, ".env")
 MODEL_PATH = os.path.join(BACKEND_DIR, "models", "yolov8n.onnx")
-EXPECTED_MIGRATION_SCRIPTS = (
-    "migrate_add_nvr_and_camera_fields.py",
-    "migrate_add_camera_ai_settings.py",
-    "migrate_add_alarm_operation_fields.py",
-    "migrate_add_camera_health_samples.py",
-)
-
 REQUIRED_SCHEMA: dict[str, set[str]] = {
     "cameras": {
         "id",
@@ -118,6 +111,73 @@ class SetupCheck:
     message: str
 
 
+@dataclass(frozen=True)
+class MigrationStep:
+    """Script tabanli SQLite upgrade adimini ve kapsadigi sema degisimlerini tanimlar."""
+
+    order: int
+    filename: str
+    entrypoint: str
+    schema_changes: dict[str, set[str]]
+
+
+MIGRATION_REGISTRY: tuple[MigrationStep, ...] = (
+    MigrationStep(
+        order=10,
+        filename="migrate_add_nvr_and_camera_fields.py",
+        entrypoint="run",
+        schema_changes={
+            "nvrs": {"id", "name", "host", "onvif_port", "username", "encrypted_password", "brand", "model", "is_active"},
+            "cameras": {"brand", "model", "nvr_id"},
+        },
+    ),
+    MigrationStep(
+        order=20,
+        filename="migrate_add_camera_ai_settings.py",
+        entrypoint="main",
+        schema_changes={
+            "cameras": {
+                "ai_confidence_threshold",
+                "ai_iou_threshold",
+                "ai_alarm_cooldown_seconds",
+                "ai_frame_stride",
+                "ai_inference_width",
+                "ai_active_start",
+                "ai_active_end",
+                "ai_roi_polygon",
+            },
+        },
+    ),
+    MigrationStep(
+        order=30,
+        filename="migrate_add_alarm_operation_fields.py",
+        entrypoint="main",
+        schema_changes={
+            "alarms": {
+                "assigned_to",
+                "operator_note",
+                "resolution_reason",
+                "severity",
+                "false_positive",
+                "snapshot_sha256",
+                "snapshot_annotated_path",
+                "snapshot_annotated_sha256",
+            },
+        },
+    ),
+    MigrationStep(
+        order=40,
+        filename="migrate_add_camera_health_samples.py",
+        entrypoint="main",
+        schema_changes={
+            "camera_health_samples": REQUIRED_SCHEMA["camera_health_samples"],
+        },
+    ),
+)
+
+EXPECTED_MIGRATION_SCRIPTS = tuple(step.filename for step in MIGRATION_REGISTRY)
+
+
 def _schema_check() -> SetupCheck:
     inspector = inspect(engine)
     missing_parts: list[str] = []
@@ -162,19 +222,51 @@ def _active_admin_check() -> SetupCheck:
 
 
 def _migration_script_inventory_check() -> SetupCheck:
-    missing_scripts = [
-        script
-        for script in EXPECTED_MIGRATION_SCRIPTS
-        if not os.path.isfile(os.path.join(BACKEND_DIR, "scripts", script))
-    ]
-    if missing_scripts:
+    issues: list[str] = []
+    seen_orders: set[int] = set()
+    seen_filenames: set[str] = set()
+
+    for step in MIGRATION_REGISTRY:
+        if step.order in seen_orders:
+            issues.append(f"{step.filename}: tekrar eden migration sirasi {step.order}")
+        seen_orders.add(step.order)
+        if step.filename in seen_filenames:
+            issues.append(f"{step.filename}: tekrar eden migration dosyasi")
+        seen_filenames.add(step.filename)
+
+        script_path = os.path.join(BACKEND_DIR, "scripts", step.filename)
+        if not os.path.isfile(script_path):
+            issues.append(f"{step.filename}: dosya yok")
+            continue
+        try:
+            with open(script_path, encoding="utf-8") as script_file:
+                source = script_file.read()
+        except OSError as exc:
+            issues.append(f"{step.filename}: okunamadi ({exc})")
+            continue
+
+        if f"def {step.entrypoint}(" not in source:
+            issues.append(f"{step.filename}: {step.entrypoint} entrypoint yok")
+        for table, columns in step.schema_changes.items():
+            if table not in source:
+                issues.append(f"{step.filename}: {table} hedefi gorunmuyor")
+            for column in columns:
+                if column not in source:
+                    issues.append(f"{step.filename}: {table}.{column} sema degisimi gorunmuyor")
+
+    if issues:
         return SetupCheck(
             key="migration_script_inventory",
             ok=False,
             severity="medium",
-            message="Migration script envanteri eksik: " + ", ".join(missing_scripts),
+            message="Migration script envanteri sorunlu: " + "; ".join(issues),
         )
-    return SetupCheck("migration_script_inventory", True, "info", "Migration script envanteri mevcut.")
+    return SetupCheck(
+        "migration_script_inventory",
+        True,
+        "info",
+        f"Migration script envanteri mevcut ve sirali: {len(MIGRATION_REGISTRY)} adim.",
+    )
 
 
 def collect_setup_checks() -> list[SetupCheck]:
