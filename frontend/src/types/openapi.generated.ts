@@ -480,3 +480,701 @@ export type OpenApiOperation =
   | { method: "post"; path: "/api/users/"; operationId: "create_user_api_users__post" }
   | { method: "delete"; path: "/api/users/{user_id}"; operationId: "delete_user_api_users__user_id__delete" }
   | { method: "patch"; path: "/api/users/{user_id}"; operationId: "update_user_api_users__user_id__patch" }
+
+export type OpenApiSchemaName =
+  | "AlarmEvidenceFileItem"
+  | "AlarmEvidenceManifest"
+  | "AlarmResolveRequest"
+  | "AlarmResponse"
+  | "AlarmSeverity"
+  | "AlarmStatus"
+  | "AlarmThresholdSuggestionApplyItem"
+  | "AlarmThresholdSuggestionApplyRequest"
+  | "AlarmThresholdSuggestionApplyResponse"
+  | "AlarmThresholdSuggestionItem"
+  | "AlarmTrainingFeedbackItem"
+  | "AlarmType"
+  | "AlarmUpdate"
+  | "AuditEventResponse"
+  | "BoundingBoxSchema"
+  | "CameraBulkAiSettingsRequest"
+  | "CameraCreate"
+  | "CameraHealthListItemResponse"
+  | "CameraHealthSampleResponse"
+  | "CameraHealthSummaryResponse"
+  | "CameraOnvifPreviewRequest"
+  | "CameraOnvifPreviewResponse"
+  | "CameraOnvifProfileInfo"
+  | "CameraPageResponse"
+  | "CameraPtzGotoPresetRequest"
+  | "CameraPtzGotoPresetResponse"
+  | "CameraPtzHomeResponse"
+  | "CameraPtzMoveRequest"
+  | "CameraPtzMoveResponse"
+  | "CameraPtzPatrolRequest"
+  | "CameraPtzPatrolResponse"
+  | "CameraPtzPresetItem"
+  | "CameraPtzPresetListResponse"
+  | "CameraResponse"
+  | "CameraRtspDiagnostics"
+  | "CameraRtspPreviewRequest"
+  | "CameraScanRequest"
+  | "CameraScanResult"
+  | "CameraStatus"
+  | "CameraStreamDiagnostics"
+  | "CameraStreamMetricResponse"
+  | "CameraStreamMetricSummaryResponse"
+  | "CameraUpdate"
+  | "ChangePasswordRequest"
+  | "HTTPValidationError"
+  | "LoginRequest"
+  | "NVRChannelInfo"
+  | "NVRCreate"
+  | "NVRDiscoverResponse"
+  | "NVRImportRequest"
+  | "NVRPageResponse"
+  | "NVRProbeDiagnostics"
+  | "NVRResponse"
+  | "NVRScanRequest"
+  | "NVRScanResponse"
+  | "NVRUpdate"
+  | "RecordingDetectionItem"
+  | "RecordingMetadataResponse"
+  | "RecordingPruneResponse"
+  | "RecordingSegmentListResponse"
+  | "RecordingSegmentResponse"
+  | "TokenResponse"
+  | "UserCreate"
+  | "UserPageResponse"
+  | "UserResponse"
+  | "UserRole"
+  | "UserUpdate"
+  | "ValidationError"
+
+export type OpenApiSchemas = {
+  "AlarmEvidenceFileItem": {
+    "available": boolean
+    "filename"?: (string) | (null)
+    "sha256"?: (string) | (null)
+    "size_bytes"?: (number) | (null)
+    "status": string
+    "variant": string
+  }
+  "AlarmEvidenceManifest": {
+    "acknowledged_at"?: (string) | (null)
+    "alarm_id": number
+    "alarm_type": OpenApiSchemas["AlarmType"]
+    "bounding_box"?: (OpenApiSchemas["BoundingBoxSchema"]) | (null)
+    "camera_id": number
+    "confidence"?: (number) | (null)
+    "created_at"?: (string) | (null)
+    "false_positive": boolean
+    "files": Array<OpenApiSchemas["AlarmEvidenceFileItem"]>
+    "generated_at": string
+    "resolved_at"?: (string) | (null)
+    "severity": OpenApiSchemas["AlarmSeverity"]
+    "status": OpenApiSchemas["AlarmStatus"]
+  }
+  "AlarmResolveRequest": {
+    "false_positive"?: boolean
+    "resolution_reason"?: (string) | (null)
+  }
+  "AlarmResponse": {
+    "acknowledged_at": (string) | (null)
+    "alarm_type": OpenApiSchemas["AlarmType"]
+    "assigned_to"?: (string) | (null)
+    "bounding_box": (OpenApiSchemas["BoundingBoxSchema"]) | (null)
+    "camera_id": number
+    "confidence": (number) | (null)
+    "created_at": (string) | (null)
+    "false_positive"?: boolean
+    "id": number
+    "message": (string) | (null)
+    "operator_note"?: (string) | (null)
+    "resolution_reason"?: (string) | (null)
+    "resolved_at": (string) | (null)
+    "severity"?: OpenApiSchemas["AlarmSeverity"]
+    "snapshot_annotated_path"?: (string) | (null)
+    "snapshot_annotated_sha256"?: (string) | (null)
+    "snapshot_path": (string) | (null)
+    "snapshot_sha256"?: (string) | (null)
+    "status": OpenApiSchemas["AlarmStatus"]
+  }
+  "AlarmSeverity": "low" | "medium" | "high" | "critical"
+  "AlarmStatus": "new" | "acknowledged" | "resolved"
+  "AlarmThresholdSuggestionApplyItem": {
+    "applied_confidence_threshold": number
+    "camera_id": number
+    "false_positive_rate": number
+    "previous_confidence_threshold": number
+    "sample_count": number
+  }
+  "AlarmThresholdSuggestionApplyRequest": {
+    "camera_ids"?: (Array<number>) | (null)
+    "limit"?: number
+    "minimum_samples"?: number
+  }
+  "AlarmThresholdSuggestionApplyResponse": {
+    "applied_count": number
+    "items": Array<OpenApiSchemas["AlarmThresholdSuggestionApplyItem"]>
+    "skipped_count": number
+  }
+  "AlarmThresholdSuggestionItem": {
+    "average_confidence"?: (number) | (null)
+    "camera_id": number
+    "false_positive_count": number
+    "false_positive_rate": number
+    "recommendation": string
+    "sample_count": number
+    "suggested_confidence_threshold"?: (number) | (null)
+  }
+  "AlarmTrainingFeedbackItem": {
+    "alarm_id": number
+    "bounding_box": (OpenApiSchemas["BoundingBoxSchema"]) | (null)
+    "camera_id": number
+    "confidence": (number) | (null)
+    "created_at": (string) | (null)
+    "false_positive": boolean
+    "operator_note"?: (string) | (null)
+    "resolution_reason"?: (string) | (null)
+    "severity": OpenApiSchemas["AlarmSeverity"]
+    "snapshot_annotated_sha256"?: (string) | (null)
+    "snapshot_sha256"?: (string) | (null)
+  }
+  "AlarmType": "human_detected" | "camera_offline" | "camera_health_degraded" | "motion_detected"
+  "AlarmUpdate": {
+    "assigned_to"?: (string) | (null)
+    "false_positive"?: (boolean) | (null)
+    "operator_note"?: (string) | (null)
+    "severity"?: (OpenApiSchemas["AlarmSeverity"]) | (null)
+  }
+  "AuditEventResponse": {
+    "action": string
+    "actor"?: (string) | (null)
+    "event_hash"?: (string) | (null)
+    "hash_algorithm"?: (string) | (null)
+    "metadata"?: {
+    [key: string]: unknown
+  }
+    "previous_hash"?: (string) | (null)
+    "source_ip"?: (string) | (null)
+    "success"?: boolean
+    "timestamp": string
+  }
+  "BoundingBoxSchema": {
+    "height": number
+    "width": number
+    "x": number
+    "y": number
+  }
+  "CameraBulkAiSettingsRequest": {
+    "ai_alarm_cooldown_seconds": number
+    "ai_confidence_threshold": number
+    "ai_frame_stride": number
+    "ai_inference_width": number
+    "ai_iou_threshold": number
+    "camera_ids": Array<number>
+  }
+  "CameraCreate": {
+    "ai_active_end"?: (string) | (null)
+    "ai_active_start"?: (string) | (null)
+    "ai_alarm_cooldown_seconds"?: number
+    "ai_confidence_threshold"?: number
+    "ai_frame_stride"?: number
+    "ai_inference_width"?: number
+    "ai_iou_threshold"?: number
+    "ai_roi_polygon"?: (string) | (null)
+    "auto_rtsp_ports"?: boolean
+    "brand"?: (string) | (null)
+    "building"?: (string) | (null)
+    "continuous_recording_enabled"?: boolean
+    "floor"?: (string) | (null)
+    "host": string
+    "model"?: (string) | (null)
+    "name": string
+    "onvif_port"?: (number) | (null)
+    "password"?: (string) | (null)
+    "rtsp_path"?: (string) | (null)
+    "rtsp_port"?: (number) | (null)
+    "site"?: (string) | (null)
+    "username"?: (string) | (null)
+    "zone"?: (string) | (null)
+  }
+  "CameraHealthListItemResponse": {
+    "availability_percent"?: (number) | (null)
+    "camera_id": number
+    "health_level": string
+    "health_message": string
+    "latest_checked_at"?: (string) | (null)
+    "latest_failure_reason"?: (string) | (null)
+    "latest_latency_ms"?: (number) | (null)
+    "latest_reachable"?: (boolean) | (null)
+    "latest_status"?: (string) | (null)
+    "reachable_count": number
+    "sample_count": number
+  }
+  "CameraHealthSampleResponse": {
+    "camera_id": number
+    "checked_at": string
+    "failure_reason"?: (string) | (null)
+    "id": number
+    "latency_ms"?: (number) | (null)
+    "reachable": boolean
+    "status": string
+  }
+  "CameraHealthSummaryResponse": {
+    "availability_percent"?: (number) | (null)
+    "camera_id": number
+    "latest_checked_at"?: (string) | (null)
+    "latest_failure_reason"?: (string) | (null)
+    "latest_latency_ms"?: (number) | (null)
+    "reachable_count": number
+    "sample_count": number
+    "samples": Array<OpenApiSchemas["CameraHealthSampleResponse"]>
+    "unreachable_count": number
+  }
+  "CameraOnvifPreviewRequest": {
+    "camera_id"?: (number) | (null)
+    "host"?: (string) | (null)
+    "onvif_port"?: (number) | (null)
+    "password"?: (string) | (null)
+    "username"?: (string) | (null)
+  }
+  "CameraOnvifPreviewResponse": {
+    "analytics_supported"?: boolean
+    "camera_id": number
+    "compatibility_notes"?: Array<string>
+    "event_subscription_likely"?: boolean
+    "events_supported"?: boolean
+    "firmware_version"?: (string) | (null)
+    "first_stream_uri_masked"?: (string) | (null)
+    "h264_or_h265_supported"?: boolean
+    "host": string
+    "imaging_supported"?: boolean
+    "manufacturer"?: (string) | (null)
+    "media_supported"?: boolean
+    "message": string
+    "model"?: (string) | (null)
+    "ok": boolean
+    "onvif_port": number
+    "profile_count"?: number
+    "profile_g_likely"?: boolean
+    "profile_m_likely"?: boolean
+    "profile_s_likely"?: boolean
+    "profile_t_likely"?: boolean
+    "profiles"?: Array<OpenApiSchemas["CameraOnvifProfileInfo"]>
+    "ptz_supported"?: boolean
+    "serial_number"?: (string) | (null)
+    "snapshot_supported"?: boolean
+    "stream_uri_count"?: number
+  }
+  "CameraOnvifProfileInfo": {
+    "bitrate_kbps"?: (number) | (null)
+    "encoding"?: (string) | (null)
+    "fps"?: (number) | (null)
+    "height"?: (number) | (null)
+    "profile_name": string
+    "profile_token": string
+    "rtsp_uri_masked"?: (string) | (null)
+    "snapshot_uri_masked"?: (string) | (null)
+    "width"?: (number) | (null)
+  }
+  "CameraPageResponse": {
+    "items": Array<OpenApiSchemas["CameraResponse"]>
+    "page": number
+    "page_size": number
+    "total": number
+  }
+  "CameraPtzGotoPresetRequest": {
+    "preset_token": string
+  }
+  "CameraPtzGotoPresetResponse": {
+    "camera_id": number
+    "message": string
+    "ok": boolean
+    "preset_token": string
+    "profile_token"?: (string) | (null)
+  }
+  "CameraPtzHomeResponse": {
+    "camera_id": number
+    "message": string
+    "ok": boolean
+    "profile_token"?: (string) | (null)
+  }
+  "CameraPtzMoveRequest": {
+    "direction": "up" | "down" | "left" | "right" | "up_left" | "up_right" | "down_left" | "down_right" | "zoom_in" | "zoom_out" | "stop"
+    "duration_ms"?: number
+    "speed"?: number
+  }
+  "CameraPtzMoveResponse": {
+    "camera_id": number
+    "direction": string
+    "message": string
+    "ok": boolean
+    "profile_token"?: (string) | (null)
+  }
+  "CameraPtzPatrolRequest": {
+    "dwell_seconds"?: number
+    "preset_tokens": Array<string>
+  }
+  "CameraPtzPatrolResponse": {
+    "camera_id": number
+    "message": string
+    "ok": boolean
+    "profile_token"?: (string) | (null)
+    "visited_preset_tokens": Array<string>
+  }
+  "CameraPtzPresetItem": {
+    "name": string
+    "profile_token"?: (string) | (null)
+    "token": string
+  }
+  "CameraPtzPresetListResponse": {
+    "camera_id": number
+    "presets": Array<OpenApiSchemas["CameraPtzPresetItem"]>
+  }
+  "CameraResponse": {
+    "ai_active_end"?: (string) | (null)
+    "ai_active_start"?: (string) | (null)
+    "ai_alarm_cooldown_seconds": number
+    "ai_confidence_threshold": number
+    "ai_detection_enabled": boolean
+    "ai_frame_stride": number
+    "ai_inference_width": number
+    "ai_iou_threshold": number
+    "ai_roi_polygon"?: (string) | (null)
+    "brand"?: (string) | (null)
+    "building"?: (string) | (null)
+    "continuous_recording_enabled"?: boolean
+    "created_at"?: (string) | (null)
+    "floor"?: (string) | (null)
+    "host": string
+    "id": number
+    "model"?: (string) | (null)
+    "motion_detection_enabled": boolean
+    "name": string
+    "nvr_id"?: (number) | (null)
+    "onvif_capabilities_checked_at"?: (string) | (null)
+    "onvif_port": number
+    "onvif_ptz_supported"?: (boolean) | (null)
+    "password_updated_at"?: (string) | (null)
+    "rtsp_path": string
+    "rtsp_port": number
+    "site"?: (string) | (null)
+    "status": OpenApiSchemas["CameraStatus"]
+    "username"?: (string) | (null)
+    "zone"?: (string) | (null)
+  }
+  "CameraRtspDiagnostics": {
+    "anonymous_frame_ok": boolean
+    "authenticated_frame_ok": boolean
+    "authenticated_url_masked": string
+    "camera_id": number
+    "describe_ok": boolean
+    "frame_ok": boolean
+    "has_username": boolean
+    "host": string
+    "message": string
+    "name": string
+    "nvr_id"?: (number) | (null)
+    "public_url": string
+    "rtsp_path": string
+    "rtsp_port": number
+    "tcp_open": boolean
+  }
+  "CameraRtspPreviewRequest": {
+    "camera_id"?: (number) | (null)
+    "host"?: (string) | (null)
+    "name"?: (string) | (null)
+    "password"?: (string) | (null)
+    "rtsp_path"?: (string) | (null)
+    "rtsp_port"?: (number) | (null)
+    "username"?: (string) | (null)
+  }
+  "CameraScanRequest": {
+    "auto_rtsp_ports"?: boolean
+    "ip_range": string
+    "password"?: (string) | (null)
+    "rtsp_port"?: (number) | (null)
+    "username"?: (string) | (null)
+  }
+  "CameraScanResult": {
+    "brand": string
+    "desc": string
+    "ip": string
+    "path": string
+    "port": number
+    "url": string
+  }
+  "CameraStatus": "active" | "inactive" | "error"
+  "CameraStreamDiagnostics": {
+    "active_profile": string
+    "ai_frame_stride": number
+    "ai_inference_width": number
+    "ai_provider"?: (string) | (null)
+    "ai_task_running": boolean
+    "average_ai_inference_ms"?: (number) | (null)
+    "cached_frame_available": boolean
+    "camera_id": number
+    "current_broadcast_fps"?: (number) | (null)
+    "failure_count": number
+    "host_cpu_load_percent"?: (number) | (null)
+    "host_memory_available_mb"?: (number) | (null)
+    "host_memory_used_percent"?: (number) | (null)
+    "last_ai_inference_ms"?: (number) | (null)
+    "last_broadcast_age_seconds"?: (number) | (null)
+    "last_broadcast_at"?: (string) | (null)
+    "last_failure_at"?: (string) | (null)
+    "last_frame_age_seconds"?: (number) | (null)
+    "last_success_at"?: (string) | (null)
+    "open_attempts": number
+    "open_failures": number
+    "open_timeout_ms": number
+    "producer_running": boolean
+    "producer_start_count"?: number
+    "producer_started_at"?: (string) | (null)
+    "producer_uptime_seconds"?: (number) | (null)
+    "read_timeout_ms": number
+    "reconnects"?: number
+    "retry_cooldown_seconds": number
+    "subscriber_count": number
+    "warmup_reads": number
+  }
+  "CameraStreamMetricResponse": {
+    "average_ai_inference_ms"?: (number) | (null)
+    "camera_id": number
+    "current_broadcast_fps"?: (number) | (null)
+    "failure_count"?: number
+    "host_cpu_load_percent"?: (number) | (null)
+    "host_memory_used_percent"?: (number) | (null)
+    "id": number
+    "open_failures"?: number
+    "producer_running": boolean
+    "reconnects"?: number
+    "sampled_at": string
+    "subscriber_count": number
+  }
+  "CameraStreamMetricSummaryResponse": {
+    "average_ai_inference_ms"?: (number) | (null)
+    "average_broadcast_fps"?: (number) | (null)
+    "average_host_cpu_load_percent"?: (number) | (null)
+    "average_host_memory_used_percent"?: (number) | (null)
+    "camera_id": number
+    "latest_ai_inference_ms"?: (number) | (null)
+    "latest_broadcast_fps"?: (number) | (null)
+    "latest_sampled_at"?: (string) | (null)
+    "minimum_broadcast_fps"?: (number) | (null)
+    "producer_running_count": number
+    "sample_count": number
+    "samples": Array<OpenApiSchemas["CameraStreamMetricResponse"]>
+    "total_failure_count"?: number
+    "total_open_failures"?: number
+    "total_reconnects"?: number
+  }
+  "CameraUpdate": {
+    "ai_active_end"?: (string) | (null)
+    "ai_active_start"?: (string) | (null)
+    "ai_alarm_cooldown_seconds"?: (number) | (null)
+    "ai_confidence_threshold"?: (number) | (null)
+    "ai_frame_stride"?: (number) | (null)
+    "ai_inference_width"?: (number) | (null)
+    "ai_iou_threshold"?: (number) | (null)
+    "ai_roi_polygon"?: (string) | (null)
+    "building"?: (string) | (null)
+    "continuous_recording_enabled"?: (boolean) | (null)
+    "floor"?: (string) | (null)
+    "host"?: (string) | (null)
+    "name"?: (string) | (null)
+    "onvif_port"?: (number) | (null)
+    "password"?: (string) | (null)
+    "rtsp_path"?: (string) | (null)
+    "rtsp_port"?: (number) | (null)
+    "site"?: (string) | (null)
+    "username"?: (string) | (null)
+    "zone"?: (string) | (null)
+  }
+  "ChangePasswordRequest": {
+    "new_password": string
+    "old_password": string
+  }
+  "HTTPValidationError": {
+    "detail"?: Array<OpenApiSchemas["ValidationError"]>
+  }
+  "LoginRequest": {
+    "password": string
+    "username": string
+  }
+  "NVRChannelInfo": {
+    "already_imported"?: boolean
+    "bitrate_kbps"?: (number) | (null)
+    "diagnostic"?: (string) | (null)
+    "duplicate_reason"?: (string) | (null)
+    "encoding"?: (string) | (null)
+    "existing_camera_id"?: (number) | (null)
+    "fps"?: (number) | (null)
+    "height"?: (number) | (null)
+    "import_name"?: (string) | (null)
+    "manufacturer"?: (string) | (null)
+    "model"?: (string) | (null)
+    "profile_name": string
+    "profile_token": string
+    "rtsp_url": string
+    "snapshot_uri"?: (string) | (null)
+    "source"?: string
+    "stream_role"?: (string) | (null)
+    "width"?: (number) | (null)
+  }
+  "NVRCreate": {
+    "brand"?: (string) | (null)
+    "host": string
+    "model"?: (string) | (null)
+    "name": string
+    "onvif_port"?: number
+    "password"?: (string) | (null)
+    "username"?: (string) | (null)
+  }
+  "NVRDiscoverResponse": {
+    "host": string
+    "port": number
+    "xaddr": string
+  }
+  "NVRImportRequest": {
+    "channels": Array<OpenApiSchemas["NVRChannelInfo"]>
+  }
+  "NVRPageResponse": {
+    "items": Array<OpenApiSchemas["NVRResponse"]>
+    "page": number
+    "page_size": number
+    "total": number
+  }
+  "NVRProbeDiagnostics": {
+    "channels"?: Array<OpenApiSchemas["NVRChannelInfo"]>
+    "device_manufacturer"?: (string) | (null)
+    "device_model"?: (string) | (null)
+    "existing_channel_count"?: number
+    "fallback_error"?: (string) | (null)
+    "fallback_used": boolean
+    "new_channel_count"?: number
+    "onvif_error"?: (string) | (null)
+    "onvif_ok": boolean
+    "profile_count"?: number
+    "source": string
+    "stream_uri_count"?: number
+  }
+  "NVRResponse": {
+    "brand"?: (string) | (null)
+    "created_at"?: (string) | (null)
+    "host": string
+    "id": number
+    "is_active": boolean
+    "model"?: (string) | (null)
+    "name": string
+    "onvif_port": number
+    "password_updated_at"?: (string) | (null)
+    "updated_at"?: (string) | (null)
+    "username"?: (string) | (null)
+  }
+  "NVRScanRequest": {
+    "ip_range": string
+    "password"?: (string) | (null)
+    "rtsp_port"?: (number) | (null)
+    "username"?: (string) | (null)
+  }
+  "NVRScanResponse": {
+    "brand": string
+    "host": string
+    "model": string
+    "port": number
+  }
+  "NVRUpdate": {
+    "host"?: (string) | (null)
+    "name"?: (string) | (null)
+    "onvif_port"?: (number) | (null)
+    "password"?: (string) | (null)
+    "username"?: (string) | (null)
+  }
+  "RecordingDetectionItem": {
+    "bounding_box": OpenApiSchemas["BoundingBoxSchema"]
+    "confidence": number
+    "label": string
+  }
+  "RecordingMetadataResponse": {
+    "alarm_id"?: (number) | (null)
+    "camera_id": number
+    "detected_at"?: (string) | (null)
+    "detections": Array<OpenApiSchemas["RecordingDetectionItem"]>
+    "frame_height"?: (number) | (null)
+    "frame_width"?: (number) | (null)
+    "segment_id": number
+  }
+  "RecordingPruneResponse": {
+    "deleted_db_count": number
+    "quota_mb": number
+    "removed_bytes": number
+    "removed_count": number
+    "removed_filenames": Array<string>
+    "retention_days": number
+    "skipped_count": number
+    "skipped_reasons": Array<string>
+  }
+  "RecordingSegmentListResponse": {
+    "items": Array<OpenApiSchemas["RecordingSegmentResponse"]>
+    "limit": number
+    "total": number
+  }
+  "RecordingSegmentResponse": {
+    "alarm_id"?: (number) | (null)
+    "camera_id": number
+    "codec"?: (string) | (null)
+    "created_at"?: (string) | (null)
+    "duration_seconds"?: (number) | (null)
+    "ended_at"?: (string) | (null)
+    "file_sha256"?: (string) | (null)
+    "filename": string
+    "fps"?: (number) | (null)
+    "height"?: (number) | (null)
+    "id": number
+    "recording_type": string
+    "size_bytes"?: (number) | (null)
+    "started_at": string
+    "status": string
+    "width"?: (number) | (null)
+  }
+  "TokenResponse": {
+    "access_token": string
+    "role": string
+    "token_type"?: string
+    "username": string
+  }
+  "UserCreate": {
+    "password": string
+    "role"?: OpenApiSchemas["UserRole"]
+    "username": string
+  }
+  "UserPageResponse": {
+    "items": Array<OpenApiSchemas["UserResponse"]>
+    "page": number
+    "page_size": number
+    "total": number
+  }
+  "UserResponse": {
+    "created_at": (string) | (null)
+    "id": number
+    "is_active": boolean
+    "role": OpenApiSchemas["UserRole"]
+    "username": string
+  }
+  "UserRole": "admin" | "operator" | "viewer"
+  "UserUpdate": {
+    "is_active"?: (boolean) | (null)
+    "password"?: (string) | (null)
+    "role"?: (OpenApiSchemas["UserRole"]) | (null)
+  }
+  "ValidationError": {
+    "ctx"?: Record<string, unknown>
+    "input"?: unknown
+    "loc": Array<(string) | (number)>
+    "msg": string
+    "type": string
+  }
+}
