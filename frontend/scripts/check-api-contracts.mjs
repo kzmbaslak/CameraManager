@@ -67,6 +67,14 @@ const backendApiRoot = read('../backend/src/presentation/api/__init__.py')
 const backendMain = read('../backend/main.py')
 const backendAuthRoutes = read('../backend/src/presentation/api/routes/auth.py')
 const backendPreflight = read('../backend/src/infrastructure/setup/preflight.py')
+const mojibakeVisibleTextPattern = new RegExp([
+  [0xc4, 0xb1],
+  [0xc4, 0xb0],
+  [0xc3, 0x83],
+  [0xc2],
+  [0xc5],
+  [0xe2, 0x80],
+].map((bytes) => Buffer.from(bytes).toString('latin1')).join('|'))
 
 assertContains(alarmsApi, '/alarms/threshold-suggestions', 'alarm threshold suggestion endpoint')
 assertContains(authApi, '/auth/logout', 'auth logout endpoint')
@@ -174,7 +182,7 @@ assertContains(alarmNotificationPanel, "e.key === 's'", 'alarm notification shor
 assertContains(alarmNotificationPanel, "e.key === 'm'", 'alarm notification long mute shortcut')
 assertContains(alarmNotificationPanel, "canOperateAlarms) acknowledge.mutate", 'alarm notification acknowledge shortcut permission gate')
 assertContains(alarmNotificationPanel, 'muteSoundFor(30 * 1000)', 'alarm notification short mute duration')
-assertNotMatches(alarmRow, /Ä±|Ä°|Ã|Â|Å|âœ/, 'alarm row visible text must not contain mojibake sequences')
+assertNotMatches(alarmRow, mojibakeVisibleTextPattern, 'alarm row visible text must not contain mojibake sequences')
 assertContains(backendAlarmRoutes, '"changes": [', 'threshold apply audit change list')
 assertContains(
   backendAlarmRoutes,
