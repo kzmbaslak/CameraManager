@@ -158,15 +158,7 @@ export interface NVR {
   updated_at: string | null
 }
 
-export interface NVRCreate {
-  name: string
-  host: string
-  onvif_port?: number
-  username?: string
-  password?: string
-  brand?: string
-  model?: string
-}
+export type NVRCreate = OpenApiSchemas['NVRCreate']
 
 export interface NVRChannelInfo {
   profile_token: string
@@ -614,12 +606,7 @@ export interface AuditEvent {
   hash_algorithm?: string | null
 }
 
-export interface NVRScanRequest {
-  ip_range: string
-  rtsp_port?: number
-  username?: string
-  password?: string
-}
+export type NVRScanRequest = OpenApiSchemas['NVRScanRequest']
 
 export interface NVRScanResponse {
   host: string

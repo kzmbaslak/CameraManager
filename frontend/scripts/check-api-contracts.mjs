@@ -138,6 +138,8 @@ assertContains(frontendApiTypes, 'event_subscription_likely: boolean', 'frontend
 assertContains(frontendApiTypes, "import type { OpenApiSchemas }", 'frontend API types import generated OpenAPI schema map')
 assertContains(frontendApiTypes, "OpenApiSchemas['CameraCreate']", 'frontend camera create type uses generated schema')
 assertContains(frontendApiTypes, "OpenApiSchemas['BoundingBoxSchema']", 'frontend bounding box type uses generated schema')
+assertContains(frontendApiTypes, "OpenApiSchemas['NVRCreate']", 'frontend NVR create type uses generated schema')
+assertContains(frontendApiTypes, "OpenApiSchemas['NVRScanRequest']", 'frontend NVR scan type uses generated schema')
 assertContains(backendRecordingRoutes, 'Depends(get_recording_view_user)', 'backend recording list permission')
 assertContains(backendRecordingRoutes, 'alarm_id: Optional[int] = Query', 'backend recording alarm filter parameter')
 assertContains(backendRecordingRoutes, 'list_alarm_segments(alarm_id)', 'backend recording alarm segment query')
