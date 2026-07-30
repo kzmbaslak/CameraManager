@@ -701,7 +701,7 @@ function DiscoverModal({
   // Range Scan
   const [ipRange, setIpRange] = useState('192.168.1.0/24')
   const [rtspPort, setRtspPort] = useState(554)
-  const [username, setUsername] = useState('admin')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
   const rangeAbortRef = useRef<AbortController | null>(null)
@@ -901,6 +901,7 @@ function DiscoverModal({
                   label="Tarama Kullanıcı Adı"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Bos birakilirsa anonim denenir"
                 />
                 <PasswordInput
                   label="Tarama Şifresi"
@@ -910,7 +911,7 @@ function DiscoverModal({
                   placeholder="Bos birakilirsa sifresiz denenir"
                 />
                 <span className="text-[10px] text-[var(--text-secondary)] -mt-2">
-                  Guvenlik icin varsayilan parola doldurulmaz; cihaz parolasini biliyorsaniz girin.
+                  Guvenlik icin varsayilan kullanici/parola doldurulmaz; cihaz kimlik bilgisini biliyorsaniz girin.
                 </span>
               </div>
             </div>
