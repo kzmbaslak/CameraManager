@@ -687,7 +687,7 @@ function DiscoverModal({
           model: 'Network Video Recorder',
           name: `NVR_${item.host.replace(/\./g, '_')}`,
           onvif_port: item.port,
-          username: 'admin',
+          username: '',
           password: '',
           selected: true,
         }))

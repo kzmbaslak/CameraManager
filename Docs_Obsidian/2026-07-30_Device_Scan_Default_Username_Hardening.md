@@ -1,5 +1,6 @@
 # 2026-07-30 Device Scan Default Username Hardening
 
 - Kamera ve NVR tarama formlari artik `admin` kullanici adini varsayilan olarak doldurmaz.
+- NVR otomatik ONVIF discovery sonucundan uretilen import satirlari da bos kullanici adiyla gelir.
 - Kullanici adi ve parola bos birakilirsa tarama anonim/sifresiz deneme olarak calisir.
 - Contract testi tarama ekranlarinda varsayilan `admin` kullanici adi ve zayif parola tasinmasini engeller.

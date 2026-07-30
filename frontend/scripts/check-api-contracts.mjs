@@ -271,6 +271,7 @@ assertNotMatches(camerasPage, /admin123/, 'camera scan form must not ship a defa
 assertNotMatches(nvrPage, /admin123/, 'NVR scan form must not ship a default weak password')
 assertNotMatches(camerasPage, /useState\('admin'\)/, 'camera scan form must not ship a default admin username')
 assertNotMatches(nvrPage, /useState\('admin'\)/, 'NVR scan form must not ship a default admin username')
+assertNotMatches(nvrPage, /username:\s*'admin'/, 'NVR discovery import rows must not ship a default admin username')
 assertContains(camerasPage, 'Guvenlik icin varsayilan kullanici/parola doldurulmaz', 'camera scan credential safety hint')
 assertContains(nvrPage, 'Guvenlik icin varsayilan kullanici/parola doldurulmaz', 'NVR scan credential safety hint')
 assertContains(camerasPage, 'Profile S', 'camera ONVIF Profile S compatibility UI')
