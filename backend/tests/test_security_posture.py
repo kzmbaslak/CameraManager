@@ -32,16 +32,17 @@ class SecurityPostureTests(unittest.TestCase):
         os.environ["AUDIT_CHAIN_SECRET"] = "test-audit-chain-secret-with-more-than-32"
         os.environ["AUTH_COOKIE_MODE"] = "secure"
 
-        engine = create_engine(
+        self.engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-        Base.metadata.create_all(bind=engine)
-        self.session = sessionmaker(autocommit=False, autoflush=False, bind=engine)()
+        Base.metadata.create_all(bind=self.engine)
+        self.session = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)()
 
     def tearDown(self):
         self.session.close()
+        self.engine.dispose()
         for key, value in self._env_backup.items():
             if value is None:
                 os.environ.pop(key, None)
