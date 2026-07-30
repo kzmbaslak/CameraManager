@@ -233,6 +233,8 @@ assertContains(dashboardPage, 'canAcknowledgeAlarms &&', 'dashboard acknowledge 
 assertContains(dashboardPage, 'canAcknowledgeAlarms={canAcknowledgeAlarms}', 'dashboard assist panel acknowledge permission prop')
 assertContains(dashboardPage, 'active_failed_login_attempt_count', 'dashboard failed login posture display')
 assertContains(dashboardPage, 'login deneme', 'dashboard failed login posture label')
+assertContains(dashboardPage, 'MAX_STORED_CAMERA_ORDER', 'dashboard camera order storage limit')
+assertContains(dashboardPage, 'sanitizeCameraOrder', 'dashboard camera order storage sanitizer')
 assertContains(systemSettingsStore, 'humanDetectionBoxesVisible: true', 'system settings bbox visibility default')
 assertContains(settingsPage, 'Insan Kutulari', 'settings page bbox visibility control')
 assertContains(settingsPage, 'auditActionLabel', 'settings audit readable action labels')

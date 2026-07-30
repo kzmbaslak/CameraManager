@@ -18,6 +18,7 @@ import type { Alarm, Camera, CameraStreamDiagnostics, CameraStreamMetricSummary,
 const DASHBOARD_GRID_KEY = 'dashboard-grid'
 const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
 const DASHBOARD_CAMERA_ORDER_KEY = 'dashboard-camera-order'
+const MAX_STORED_CAMERA_ORDER = 500
 
 const layoutPresets: { key: string; label: string; description: string; cols: GridCols; lowBandwidth: boolean }[] = [
   { key: 'operations', label: 'Operasyon', description: 'Dengeli 2x2 canlı izleme', cols: 2, lowBandwidth: false },
@@ -60,15 +61,27 @@ function preferredPresetForRole(role: string | null) {
 function loadCameraOrderPref() {
   try {
     const parsed = JSON.parse(localStorage.getItem(DASHBOARD_CAMERA_ORDER_KEY) ?? '[]')
-    return Array.isArray(parsed) ? parsed.filter((item): item is number => Number.isInteger(item)) : []
+    return Array.isArray(parsed) ? sanitizeCameraOrder(parsed) : []
   } catch {
     return []
   }
 }
 
+function sanitizeCameraOrder(value: unknown[]) {
+  const seen = new Set<number>()
+  const order: number[] = []
+  for (const item of value) {
+    if (typeof item !== 'number' || !Number.isInteger(item) || item <= 0 || seen.has(item)) continue
+    seen.add(item)
+    order.push(item)
+    if (order.length >= MAX_STORED_CAMERA_ORDER) break
+  }
+  return order
+}
+
 function saveCameraOrderPref(order: number[]) {
   try {
-    localStorage.setItem(DASHBOARD_CAMERA_ORDER_KEY, JSON.stringify(order))
+    localStorage.setItem(DASHBOARD_CAMERA_ORDER_KEY, JSON.stringify(sanitizeCameraOrder(order)))
   } catch {
     // Keep the in-memory order when storage is unavailable.
   }
