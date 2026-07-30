@@ -26,6 +26,15 @@ export interface CameraUpdate {
   continuous_recording_enabled?: boolean
 }
 
+export interface CameraBulkAiSettingsPayload {
+  camera_ids: number[]
+  ai_confidence_threshold: number
+  ai_iou_threshold: number
+  ai_alarm_cooldown_seconds: number
+  ai_frame_stride: number
+  ai_inference_width: number
+}
+
 export const camerasApi = {
   /** Sistemdeki tüm kameraları listeler. */
   list: async (): Promise<Camera[]> => {
@@ -184,6 +193,12 @@ export const camerasApi = {
   /** Birden fazla kamerayı toplu olarak ekler. */
   bulkAdd: async (payload: CameraCreate[]): Promise<Camera[]> => {
     const { data } = await client.post<Camera[]>('/cameras/bulk-add', payload)
+    return data
+  },
+
+  /** Secili kameralara ayni AI profil ayarlarini uygular. */
+  bulkUpdateAiSettings: async (payload: CameraBulkAiSettingsPayload): Promise<Camera[]> => {
+    const { data } = await client.post<Camera[]>('/cameras/bulk-ai-settings', payload)
     return data
   },
 }

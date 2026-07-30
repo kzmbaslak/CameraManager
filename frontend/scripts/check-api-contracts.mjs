@@ -78,6 +78,7 @@ assertContains(camerasApi, '/ptz/presets', 'camera PTZ preset list endpoint')
 assertContains(camerasApi, '/ptz/presets/goto', 'camera PTZ goto preset endpoint')
 assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(camerasApi, '/ptz/patrol', 'camera PTZ patrol endpoint')
+assertContains(camerasApi, '/cameras/bulk-ai-settings', 'camera bulk AI settings endpoint')
 assertContains(recordingsApi, '/recordings/', 'recording segment list endpoint')
 assertContains(recordingsApi, 'alarm_id?: number', 'recording alarm filter API parameter')
 assertContains(recordingsApi, '/recordings/${segmentId}/file', 'recording file endpoint')
@@ -252,6 +253,8 @@ assertContains(backendCameraSchema, 'continuous_recording_enabled: bool', 'backe
 assertContains(backendCameraSchema, 'profile_s_likely: bool', 'backend ONVIF Profile S indicator schema')
 assertContains(backendCameraSchema, 'event_subscription_likely: bool', 'backend ONVIF event subscription indicator schema')
 assertContains(camerasPage, "key: 'recording'", 'camera list recording policy column')
+assertContains(camerasPage, 'AI Profilini Uygula', 'camera list bulk AI profile action')
+assertContains(camerasPage, 'Gorunenleri sec', 'camera list visible bulk selection action')
 assertContains(camerasPage, 'Profile S', 'camera ONVIF Profile S compatibility UI')
 assertContains(camerasPage, 'Event Sub', 'camera ONVIF event subscription UI')
 assertContains(nvrPage, 'ONVIF Kontrol Listesi', 'NVR ONVIF troubleshooting checklist')
@@ -261,6 +264,7 @@ assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets', 'g
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto', 'generated OpenAPI PTZ goto preset path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/patrol', 'generated OpenAPI PTZ patrol path')
+assertContains(generatedOpenApiTypes, '/api/cameras/bulk-ai-settings', 'generated OpenAPI camera bulk AI settings path')
 assertContains(generatedOpenApiTypes, '/api/recordings/', 'generated OpenAPI recording list path')
 assertContains(generatedOpenApiTypes, '/api/recordings/{segment_id}/file', 'generated OpenAPI recording file path')
 assertContains(generatedOpenApiTypes, '/api/recordings/{segment_id}/metadata', 'generated OpenAPI recording metadata path')
@@ -290,6 +294,16 @@ assertMatches(
   backendDependencies,
   /"operator":\s*{[\s\S]*"recording\.view"[\s\S]*}/,
   'backend operator recording permission contract',
+)
+assertContains(
+  read('../backend/src/presentation/api/routes/cameras.py'),
+  '@router.post("/bulk-ai-settings"',
+  'backend camera bulk AI settings route',
+)
+assertContains(
+  read('../backend/src/presentation/api/routes/cameras.py'),
+  '@router.get("/{camera_id:int}"',
+  'backend camera dynamic routes use int converter',
 )
 assertMatches(
   backendDependencies,

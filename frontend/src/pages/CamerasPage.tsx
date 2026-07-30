@@ -1,7 +1,7 @@
 // Kamera listesi, ekleme, düzenleme, silme ve AI tespiti yönetimi sayfası
 import { useMemo, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Plus, Trash2, Power, Pencil, Play, Search } from 'lucide-react'
+import { Activity, Plus, Trash2, Power, Pencil, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { camerasApi, type CameraUpdate } from '../api/cameras'
 import { usePermissions } from '../hooks/usePermissions'
 import { Table } from '../components/ui/Table'
@@ -939,6 +939,8 @@ export function CamerasPage() {
   const [cameraPage, setCameraPage] = useState(1)
   const [cameraPageSize, setCameraPageSize] = useState(25)
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
+  const [selectedCameraIds, setSelectedCameraIds] = useState<Set<number>>(() => new Set())
+  const [bulkAiPresetKey, setBulkAiPresetKey] = useState<(typeof AI_PRESETS)[number]['key']>('balanced')
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const { canManageCameras, canEditCameras } = usePermissions()
@@ -1003,6 +1005,11 @@ export function CamerasPage() {
   }, [aiFilter, cameraSearch, cameraSort, cameras, statusFilter])
 
   const hasCameraFilter = cameraSearch.trim() !== '' || statusFilter !== 'all' || aiFilter !== 'all' || cameraSort !== 'name_asc'
+  const selectedVisibleCameraIds = filteredCameras
+    .map((camera) => camera.id)
+    .filter((id) => selectedCameraIds.has(id))
+  const allVisibleSelected = filteredCameras.length > 0 && selectedVisibleCameraIds.length === filteredCameras.length
+  const selectedBulkAiPreset = AI_PRESETS.find((preset) => preset.key === bulkAiPresetKey) ?? AI_PRESETS[1]
 
   const resetCameraFilters = () => {
     setCameraSearch('')
@@ -1010,6 +1017,30 @@ export function CamerasPage() {
     setAiFilter('all')
     setCameraSort('name_asc')
     setCameraPage(1)
+  }
+
+  const toggleCameraSelection = (cameraId: number) => {
+    setSelectedCameraIds((current) => {
+      const next = new Set(current)
+      if (next.has(cameraId)) {
+        next.delete(cameraId)
+      } else {
+        next.add(cameraId)
+      }
+      return next
+    })
+  }
+
+  const toggleVisibleCameraSelection = () => {
+    setSelectedCameraIds((current) => {
+      const next = new Set(current)
+      if (allVisibleSelected) {
+        filteredCameras.forEach((camera) => next.delete(camera.id))
+      } else {
+        filteredCameras.forEach((camera) => next.add(camera.id))
+      }
+      return next
+    })
   }
 
   /** Kamera durumunu değiştirir; ACTIVE ↔ INACTIVE */
@@ -1062,6 +1093,27 @@ export function CamerasPage() {
     enabled: diagnosticResult !== null && diagnosticError === null,
   })
 
+  const bulkUpdateAiSettings = useMutation({
+    mutationFn: () => camerasApi.bulkUpdateAiSettings({
+      camera_ids: Array.from(selectedCameraIds),
+      ...selectedBulkAiPreset.values,
+    }),
+    onSuccess: (updated) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      setSelectedCameraIds(new Set())
+      showToast({
+        variant: 'success',
+        title: 'AI profili uygulandi',
+        description: `${selectedBulkAiPreset.label} profili ${updated.length} kameraya uygulandi.`,
+      })
+    },
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'AI profili uygulanamadi',
+      description: getCameraErrorMessage(err, 'Secili kamera listesini ve yetkinizi kontrol edin.'),
+    }),
+  })
+
   const { data: streamHistory } = useQuery({
     queryKey: ['camera-stream-history', diagnosticResult?.camera_id],
     queryFn: () => camerasApi.diagnoseStreamHistory(diagnosticResult!.camera_id),
@@ -1077,6 +1129,21 @@ export function CamerasPage() {
   })
 
   const columns = [
+    ...(canEditCameras ? [{
+      key: 'select',
+      header: 'Sec',
+      width: '56px',
+      render: (c: Camera) => (
+        <input
+          type="checkbox"
+          checked={selectedCameraIds.has(c.id)}
+          disabled={!canEditCameras || bulkUpdateAiSettings.isPending}
+          aria-label={`${c.name} kamerasini toplu AI profili icin sec`}
+          onChange={() => toggleCameraSelection(c.id)}
+          className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+        />
+      ),
+    }] : []),
     { key: 'name', header: 'Ad', render: (c: Camera) => (
       <span className="font-medium">{c.name}</span>
     )},
@@ -1295,6 +1362,47 @@ export function CamerasPage() {
           </Button>
         )}
       </div>
+
+      {canEditCameras && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                disabled={filteredCameras.length === 0 || bulkUpdateAiSettings.isPending}
+                onChange={toggleVisibleCameraSelection}
+                aria-label="Gorunen kameralari toplu AI profili icin sec"
+                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+              />
+              Gorunenleri sec
+            </label>
+            <span className="text-xs text-[var(--text-secondary)]">{selectedCameraIds.size} kamera secili</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={bulkAiPresetKey}
+              onChange={(event) => setBulkAiPresetKey(event.target.value as (typeof AI_PRESETS)[number]['key'])}
+              aria-label="Toplu AI profili sec"
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              {AI_PRESETS.map((preset) => (
+                <option key={preset.key} value={preset.key}>{preset.label}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<SlidersHorizontal size={14} />}
+              loading={bulkUpdateAiSettings.isPending}
+              disabled={selectedCameraIds.size === 0}
+              onClick={() => bulkUpdateAiSettings.mutate()}
+            >
+              AI Profilini Uygula
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner size="lg" /></div>

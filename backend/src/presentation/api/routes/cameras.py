@@ -34,6 +34,7 @@ from src.application.services.camera_stream_manager import CameraStreamManager
 from src.presentation.api.schemas.camera_schema import (
     CameraCreate,
     CameraUpdate,
+    CameraBulkAiSettingsRequest,
     CameraResponse,
     CameraScanRequest,
     CameraScanResult,
@@ -432,7 +433,7 @@ async def preview_camera_rtsp(
     )
 
 
-@router.post("/{camera_id}/ptz/move", response_model=CameraPtzMoveResponse)
+@router.post("/{camera_id:int}/ptz/move", response_model=CameraPtzMoveResponse)
 async def move_camera_ptz(
     camera_id: int,
     data: CameraPtzMoveRequest,
@@ -492,7 +493,7 @@ async def move_camera_ptz(
     )
 
 
-@router.get("/{camera_id}/ptz/presets", response_model=CameraPtzPresetListResponse)
+@router.get("/{camera_id:int}/ptz/presets", response_model=CameraPtzPresetListResponse)
 async def list_camera_ptz_presets(
     camera_id: int,
     request: Request,
@@ -532,7 +533,7 @@ async def list_camera_ptz_presets(
     return CameraPtzPresetListResponse(camera_id=camera_id, presets=presets)
 
 
-@router.post("/{camera_id}/ptz/presets/goto", response_model=CameraPtzGotoPresetResponse)
+@router.post("/{camera_id:int}/ptz/presets/goto", response_model=CameraPtzGotoPresetResponse)
 async def goto_camera_ptz_preset(
     camera_id: int,
     data: CameraPtzGotoPresetRequest,
@@ -586,7 +587,7 @@ async def goto_camera_ptz_preset(
     )
 
 
-@router.post("/{camera_id}/ptz/home", response_model=CameraPtzHomeResponse)
+@router.post("/{camera_id:int}/ptz/home", response_model=CameraPtzHomeResponse)
 async def goto_camera_ptz_home(
     camera_id: int,
     request: Request,
@@ -631,7 +632,7 @@ async def goto_camera_ptz_home(
     )
 
 
-@router.post("/{camera_id}/ptz/patrol", response_model=CameraPtzPatrolResponse)
+@router.post("/{camera_id:int}/ptz/patrol", response_model=CameraPtzPatrolResponse)
 async def run_camera_ptz_patrol(
     camera_id: int,
     data: CameraPtzPatrolRequest,
@@ -800,7 +801,7 @@ async def preview_camera_onvif(
     }
 
 
-@router.get("/{camera_id}", response_model=CameraResponse)
+@router.get("/{camera_id:int}", response_model=CameraResponse)
 def get_camera(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
@@ -813,7 +814,7 @@ def get_camera(
     return camera
 
 
-@router.get("/{camera_id}/stream-token")
+@router.get("/{camera_id:int}/stream-token")
 def create_camera_stream_token(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
@@ -831,7 +832,7 @@ def create_camera_stream_token(
     return {"stream_token": token, "expires_in": 60}
 
 
-@router.patch("/{camera_id}", response_model=CameraResponse)
+@router.patch("/{camera_id:int}", response_model=CameraResponse)
 async def update_camera(
     camera_id: int,
     data: CameraUpdate,
@@ -940,7 +941,56 @@ async def update_camera(
     return updated_camera
 
 
-@router.get("/{camera_id}/diagnostics/rtsp", response_model=CameraRtspDiagnostics)
+@router.post("/bulk-ai-settings", response_model=List[CameraResponse])
+async def bulk_update_camera_ai_settings(
+    data: CameraBulkAiSettingsRequest,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    sm: CameraStreamManager = Depends(get_stream_manager),
+    current_user: dict = Depends(get_camera_manage_user),
+):
+    """Secili kameralara ayni AI profil ayarlarini tek operasyonla uygular."""
+    missing_ids = []
+    cameras_to_update = []
+    for camera_id in data.camera_ids:
+        camera = use_cases.get_camera(camera_id)
+        if not camera:
+            missing_ids.append(camera_id)
+            continue
+        cameras_to_update.append(camera)
+
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"Kamera bulunamadi: {', '.join(str(item) for item in missing_ids)}")
+
+    updated = []
+    for camera in cameras_to_update:
+        camera.ai_confidence_threshold = data.ai_confidence_threshold
+        camera.ai_iou_threshold = data.ai_iou_threshold
+        camera.ai_alarm_cooldown_seconds = data.ai_alarm_cooldown_seconds
+        camera.ai_frame_stride = data.ai_frame_stride
+        camera.ai_inference_width = data.ai_inference_width
+        updated_camera = use_cases.update_camera(camera)
+        updated.append(updated_camera)
+        await sm.ensure_running_state(camera.id)
+
+    write_audit_event(
+        "camera.bulk_ai_settings",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "camera_ids": data.camera_ids,
+            "camera_count": len(updated),
+            "ai_confidence_threshold": data.ai_confidence_threshold,
+            "ai_iou_threshold": data.ai_iou_threshold,
+            "ai_alarm_cooldown_seconds": data.ai_alarm_cooldown_seconds,
+            "ai_frame_stride": data.ai_frame_stride,
+            "ai_inference_width": data.ai_inference_width,
+        },
+    )
+    return updated
+
+
+@router.get("/{camera_id:int}/diagnostics/rtsp", response_model=CameraRtspDiagnostics)
 async def diagnose_camera_rtsp(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
@@ -971,7 +1021,7 @@ async def diagnose_camera_rtsp(
     )
 
 
-@router.get("/{camera_id}/diagnostics/stream", response_model=CameraStreamDiagnostics)
+@router.get("/{camera_id:int}/diagnostics/stream", response_model=CameraStreamDiagnostics)
 async def diagnose_camera_stream(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),
@@ -1042,7 +1092,7 @@ async def diagnose_camera_stream(
     return payload
 
 
-@router.get("/{camera_id}/diagnostics/stream-history", response_model=CameraStreamMetricSummaryResponse)
+@router.get("/{camera_id:int}/diagnostics/stream-history", response_model=CameraStreamMetricSummaryResponse)
 async def diagnose_camera_stream_history(
     camera_id: int,
     limit: int = 120,
@@ -1082,7 +1132,7 @@ async def diagnose_camera_stream_history(
     }
 
 
-@router.get("/{camera_id}/diagnostics/health-history", response_model=CameraHealthSummaryResponse)
+@router.get("/{camera_id:int}/diagnostics/health-history", response_model=CameraHealthSummaryResponse)
 async def diagnose_camera_health_history(
     camera_id: int,
     limit: int = 120,
@@ -1154,7 +1204,7 @@ async def diagnose_camera_health_summary(
     return result
 
 
-@router.delete("/{camera_id}", status_code=204)
+@router.delete("/{camera_id:int}", status_code=204)
 async def delete_camera(
     camera_id: int,
     request: Request,
@@ -1173,7 +1223,7 @@ async def delete_camera(
     )
 
 
-@router.patch("/{camera_id}/status", response_model=CameraResponse)
+@router.patch("/{camera_id:int}/status", response_model=CameraResponse)
 async def update_camera_status(
     camera_id: int,
     status: CameraStatus,
@@ -1204,7 +1254,7 @@ async def update_camera_status(
     return camera
 
 
-@router.patch("/{camera_id}/ai", response_model=CameraResponse)
+@router.patch("/{camera_id:int}/ai", response_model=CameraResponse)
 async def update_camera_ai(
     camera_id: int,
     enabled: bool,

@@ -192,6 +192,11 @@ export const openApiOperations = [
     "operationId": "bulk_add_cameras_api_cameras_bulk_add_post"
   },
   {
+    "method": "post",
+    "path": "/api/cameras/bulk-ai-settings",
+    "operationId": "bulk_update_camera_ai_settings_api_cameras_bulk_ai_settings_post"
+  },
+  {
     "method": "get",
     "path": "/api/cameras/diagnostics/health-summary",
     "operationId": "diagnose_camera_health_summary_api_cameras_diagnostics_health_summary_get"
@@ -374,6 +379,7 @@ export type OpenApiPath =
   | "/api/cameras/{camera_id}/status"
   | "/api/cameras/{camera_id}/stream-token"
   | "/api/cameras/bulk-add"
+  | "/api/cameras/bulk-ai-settings"
   | "/api/cameras/diagnostics/health-summary"
   | "/api/cameras/diagnostics/onvif-preview"
   | "/api/cameras/diagnostics/rtsp-preview"
@@ -444,6 +450,7 @@ export type OpenApiOperation =
   | { method: "patch"; path: "/api/cameras/{camera_id}/status"; operationId: "update_camera_status_api_cameras__camera_id__status_patch" }
   | { method: "get"; path: "/api/cameras/{camera_id}/stream-token"; operationId: "create_camera_stream_token_api_cameras__camera_id__stream_token_get" }
   | { method: "post"; path: "/api/cameras/bulk-add"; operationId: "bulk_add_cameras_api_cameras_bulk_add_post" }
+  | { method: "post"; path: "/api/cameras/bulk-ai-settings"; operationId: "bulk_update_camera_ai_settings_api_cameras_bulk_ai_settings_post" }
   | { method: "get"; path: "/api/cameras/diagnostics/health-summary"; operationId: "diagnose_camera_health_summary_api_cameras_diagnostics_health_summary_get" }
   | { method: "post"; path: "/api/cameras/diagnostics/onvif-preview"; operationId: "preview_camera_onvif_api_cameras_diagnostics_onvif_preview_post" }
   | { method: "post"; path: "/api/cameras/diagnostics/rtsp-preview"; operationId: "preview_camera_rtsp_api_cameras_diagnostics_rtsp_preview_post" }

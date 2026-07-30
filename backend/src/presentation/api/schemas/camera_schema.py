@@ -143,6 +143,30 @@ class CameraUpdate(BaseModel):
         return _validate_roi_polygon_value(value)
 
 
+class CameraBulkAiSettingsRequest(BaseModel):
+    """Secili kameralara ayni AI profil ayarlarini toplu uygular."""
+
+    camera_ids: list[int] = Field(min_length=1, max_length=250)
+    ai_confidence_threshold: float = Field(ge=0.05, le=0.95)
+    ai_iou_threshold: float = Field(ge=0.05, le=0.95)
+    ai_alarm_cooldown_seconds: int = Field(ge=5, le=3600)
+    ai_frame_stride: int = Field(ge=1, le=30)
+    ai_inference_width: int = Field(ge=320, le=1280)
+
+    @field_validator("camera_ids")
+    @classmethod
+    def _validate_camera_ids(cls, value: list[int]) -> list[int]:
+        unique_ids = []
+        seen = set()
+        for camera_id in value:
+            if camera_id <= 0:
+                raise ValueError("Kamera ID pozitif olmalidir.")
+            if camera_id not in seen:
+                seen.add(camera_id)
+                unique_ids.append(camera_id)
+        return unique_ids
+
+
 class CameraResponse(BaseModel):
     """Kamera yaniti."""
 
