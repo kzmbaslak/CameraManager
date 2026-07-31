@@ -1,13 +1,10 @@
 // Kullanıcı CRUD API çağrıları — list, add, update, delete
 import client from './client'
 import type { PaginatedResponse, User, UserCreate } from '../types/api'
+import type { OpenApiSchemas } from '../types/openapi.generated'
 
 /** Kullanıcı güncelleme için kısmi veri tipi */
-export interface UserUpdate {
-  role?: string
-  is_active?: boolean
-  password?: string
-}
+export type UserUpdate = OpenApiSchemas['UserUpdate']
 
 export const usersApi = {
   /** Sistemdeki tüm kullanıcıları listeler. */

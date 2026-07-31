@@ -1,15 +1,10 @@
 // NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
 import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, PaginatedResponse } from '../types/api'
+import type { OpenApiSchemas } from '../types/openapi.generated'
 
 /** NVR güncelleme için kısmi veri tipi */
-export interface NVRUpdate {
-  name?: string
-  host?: string
-  onvif_port?: number
-  username?: string
-  password?: string
-}
+export type NVRUpdate = OpenApiSchemas['NVRUpdate']
 
 export const nvrsApi = {
   /** Sistemdeki tüm NVR cihazlarını listeler. */

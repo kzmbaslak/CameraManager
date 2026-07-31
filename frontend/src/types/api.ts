@@ -199,15 +199,12 @@ export interface NVRProbeDiagnostics {
 export interface User {
   id: number
   username: string
-  role: string
+  role: UserRole
   is_active: boolean
 }
 
-export interface UserCreate {
-  username: string
-  password: string
-  role: string
-}
+export type UserCreate = OpenApiSchemas['UserCreate']
+export type UserRole = OpenApiSchemas['UserRole']
 
 export interface LoginResponse {
   access_token: string

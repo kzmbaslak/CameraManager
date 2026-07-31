@@ -4,28 +4,7 @@ import type { Camera, CameraCreate, CameraPtzGotoPresetResponse, CameraPtzHomeRe
 import type { OpenApiSchemas } from '../types/openapi.generated'
 
 /** Kamera güncelleme için kısmi veri tipi */
-export interface CameraUpdate {
-  name?: string
-  host?: string
-  rtsp_port?: number
-  rtsp_path?: string
-  onvif_port?: number
-  username?: string
-  password?: string
-  site?: string | null
-  building?: string | null
-  floor?: string | null
-  zone?: string | null
-  ai_confidence_threshold?: number
-  ai_iou_threshold?: number
-  ai_alarm_cooldown_seconds?: number
-  ai_frame_stride?: number
-  ai_inference_width?: number
-  ai_active_start?: string | null
-  ai_active_end?: string | null
-  ai_roi_polygon?: string | null
-  continuous_recording_enabled?: boolean
-}
+export type CameraUpdate = OpenApiSchemas['CameraUpdate']
 
 export type CameraBulkAiSettingsPayload = OpenApiSchemas['CameraBulkAiSettingsRequest']
 

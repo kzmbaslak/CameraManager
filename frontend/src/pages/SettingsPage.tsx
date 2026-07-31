@@ -21,7 +21,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateNewPassword, type FieldErrors } from '../utils/formValidation'
-import type { AuditEvent, User, UserCreate } from '../types/api'
+import type { AuditEvent, User, UserCreate, UserRole } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
 function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -58,7 +58,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <Input label="Kullanıcı Adı" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required error={fieldErrors.username} />
         <PasswordInput label="Şifre" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required error={fieldErrors.password} />
-        <RoleSelect value={form.role} onChange={(role) => setForm((f) => ({ ...f, role }))} />
+        <RoleSelect value={form.role ?? 'viewer'} onChange={(role) => setForm((f) => ({ ...f, role }))} />
         {error && <p className="text-xs text-[var(--danger)]">{getApiErrorMessage(error, 'Kullanici adi, sifre ve rol bilgisini kontrol edin.')}</p>}
         <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
@@ -146,13 +146,13 @@ function EditUserModal({ user, onClose }: { user: User | null; onClose: () => vo
 }
 
 /** Rol seçimi için ortak select bileşeni */
-function RoleSelect({ value, onChange }: { value: string; onChange: (role: string) => void }) {
+function RoleSelect({ value, onChange }: { value: UserRole; onChange: (role: UserRole) => void }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-[var(--text-secondary)]">Rol</label>
       <select
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value as UserRole)}
         aria-label="Kullanici rolu"
         className="w-full rounded-lg px-3 py-2 text-sm bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors"
       >
