@@ -3,13 +3,17 @@ import client from './client'
 import type {
   Alarm,
   AlarmEvidenceManifest,
-  AlarmSeverity,
   AlarmStatus,
   AlarmThresholdSuggestionApplyResponse,
   AlarmThresholdSuggestionItem,
   AlarmTrainingFeedbackItem,
   AlarmType,
+  OpenApiSchemas,
 } from '../types/api'
+
+export type AlarmUpdatePayload = OpenApiSchemas['AlarmUpdate']
+export type AlarmResolvePayload = OpenApiSchemas['AlarmResolveRequest']
+export type AlarmThresholdSuggestionApplyPayload = OpenApiSchemas['AlarmThresholdSuggestionApplyRequest']
 
 export const alarmsApi = {
   /** Alarmları opsiyonel filtrelerle listeler (kamera, tip, durum). */
@@ -42,18 +46,13 @@ export const alarmsApi = {
   },
 
   /** Alarm atama ve operator notu alanlarini gunceller. */
-  update: async (alarmId: number, payload: {
-    assigned_to?: string | null
-    operator_note?: string | null
-    severity?: AlarmSeverity
-    false_positive?: boolean
-  }): Promise<Alarm> => {
+  update: async (alarmId: number, payload: AlarmUpdatePayload): Promise<Alarm> => {
     const { data } = await client.patch<Alarm>(`/alarms/${alarmId}`, payload)
     return data
   },
 
   /** Alarmi cozum nedeni ile kapatir. */
-  resolve: async (alarmId: number, payload: { resolution_reason?: string | null; false_positive?: boolean }): Promise<Alarm> => {
+  resolve: async (alarmId: number, payload: AlarmResolvePayload): Promise<Alarm> => {
     const { data } = await client.post<Alarm>(`/alarms/${alarmId}/resolve`, payload)
     return data
   },
@@ -95,11 +94,7 @@ export const alarmsApi = {
   },
 
   /** Onerilen confidence esiklerini secili kameralara uygular. */
-  applyThresholdSuggestions: async (payload: {
-    camera_ids?: number[]
-    limit?: number
-    minimum_samples?: number
-  }): Promise<AlarmThresholdSuggestionApplyResponse> => {
+  applyThresholdSuggestions: async (payload: AlarmThresholdSuggestionApplyPayload): Promise<AlarmThresholdSuggestionApplyResponse> => {
     const { data } = await client.post<AlarmThresholdSuggestionApplyResponse>('/alarms/threshold-suggestions/apply', payload)
     return data
   },

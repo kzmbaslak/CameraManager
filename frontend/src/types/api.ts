@@ -1,5 +1,6 @@
 // Backend API şemalarına karşılık gelen TypeScript tipleri
 import type { OpenApiSchemas } from './openapi.generated'
+export type { OpenApiSchemas } from './openapi.generated'
 
 // Backend CameraStatus enum değerleri lowercase
 export type CameraStatus = OpenApiSchemas['CameraStatus']
