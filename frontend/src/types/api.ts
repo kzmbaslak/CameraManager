@@ -274,6 +274,7 @@ export type CameraPtzDirection =
   | 'stop'
 
 export type CameraPtzMoveRequest = OpenApiSchemas['CameraPtzMoveRequest']
+export type CameraPtzGotoPresetRequest = OpenApiSchemas['CameraPtzGotoPresetRequest']
 
 export interface CameraPtzMoveResponse {
   camera_id: number
