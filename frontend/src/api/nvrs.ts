@@ -1,10 +1,10 @@
 // NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
-import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, PaginatedResponse } from '../types/api'
-import type { OpenApiSchemas } from '../types/openapi.generated'
+import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, PaginatedResponse, OpenApiSchemas } from '../types/api'
 
 /** NVR güncelleme için kısmi veri tipi */
 export type NVRUpdate = OpenApiSchemas['NVRUpdate']
+export type NVRImportPayload = OpenApiSchemas['NVRImportRequest']
 
 export const nvrsApi = {
   /** Sistemdeki tüm NVR cihazlarını listeler. */
@@ -77,13 +77,15 @@ export const nvrsApi = {
 
   /** Tüm keşfedilen kanalları sisteme kamera olarak aktarır. */
   importChannels: async (id: number, channels: NVRChannelInfo[]): Promise<Camera[]> => {
-    const { data } = await client.post<Camera[]>(`/nvrs/${id}/import`, { channels })
+    const payload: NVRImportPayload = { channels }
+    const { data } = await client.post<Camera[]>(`/nvrs/${id}/import`, payload)
     return data
   },
 
   /** Seçili kanalları sisteme aktarır. */
   importSelected: async (id: number, channels: NVRChannelInfo[]): Promise<Camera[]> => {
-    const { data } = await client.post<Camera[]>(`/nvrs/${id}/import`, { channels })
+    const payload: NVRImportPayload = { channels }
+    const { data } = await client.post<Camera[]>(`/nvrs/${id}/import`, payload)
     return data
   },
 

@@ -151,6 +151,7 @@ assertContains(frontendApiTypes, "OpenApiSchemas['UserCreate']", 'frontend user 
 assertContains(frontendApiTypes, "OpenApiSchemas['UserRole']", 'frontend user role type uses generated schema')
 assertContains(nvrPage, "NVRUpdate", 'NVR page imports update type')
 assertContains(read('src/api/nvrs.ts'), "OpenApiSchemas['NVRUpdate']", 'NVR update payload uses generated schema')
+assertContains(read('src/api/nvrs.ts'), "OpenApiSchemas['NVRImportRequest']", 'NVR import payload uses generated schema')
 assertContains(read('src/api/users.ts'), "OpenApiSchemas['UserUpdate']", 'user update payload uses generated schema')
 assertContains(backendRecordingRoutes, 'Depends(get_recording_view_user)', 'backend recording list permission')
 assertContains(backendRecordingRoutes, 'alarm_id: Optional[int] = Query', 'backend recording alarm filter parameter')
