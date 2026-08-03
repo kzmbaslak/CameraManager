@@ -254,8 +254,9 @@ function ChannelModal({
     onSuccess: (data) => {
       setImportMessage(null)
       setDiagnostics(data)
-      setChannels(data.channels)
-      setSelected(new Set(data.channels.filter((c) => !c.already_imported).map((c) => c.profile_token)))
+      const nextChannels = data.channels ?? []
+      setChannels(nextChannels)
+      setSelected(new Set(nextChannels.filter((c) => !c.already_imported).map((c) => c.profile_token)))
     },
   })
 
@@ -331,6 +332,11 @@ function ChannelModal({
     }),
     [channels]
   )
+  const diagnosticChannels = diagnostics?.channels ?? []
+  const diagnosticChannelCount = diagnosticChannels.length
+  const diagnosticNewChannelCount = diagnostics?.new_channel_count ?? diagnosticChannels.filter((channel) => !channel.already_imported).length
+  const diagnosticExistingChannelCount = diagnostics?.existing_channel_count ?? diagnosticChannels.filter((channel) => channel.already_imported).length
+  const diagnosticStreamUriCount = diagnostics?.stream_uri_count ?? 0
   const importNameErrors = useMemo(() => {
     const errors = new Map<string, string>()
     const seen = new Map<string, string>()
@@ -396,26 +402,26 @@ function ChannelModal({
               <div className={`rounded-lg border px-3 py-2 text-xs ${
                 diagnostics.onvif_ok
                   ? 'border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)]'
-                  : diagnostics.fallback_used && diagnostics.channels.length > 0
+                  : diagnostics.fallback_used && diagnosticChannelCount > 0
                   ? 'border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]'
                   : 'border-[var(--danger)]/30 bg-[var(--danger)]/10 text-[var(--danger)]'
               }`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={diagnostics.onvif_ok ? 'success' : diagnostics.channels.length > 0 ? 'warning' : 'danger'}>
-                    {diagnostics.onvif_ok ? 'ONVIF Başarılı' : diagnostics.channels.length > 0 ? 'RTSP Fallback' : 'Kanal Bulunamadı'}
+                  <Badge variant={diagnostics.onvif_ok ? 'success' : diagnosticChannelCount > 0 ? 'warning' : 'danger'}>
+                    {diagnostics.onvif_ok ? 'ONVIF Başarılı' : diagnosticChannelCount > 0 ? 'RTSP Fallback' : 'Kanal Bulunamadı'}
                   </Badge>
                   <span>
                     {diagnostics.onvif_ok
-                      ? `${diagnostics.stream_uri_count} ONVIF stream URI alındı.`
-                      : diagnostics.channels.length > 0
-                      ? `ONVIF başarısız oldu, ${diagnostics.channels.length} kanal RTSP fallback ile bulundu.`
+                      ? `${diagnosticStreamUriCount} ONVIF stream URI alındı.`
+                      : diagnosticChannelCount > 0
+                      ? `ONVIF başarısız oldu, ${diagnosticChannelCount} kanal RTSP fallback ile bulundu.`
                       : 'ONVIF ve RTSP fallback kanal döndürmedi.'}
                   </span>
-                  {diagnostics.channels.length > 0 && (
+                  {diagnosticChannelCount > 0 && (
                     <>
-                      <Badge variant="success">{diagnostics.new_channel_count} Yeni</Badge>
-                      <Badge variant={diagnostics.existing_channel_count > 0 ? 'warning' : 'neutral'}>
-                        {diagnostics.existing_channel_count} Zaten Ekli
+                      <Badge variant="success">{diagnosticNewChannelCount} Yeni</Badge>
+                      <Badge variant={diagnosticExistingChannelCount > 0 ? 'warning' : 'neutral'}>
+                        {diagnosticExistingChannelCount} Zaten Ekli
                       </Badge>
                     </>
                   )}
@@ -450,7 +456,7 @@ function ChannelModal({
                     <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => !channel.already_imported)}>
                       Yeni ({channelSourceCounts.new})
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.already_imported)}>
+                    <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.already_imported === true)}>
                       Zaten Ekli ({channelSourceCounts.existing})
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => selectMatchingChannels((channel) => channel.source === 'onvif')}>

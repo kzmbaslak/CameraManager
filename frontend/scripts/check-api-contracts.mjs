@@ -148,6 +148,8 @@ assertContains(frontendApiTypes, "OpenApiSchemas['CameraCreate']", 'frontend cam
 assertContains(frontendApiTypes, "OpenApiSchemas['BoundingBoxSchema']", 'frontend bounding box type uses generated schema')
 assertContains(frontendApiTypes, "OpenApiSchemas['NVRCreate']", 'frontend NVR create type uses generated schema')
 assertContains(frontendApiTypes, "OpenApiSchemas['NVRScanRequest']", 'frontend NVR scan type uses generated schema')
+assertContains(frontendApiTypes, "OpenApiSchemas['NVRChannelInfo']", 'frontend NVR channel type uses generated schema')
+assertContains(frontendApiTypes, "OpenApiSchemas['NVRProbeDiagnostics']", 'frontend NVR probe diagnostics type uses generated schema')
 assertContains(frontendApiTypes, "OpenApiSchemas['UserCreate']", 'frontend user create type uses generated schema')
 assertContains(frontendApiTypes, "OpenApiSchemas['UserRole']", 'frontend user role type uses generated schema')
 assertContains(nvrPage, "NVRUpdate", 'NVR page imports update type')

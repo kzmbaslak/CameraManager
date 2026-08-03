@@ -3,6 +3,7 @@
 - Frontend `api.ts` enum, `BoundingBox`, `CameraCreate` ve bazi kamera request tiplerini `OpenApiSchemas[...]` kaynagina baglamaya basladi.
 - NVR create ve scan request tipleri de generated OpenAPI semalarindan beslenir.
 - NVR kanal import payload tipi generated OpenAPI semasindan beslenir.
+- NVR kanal bilgisi ve probe diagnostics response tipleri generated OpenAPI semalarindan beslenir; frontend eksik optional alanlari guvenli varsayilanlarla karsilar.
 - Kamera, NVR ve kullanici update payload tipleri generated OpenAPI semalarindan beslenir.
 - Alarm update, alarm resolve ve threshold uygulama payload tipleri generated OpenAPI semalarindan beslenir.
 - Auth login ve change-password payload tipleri generated OpenAPI semalarindan beslenir; frontend auth API artik change-password endpoint'ini de kapsar.
