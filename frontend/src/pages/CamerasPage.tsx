@@ -116,6 +116,9 @@ function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }
 
 function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResponse }) {
   const profiles = result.profiles ?? []
+  const profileCount = result.profile_count ?? profiles.length
+  const streamUriCount = result.stream_uri_count ?? 0
+  const compatibilityNotes = result.compatibility_notes ?? []
   return (
     <div className="mt-3 flex flex-col gap-2">
       <p className={result.ok ? 'text-xs text-[var(--success)]' : 'text-xs text-[var(--danger)]'}>
@@ -123,8 +126,8 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
       </p>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <Badge variant={result.ok ? 'success' : 'danger'}>ONVIF {result.ok ? 'OK' : 'Hata'}</Badge>
-        <Badge variant={result.profile_count > 0 ? 'success' : 'warning'}>Profil {result.profile_count}</Badge>
-        <Badge variant={result.stream_uri_count > 0 ? 'success' : 'warning'}>Stream {result.stream_uri_count}</Badge>
+        <Badge variant={profileCount > 0 ? 'success' : 'warning'}>Profil {profileCount}</Badge>
+        <Badge variant={streamUriCount > 0 ? 'success' : 'warning'}>Stream {streamUriCount}</Badge>
       </div>
       <div className="grid grid-cols-5 gap-1 text-[10px]">
         <Badge variant={result.media_supported ? 'success' : 'neutral'}>Media</Badge>
@@ -144,9 +147,9 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
         <Badge variant={result.snapshot_supported ? 'success' : 'neutral'}>Snapshot</Badge>
         <Badge variant={result.h264_or_h265_supported ? 'success' : 'neutral'}>H.264/H.265</Badge>
       </div>
-      {result.compatibility_notes?.length > 0 && (
+      {compatibilityNotes.length > 0 && (
         <div className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[10px] text-[var(--text-secondary)]">
-          {result.compatibility_notes.slice(0, 3).map((note) => (
+          {compatibilityNotes.slice(0, 3).map((note) => (
             <p key={note}>{note}</p>
           ))}
         </div>

@@ -257,46 +257,8 @@ export type CameraRtspPreviewRequest = OpenApiSchemas['CameraRtspPreviewRequest'
 
 export type CameraOnvifPreviewRequest = OpenApiSchemas['CameraOnvifPreviewRequest']
 
-export interface CameraOnvifProfileInfo {
-  profile_token: string
-  profile_name: string
-  encoding: string | null
-  width: number | null
-  height: number | null
-  fps: number | null
-  bitrate_kbps: number | null
-  rtsp_uri_masked: string | null
-  snapshot_uri_masked: string | null
-}
-
-export interface CameraOnvifPreviewResponse {
-  camera_id: number
-  host: string
-  onvif_port: number
-  ok: boolean
-  manufacturer: string | null
-  model: string | null
-  serial_number: string | null
-  firmware_version: string | null
-  profile_count: number
-  stream_uri_count: number
-  media_supported: boolean
-  events_supported: boolean
-  ptz_supported: boolean
-  imaging_supported: boolean
-  analytics_supported: boolean
-  profile_s_likely: boolean
-  profile_t_likely: boolean
-  profile_g_likely: boolean
-  profile_m_likely: boolean
-  event_subscription_likely: boolean
-  snapshot_supported: boolean
-  h264_or_h265_supported: boolean
-  compatibility_notes: string[]
-  first_stream_uri_masked: string | null
-  profiles: CameraOnvifProfileInfo[]
-  message: string
-}
+export type CameraOnvifProfileInfo = OpenApiSchemas['CameraOnvifProfileInfo']
+export type CameraOnvifPreviewResponse = OpenApiSchemas['CameraOnvifPreviewResponse']
 
 export interface CameraStreamDiagnostics {
   camera_id: number
