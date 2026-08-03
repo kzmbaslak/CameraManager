@@ -10,4 +10,5 @@
 - User role tipi generated OpenAPI enum'una baglandi; Settings rol secimi backend enum degerleriyle tip seviyesinde hizalidir.
 - `camerasApi` toplu AI payload tipi `CameraBulkAiSettingsRequest` generated semasini kullanir.
 - Kamera PTZ preset'e git payload tipi `CameraPtzGotoPresetRequest` generated semasini kullanir.
+- Kamera PTZ response tipleri generated OpenAPI semalarindan beslenir.
 - Contract testi manuel tiplerin generated OpenAPI sema haritasini kullanmaya devam ettigini denetler.

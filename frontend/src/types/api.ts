@@ -276,49 +276,15 @@ export type CameraPtzDirection =
 export type CameraPtzMoveRequest = OpenApiSchemas['CameraPtzMoveRequest']
 export type CameraPtzGotoPresetRequest = OpenApiSchemas['CameraPtzGotoPresetRequest']
 
-export interface CameraPtzMoveResponse {
-  camera_id: number
-  ok: boolean
-  direction: CameraPtzDirection
-  profile_token: string | null
-  message: string
-}
-
-export interface CameraPtzPresetItem {
-  token: string
-  name: string
-  profile_token: string | null
-}
-
-export interface CameraPtzPresetListResponse {
-  camera_id: number
-  presets: CameraPtzPresetItem[]
-}
-
-export interface CameraPtzGotoPresetResponse {
-  camera_id: number
-  ok: boolean
-  preset_token: string
-  profile_token: string | null
-  message: string
-}
-
-export interface CameraPtzHomeResponse {
-  camera_id: number
-  ok: boolean
-  profile_token: string | null
-  message: string
-}
+export type CameraPtzMoveResponse = OpenApiSchemas['CameraPtzMoveResponse']
+export type CameraPtzPresetItem = OpenApiSchemas['CameraPtzPresetItem']
+export type CameraPtzPresetListResponse = OpenApiSchemas['CameraPtzPresetListResponse']
+export type CameraPtzGotoPresetResponse = OpenApiSchemas['CameraPtzGotoPresetResponse']
+export type CameraPtzHomeResponse = OpenApiSchemas['CameraPtzHomeResponse']
 
 export type CameraPtzPatrolRequest = OpenApiSchemas['CameraPtzPatrolRequest']
 
-export interface CameraPtzPatrolResponse {
-  camera_id: number
-  ok: boolean
-  visited_preset_tokens: string[]
-  profile_token: string | null
-  message: string
-}
+export type CameraPtzPatrolResponse = OpenApiSchemas['CameraPtzPatrolResponse']
 
 export type CameraRtspPreviewRequest = OpenApiSchemas['CameraRtspPreviewRequest']
 
