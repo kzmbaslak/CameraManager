@@ -200,14 +200,7 @@ export interface StreamMessage {
 
 export type CameraScanRequest = OpenApiSchemas['CameraScanRequest']
 
-export interface CameraScanResult {
-  ip: string
-  port: number
-  path: string
-  brand: string
-  desc: string
-  url: string
-}
+export type CameraScanResult = OpenApiSchemas['CameraScanResult']
 
 export interface CameraRtspDiagnostics {
   camera_id: number
@@ -502,9 +495,4 @@ export interface AuditEvent {
 
 export type NVRScanRequest = OpenApiSchemas['NVRScanRequest']
 
-export interface NVRScanResponse {
-  host: string
-  port: number
-  brand: string
-  model: string
-}
+export type NVRScanResponse = OpenApiSchemas['NVRScanResponse']
