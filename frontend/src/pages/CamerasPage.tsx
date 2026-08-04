@@ -34,6 +34,10 @@ const passwordRotationState = (value: string | null, policyDays: number) => {
   }
   return { variant: 'success' as const, label: 'Guncel', detail: `${elapsedDays} gun once` }
 }
+const formatOptionalFixed = (value: number | null | undefined, digits: number, suffix = '') =>
+  value == null ? 'Yok' : `${value.toFixed(digits)}${suffix}`
+const formatOptionalRounded = (value: number | null | undefined, suffix = '') =>
+  value == null ? 'Yok' : `${Math.round(value)}${suffix}`
 const cameraHealthState = (summary: CameraHealthListItem | undefined) => {
   if (!summary) {
     return { variant: 'neutral' as const, label: 'Veri yok', detail: 'Saglik olcumu bekleniyor' }
@@ -1480,26 +1484,26 @@ export function CamerasPage() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
                   <span>Profil: <strong className="text-[var(--text-primary)]">{streamDiagnostic.active_profile}</strong></span>
-                  <span>FPS: <strong className="text-[var(--text-primary)]">{streamDiagnostic.current_broadcast_fps !== null ? streamDiagnostic.current_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
-                  <span>Uptime: <strong className="text-[var(--text-primary)]">{streamDiagnostic.producer_uptime_seconds !== null ? `${Math.round(streamDiagnostic.producer_uptime_seconds)} sn` : 'Yok'}</strong></span>
+                  <span>FPS: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamDiagnostic.current_broadcast_fps, 1)}</strong></span>
+                  <span>Uptime: <strong className="text-[var(--text-primary)]">{formatOptionalRounded(streamDiagnostic.producer_uptime_seconds, ' sn')}</strong></span>
                   <span>Producer Start: <strong className="text-[var(--text-primary)]">{streamDiagnostic.producer_start_count}</strong></span>
                   <span>Subscriber: <strong className="text-[var(--text-primary)]">{streamDiagnostic.subscriber_count}</strong></span>
                   <span>AI Görevi: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_task_running ? 'Açık' : 'Kapalı'}</strong></span>
                   <span>AI Provider: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_provider ?? 'Yok'}</strong></span>
                   <span>AI Stride: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_frame_stride}</strong></span>
                   <span>AI Genislik: <strong className="text-[var(--text-primary)]">{streamDiagnostic.ai_inference_width}px</strong></span>
-                  <span>Son AI: <strong className="text-[var(--text-primary)]">{streamDiagnostic.last_ai_inference_ms !== null ? `${streamDiagnostic.last_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
-                  <span>AI Ortalama: <strong className="text-[var(--text-primary)]">{streamDiagnostic.average_ai_inference_ms !== null ? `${streamDiagnostic.average_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                  <span>Son AI: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamDiagnostic.last_ai_inference_ms, 0, ' ms')}</strong></span>
+                  <span>AI Ortalama: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamDiagnostic.average_ai_inference_ms, 0, ' ms')}</strong></span>
                   <span>Host CPU: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_cpu_load_percent !== null ? `%${streamDiagnostic.host_cpu_load_percent}` : 'Yok'}</strong></span>
                   <span>Host RAM: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_memory_used_percent !== null ? `%${streamDiagnostic.host_memory_used_percent}` : 'Yok'}</strong></span>
-                  <span>RAM Bos: <strong className="text-[var(--text-primary)]">{streamDiagnostic.host_memory_available_mb !== null ? `${streamDiagnostic.host_memory_available_mb.toFixed(0)} MB` : 'Yok'}</strong></span>
+                  <span>RAM Bos: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamDiagnostic.host_memory_available_mb, 0, ' MB')}</strong></span>
                   <span>Cache: <strong className="text-[var(--text-primary)]">{streamDiagnostic.cached_frame_available ? 'Var' : 'Yok'}</strong></span>
                   <span>Open Deneme: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_attempts}</strong></span>
                   <span>Open Hata: <strong className="text-[var(--text-primary)]">{streamDiagnostic.open_failures}</strong></span>
                   <span>Reconnect: <strong className="text-[var(--text-primary)]">{streamDiagnostic.reconnects}</strong></span>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
-                  <span>Son Frame: <strong className="text-[var(--text-primary)]">{streamDiagnostic.last_frame_age_seconds !== null ? `${streamDiagnostic.last_frame_age_seconds.toFixed(1)} sn önce` : 'Yok'}</strong></span>
+                  <span>Son Frame: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamDiagnostic.last_frame_age_seconds, 1, ' sn once')}</strong></span>
                   <span>Retry Backoff: <strong className="text-[var(--text-primary)]">{streamDiagnostic.retry_cooldown_seconds.toFixed(1)} sn</strong></span>
                   <span>Warmup Reads: <strong className="text-[var(--text-primary)]">{streamDiagnostic.warmup_reads}</strong></span>
                   <span>Failure Count: <strong className="text-[var(--text-primary)]">{streamDiagnostic.failure_count}</strong></span>
@@ -1510,9 +1514,9 @@ export function CamerasPage() {
                   <div className="mt-3 border-t border-[var(--border)] pt-3">
                     <p className="text-xs font-medium text-[var(--text-primary)]">Kalici Trend ({streamHistory.sample_count} ornek)</p>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
-                      <span>Ort. FPS: <strong className="text-[var(--text-primary)]">{streamHistory.average_broadcast_fps !== null ? streamHistory.average_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
-                      <span>Min FPS: <strong className="text-[var(--text-primary)]">{streamHistory.minimum_broadcast_fps !== null ? streamHistory.minimum_broadcast_fps.toFixed(1) : 'Yok'}</strong></span>
-                      <span>Ort. AI: <strong className="text-[var(--text-primary)]">{streamHistory.average_ai_inference_ms !== null ? `${streamHistory.average_ai_inference_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                      <span>Ort. FPS: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamHistory.average_broadcast_fps, 1)}</strong></span>
+                      <span>Min FPS: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamHistory.minimum_broadcast_fps, 1)}</strong></span>
+                      <span>Ort. AI: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamHistory.average_ai_inference_ms, 0, ' ms')}</strong></span>
                       <span>Producer Aktif: <strong className="text-[var(--text-primary)]">{streamHistory.producer_running_count}/{streamHistory.sample_count}</strong></span>
                       <span>Toplam Reconnect: <strong className="text-[var(--text-primary)]">{streamHistory.total_reconnects}</strong></span>
                       <span>Toplam Open Hata: <strong className="text-[var(--text-primary)]">{streamHistory.total_open_failures}</strong></span>

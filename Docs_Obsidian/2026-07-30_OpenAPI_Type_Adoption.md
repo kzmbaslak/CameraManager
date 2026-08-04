@@ -6,6 +6,7 @@
 - NVR kanal import payload tipi generated OpenAPI semasindan beslenir.
 - NVR kanal bilgisi ve probe diagnostics response tipleri generated OpenAPI semalarindan beslenir; frontend eksik optional alanlari guvenli varsayilanlarla karsilar.
 - Kamera ONVIF preview/profile response tipleri generated OpenAPI semalarindan beslenir; frontend eksik profil/sayaç/not alanlarini guvenli varsayilanlarla karsilar.
+- Kamera RTSP diagnostics ve stream telemetry response tipleri generated OpenAPI semalarindan beslenir; dashboard ve kamera detaylari eksik metrik alanlarini guvenli varsayilanlarla karsilar.
 - Auth token ve kamera stream token response tipleri generated OpenAPI semalarindan beslenir; stream token endpoint'i backend response_model ile OpenAPI'ya dahil edilir.
 - Kamera, NVR ve kullanici update payload tipleri generated OpenAPI semalarindan beslenir.
 - Alarm update, alarm resolve ve threshold uygulama payload tipleri generated OpenAPI semalarindan beslenir.

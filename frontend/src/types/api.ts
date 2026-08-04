@@ -194,23 +194,7 @@ export type CameraScanRequest = OpenApiSchemas['CameraScanRequest']
 
 export type CameraScanResult = OpenApiSchemas['CameraScanResult']
 
-export interface CameraRtspDiagnostics {
-  camera_id: number
-  name: string
-  host: string
-  rtsp_port: number
-  rtsp_path: string
-  nvr_id: number | null
-  has_username: boolean
-  public_url: string
-  authenticated_url_masked: string
-  tcp_open: boolean
-  describe_ok: boolean
-  frame_ok: boolean
-  authenticated_frame_ok: boolean
-  anonymous_frame_ok: boolean
-  message: string
-}
+export type CameraRtspDiagnostics = OpenApiSchemas['CameraRtspDiagnostics']
 
 export type CameraPtzDirection =
   | 'up'
@@ -245,72 +229,9 @@ export type CameraOnvifPreviewRequest = OpenApiSchemas['CameraOnvifPreviewReques
 export type CameraOnvifProfileInfo = OpenApiSchemas['CameraOnvifProfileInfo']
 export type CameraOnvifPreviewResponse = OpenApiSchemas['CameraOnvifPreviewResponse']
 
-export interface CameraStreamDiagnostics {
-  camera_id: number
-  producer_running: boolean
-  producer_started_at: string | null
-  producer_uptime_seconds: number | null
-  producer_start_count: number
-  subscriber_count: number
-  active_profile: string
-  current_broadcast_fps: number | null
-  ai_task_running: boolean
-  ai_provider: string | null
-  ai_frame_stride: number
-  ai_inference_width: number
-  last_ai_inference_ms: number | null
-  average_ai_inference_ms: number | null
-  host_cpu_load_percent: number | null
-  host_memory_used_percent: number | null
-  host_memory_available_mb: number | null
-  cached_frame_available: boolean
-  last_broadcast_age_seconds: number | null
-  last_frame_age_seconds: number | null
-  open_attempts: number
-  open_failures: number
-  reconnects: number
-  failure_count: number
-  retry_cooldown_seconds: number
-  warmup_reads: number
-  open_timeout_ms: number
-  read_timeout_ms: number
-  last_success_at: string | null
-  last_failure_at: string | null
-  last_broadcast_at: string | null
-}
-
-export interface CameraStreamMetric {
-  id: number
-  camera_id: number
-  sampled_at: string
-  producer_running: boolean
-  subscriber_count: number
-  current_broadcast_fps: number | null
-  average_ai_inference_ms: number | null
-  host_cpu_load_percent: number | null
-  host_memory_used_percent: number | null
-  reconnects: number
-  open_failures: number
-  failure_count: number
-}
-
-export interface CameraStreamMetricSummary {
-  camera_id: number
-  sample_count: number
-  producer_running_count: number
-  average_broadcast_fps: number | null
-  minimum_broadcast_fps: number | null
-  average_ai_inference_ms: number | null
-  average_host_cpu_load_percent: number | null
-  average_host_memory_used_percent: number | null
-  latest_sampled_at: string | null
-  latest_broadcast_fps: number | null
-  latest_ai_inference_ms: number | null
-  total_reconnects: number
-  total_open_failures: number
-  total_failure_count: number
-  samples: CameraStreamMetric[]
-}
+export type CameraStreamDiagnostics = OpenApiSchemas['CameraStreamDiagnostics']
+export type CameraStreamMetric = OpenApiSchemas['CameraStreamMetricResponse']
+export type CameraStreamMetricSummary = OpenApiSchemas['CameraStreamMetricSummaryResponse']
 
 export interface CameraHealthSample {
   id: number

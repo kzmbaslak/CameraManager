@@ -292,15 +292,15 @@ function OperatorAssistPanel({
   const averageFps = averageNumber(
     streamTrends
       .map((item) => item.average_broadcast_fps)
-      .filter((value): value is number => value !== null),
+      .filter((value): value is number => value != null),
   )
   const minimumFps = averageNumber(
     streamTrends
       .map((item) => item.minimum_broadcast_fps)
-      .filter((value): value is number => value !== null),
+      .filter((value): value is number => value != null),
   )
-  const trendReconnects = streamTrends.reduce((sum, item) => sum + item.total_reconnects, 0)
-  const trendOpenFailures = streamTrends.reduce((sum, item) => sum + item.total_open_failures, 0)
+  const trendReconnects = streamTrends.reduce((sum, item) => sum + (item.total_reconnects ?? 0), 0)
+  const trendOpenFailures = streamTrends.reduce((sum, item) => sum + (item.total_open_failures ?? 0), 0)
   const capacityWarning =
     (hostCpu !== null && hostCpu >= 85) ||
     (hostMemory !== null && hostMemory >= 90) ||
