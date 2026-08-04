@@ -174,17 +174,9 @@ export interface User {
 export type UserCreate = OpenApiSchemas['UserCreate']
 export type UserRole = OpenApiSchemas['UserRole']
 
-export interface LoginResponse {
-  access_token: string
-  token_type: string
-  username: string
-  role: string
-}
+export type LoginResponse = OpenApiSchemas['TokenResponse']
 
-export interface StreamTokenResponse {
-  stream_token: string
-  expires_in: number
-}
+export type StreamTokenResponse = OpenApiSchemas['CameraStreamTokenResponse']
 
 // WebSocket stream mesaj formatı
 export interface StreamMessage {

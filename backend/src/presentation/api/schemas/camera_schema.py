@@ -448,6 +448,13 @@ class CameraRtspDiagnostics(BaseModel):
     message: str
 
 
+class CameraStreamTokenResponse(BaseModel):
+    """Kisa omurlu canli izleme WebSocket token yaniti."""
+
+    stream_token: str
+    expires_in: int = Field(ge=1)
+
+
 class CameraStreamDiagnostics(BaseModel):
     """Canli akis uretici ve RTSP saglik metrikleri."""
 

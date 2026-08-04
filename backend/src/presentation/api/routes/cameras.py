@@ -53,6 +53,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraRtspPreviewRequest,
     CameraHealthListItemResponse,
     CameraHealthSummaryResponse,
+    CameraStreamTokenResponse,
     CameraStreamDiagnostics,
     CameraStreamMetricSummaryResponse,
 )
@@ -814,7 +815,7 @@ def get_camera(
     return camera
 
 
-@router.get("/{camera_id:int}/stream-token")
+@router.get("/{camera_id:int}/stream-token", response_model=CameraStreamTokenResponse)
 def create_camera_stream_token(
     camera_id: int,
     use_cases: CameraUseCases = Depends(get_camera_use_cases),

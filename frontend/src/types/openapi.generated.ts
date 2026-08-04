@@ -524,6 +524,7 @@ export type OpenApiSchemaName =
   | "CameraStreamDiagnostics"
   | "CameraStreamMetricResponse"
   | "CameraStreamMetricSummaryResponse"
+  | "CameraStreamTokenResponse"
   | "CameraUpdate"
   | "ChangePasswordRequest"
   | "HTTPValidationError"
@@ -970,6 +971,10 @@ export type OpenApiSchemas = {
     "total_failure_count"?: number
     "total_open_failures"?: number
     "total_reconnects"?: number
+  }
+  "CameraStreamTokenResponse": {
+    "expires_in": number
+    "stream_token": string
   }
   "CameraUpdate": {
     "ai_active_end"?: (string) | (null)
