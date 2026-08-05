@@ -233,41 +233,9 @@ export type CameraStreamDiagnostics = OpenApiSchemas['CameraStreamDiagnostics']
 export type CameraStreamMetric = OpenApiSchemas['CameraStreamMetricResponse']
 export type CameraStreamMetricSummary = OpenApiSchemas['CameraStreamMetricSummaryResponse']
 
-export interface CameraHealthSample {
-  id: number
-  camera_id: number
-  checked_at: string
-  reachable: boolean
-  status: string
-  latency_ms: number | null
-  failure_reason: string | null
-}
-
-export interface CameraHealthSummary {
-  camera_id: number
-  sample_count: number
-  reachable_count: number
-  unreachable_count: number
-  availability_percent: number | null
-  latest_checked_at: string | null
-  latest_latency_ms: number | null
-  latest_failure_reason: string | null
-  samples: CameraHealthSample[]
-}
-
-export interface CameraHealthListItem {
-  camera_id: number
-  health_level: 'ok' | 'warning' | 'critical' | 'unknown' | string
-  health_message: string
-  sample_count: number
-  reachable_count: number
-  availability_percent: number | null
-  latest_checked_at: string | null
-  latest_reachable: boolean | null
-  latest_status: string | null
-  latest_latency_ms: number | null
-  latest_failure_reason: string | null
-}
+export type CameraHealthSample = OpenApiSchemas['CameraHealthSampleResponse']
+export type CameraHealthSummary = OpenApiSchemas['CameraHealthSummaryResponse']
+export type CameraHealthListItem = OpenApiSchemas['CameraHealthListItemResponse']
 
 export interface RecordingSegment {
   id: number

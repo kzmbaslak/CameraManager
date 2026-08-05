@@ -1536,7 +1536,7 @@ export function CamerasPage() {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
                   <span>Olcum: <strong className="text-[var(--text-primary)]">{healthHistory.sample_count}</strong></span>
                   <span>Kopma: <strong className="text-[var(--text-primary)]">{healthHistory.unreachable_count}</strong></span>
-                  <span>Son Latency: <strong className="text-[var(--text-primary)]">{healthHistory.latest_latency_ms !== null ? `${healthHistory.latest_latency_ms.toFixed(0)} ms` : 'Yok'}</strong></span>
+                  <span>Son Latency: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(healthHistory.latest_latency_ms, 0, ' ms')}</strong></span>
                   <span>Son Hata: <strong className="text-[var(--text-primary)]">{healthHistory.latest_failure_reason || 'Yok'}</strong></span>
                 </div>
                 <div className="mt-3 flex h-8 items-end gap-1 overflow-hidden" aria-label="Kamera saglik gecmisi">
