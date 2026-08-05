@@ -138,12 +138,13 @@ export function RecordingsPage() {
     enabled: canViewRecordings,
   })
 
-  const queryParams = {
+  const rangeSince = useMemo(() => dateRangeStart(range), [range])
+  const queryParams = useMemo(() => ({
     camera_id: selectedCameraId === 'all' ? undefined : Number(selectedCameraId),
     alarm_id: linkedAlarmId ?? undefined,
-    since: dateRangeStart(range),
+    since: rangeSince,
     limit,
-  }
+  }), [limit, linkedAlarmId, rangeSince, selectedCameraId])
 
   const clearLinkedAlarm = () => {
     const next = new URLSearchParams(searchParams)

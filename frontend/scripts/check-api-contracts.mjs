@@ -106,6 +106,8 @@ assertContains(recordingsPage, 'recordingsApi.prune', 'recording page prune acti
 assertContains(recordingsPage, 'recordingsApi.fileBlob', 'recording page file access action')
 assertContains(recordingsPage, 'recordingsApi.metadata', 'recording page metadata action')
 assertContains(recordingsPage, 'useSearchParams', 'recording page URL filter support')
+assertContains(recordingsPage, 'const rangeSince = useMemo(() => dateRangeStart(range), [range])', 'recording page stable since filter memo')
+assertContains(recordingsPage, 'since: rangeSince', 'recording page query uses stable since filter')
 assertContains(recordingsPage, 'Alarm Filtresini Kaldir', 'recording page linked alarm filter clear action')
 assertContains(recordingsPage, 'autoOpenedAlarmRef', 'recording page linked alarm auto-open guard')
 assertContains(recordingsPage, 'Tamamlanmis ilk klip otomatik acilir', 'recording page linked alarm auto-open operator hint')
