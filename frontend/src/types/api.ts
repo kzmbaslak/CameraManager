@@ -12,39 +12,7 @@ export interface PaginatedResponse<T> {
   page_size: number
 }
 
-export interface Camera {
-  id: number
-  name: string
-  host: string
-  rtsp_port: number
-  rtsp_path: string
-  onvif_port: number
-  username: string | null
-  password_updated_at: string | null
-  status: CameraStatus
-  motion_detection_enabled: boolean
-  ai_detection_enabled: boolean
-  ai_confidence_threshold: number
-  ai_iou_threshold: number
-  ai_alarm_cooldown_seconds: number
-  ai_frame_stride: number
-  ai_inference_width: number
-  ai_active_start: string | null
-  ai_active_end: string | null
-  ai_roi_polygon: string | null
-  continuous_recording_enabled: boolean
-  brand: string | null
-  model: string | null
-  nvr_id: number | null
-  site: string | null
-  building: string | null
-  floor: string | null
-  zone: string | null
-  onvif_ptz_supported: boolean | null
-  onvif_capabilities_checked_at: string | null
-  created_at: string | null
-  updated_at: string | null
-}
+export type Camera = OpenApiSchemas['CameraResponse']
 
 export type CameraCreate = OpenApiSchemas['CameraCreate']
 

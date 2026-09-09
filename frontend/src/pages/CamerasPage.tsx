@@ -24,9 +24,9 @@ import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealth
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
 const EMPTY_CAMERAS: Camera[] = []
-const formatRotationDate = (value: string | null) =>
+const formatRotationDate = (value: string | null | undefined) =>
   value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
-const passwordRotationState = (value: string | null, policyDays: number) => {
+const passwordRotationState = (value: string | null | undefined, policyDays: number) => {
   if (!value) return { variant: 'warning' as const, label: 'Kayit yok', detail: 'Ilk rotasyon tarihi yok' }
   const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000))
   if (elapsedDays >= policyDays) {

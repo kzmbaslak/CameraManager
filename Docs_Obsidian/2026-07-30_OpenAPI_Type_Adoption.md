@@ -1,6 +1,7 @@
 # 2026-07-30 OpenAPI Type Adoption
 
 - Frontend `api.ts` enum, `BoundingBox`, `CameraCreate` ve bazi kamera request tiplerini `OpenApiSchemas[...]` kaynagina baglamaya basladi.
+- Camera ana response tipi generated OpenAPI semasindan beslenir; kamera parola rotasyon gosterimleri optional tarih alanlarini guvenli karsilar.
 - Kamera ve NVR scan response tipleri generated OpenAPI semalarindan beslenir.
 - NVR create ve scan request tipleri de generated OpenAPI semalarindan beslenir.
 - NVR ve User response tipleri generated OpenAPI semalarindan beslenir; NVR parola rotasyon gosterimleri optional tarih alanlarini guvenli karsilar.
