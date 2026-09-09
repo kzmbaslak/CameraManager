@@ -21,9 +21,9 @@ import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../typ
 
 type NVRBulkAddPayload = NVRCreate[]
 const EMPTY_NVRS: NVR[] = []
-const formatRotationDate = (value: string | null) =>
+const formatRotationDate = (value: string | null | undefined) =>
   value ? new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : 'Kayit yok'
-const passwordRotationState = (value: string | null, policyDays: number) => {
+const passwordRotationState = (value: string | null | undefined, policyDays: number) => {
   if (!value) return { variant: 'warning' as const, label: 'Kayit yok', detail: 'Ilk rotasyon tarihi yok' }
   const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000))
   if (elapsedDays >= policyDays) {

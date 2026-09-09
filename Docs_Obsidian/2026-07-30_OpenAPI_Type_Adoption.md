@@ -3,6 +3,7 @@
 - Frontend `api.ts` enum, `BoundingBox`, `CameraCreate` ve bazi kamera request tiplerini `OpenApiSchemas[...]` kaynagina baglamaya basladi.
 - Kamera ve NVR scan response tipleri generated OpenAPI semalarindan beslenir.
 - NVR create ve scan request tipleri de generated OpenAPI semalarindan beslenir.
+- NVR ve User response tipleri generated OpenAPI semalarindan beslenir; NVR parola rotasyon gosterimleri optional tarih alanlarini guvenli karsilar.
 - NVR kanal import payload tipi generated OpenAPI semasindan beslenir.
 - NVR kanal bilgisi ve probe diagnostics response tipleri generated OpenAPI semalarindan beslenir; frontend eksik optional alanlari guvenli varsayilanlarla karsilar.
 - Kamera ONVIF preview/profile response tipleri generated OpenAPI semalarindan beslenir; frontend eksik profil/sayaç/not alanlarini guvenli varsayilanlarla karsilar.

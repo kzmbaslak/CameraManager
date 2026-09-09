@@ -89,31 +89,14 @@ export type AlarmThresholdSuggestionItem = OpenApiSchemas['AlarmThresholdSuggest
 export type AlarmThresholdSuggestionApplyItem = OpenApiSchemas['AlarmThresholdSuggestionApplyItem']
 export type AlarmThresholdSuggestionApplyResponse = OpenApiSchemas['AlarmThresholdSuggestionApplyResponse']
 
-export interface NVR {
-  id: number
-  name: string
-  host: string
-  onvif_port: number
-  username: string | null
-  password_updated_at: string | null
-  brand: string | null
-  model: string | null
-  is_active: boolean
-  created_at: string | null
-  updated_at: string | null
-}
+export type NVR = OpenApiSchemas['NVRResponse']
 
 export type NVRCreate = OpenApiSchemas['NVRCreate']
 
 export type NVRChannelInfo = OpenApiSchemas['NVRChannelInfo']
 export type NVRProbeDiagnostics = OpenApiSchemas['NVRProbeDiagnostics']
 
-export interface User {
-  id: number
-  username: string
-  role: UserRole
-  is_active: boolean
-}
+export type User = OpenApiSchemas['UserResponse']
 
 export type UserCreate = OpenApiSchemas['UserCreate']
 export type UserRole = OpenApiSchemas['UserRole']
