@@ -1,6 +1,6 @@
 // NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
-import type { NVR, NVRCreate, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, PaginatedResponse, OpenApiSchemas } from '../types/api'
+import type { NVR, NVRCreate, NVRPageResponse, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, OpenApiSchemas } from '../types/api'
 
 /** NVR güncelleme için kısmi veri tipi */
 export type NVRUpdate = OpenApiSchemas['NVRUpdate']
@@ -19,8 +19,8 @@ export const nvrsApi = {
     search?: string
     status?: 'all' | 'active' | 'inactive'
     sort?: string
-  }): Promise<PaginatedResponse<NVR>> => {
-    const { data } = await client.get<PaginatedResponse<NVR>>('/nvrs/', {
+  }): Promise<NVRPageResponse> => {
+    const { data } = await client.get<NVRPageResponse>('/nvrs/', {
       params: { paginated: true, ...params },
     })
     return data

@@ -1,6 +1,6 @@
 // Kullanıcı CRUD API çağrıları — list, add, update, delete
 import client from './client'
-import type { PaginatedResponse, User, UserCreate } from '../types/api'
+import type { User, UserCreate, UserPageResponse } from '../types/api'
 import type { OpenApiSchemas } from '../types/openapi.generated'
 
 /** Kullanıcı güncelleme için kısmi veri tipi */
@@ -20,8 +20,8 @@ export const usersApi = {
     role?: string
     active?: 'all' | 'active' | 'inactive'
     sort?: string
-  }): Promise<PaginatedResponse<User>> => {
-    const { data } = await client.get<PaginatedResponse<User>>('/users/', {
+  }): Promise<UserPageResponse> => {
+    const { data } = await client.get<UserPageResponse>('/users/', {
       params: { paginated: true, ...params },
     })
     return data

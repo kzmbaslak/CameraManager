@@ -5,16 +5,10 @@ export type { OpenApiSchemas } from './openapi.generated'
 // Backend CameraStatus enum değerleri lowercase
 export type CameraStatus = OpenApiSchemas['CameraStatus']
 
-export interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  page: number
-  page_size: number
-}
-
 export type Camera = OpenApiSchemas['CameraResponse']
 
 export type CameraCreate = OpenApiSchemas['CameraCreate']
+export type CameraPageResponse = OpenApiSchemas['CameraPageResponse']
 
 export type AlarmType = OpenApiSchemas['AlarmType']
 export type AlarmStatus = OpenApiSchemas['AlarmStatus']
@@ -40,6 +34,7 @@ export type AlarmThresholdSuggestionApplyResponse = OpenApiSchemas['AlarmThresho
 export type NVR = OpenApiSchemas['NVRResponse']
 
 export type NVRCreate = OpenApiSchemas['NVRCreate']
+export type NVRPageResponse = OpenApiSchemas['NVRPageResponse']
 
 export type NVRChannelInfo = OpenApiSchemas['NVRChannelInfo']
 export type NVRProbeDiagnostics = OpenApiSchemas['NVRProbeDiagnostics']
@@ -47,6 +42,7 @@ export type NVRProbeDiagnostics = OpenApiSchemas['NVRProbeDiagnostics']
 export type User = OpenApiSchemas['UserResponse']
 
 export type UserCreate = OpenApiSchemas['UserCreate']
+export type UserPageResponse = OpenApiSchemas['UserPageResponse']
 export type UserRole = OpenApiSchemas['UserRole']
 
 export type LoginResponse = OpenApiSchemas['TokenResponse']
@@ -71,20 +67,8 @@ export type CameraScanResult = OpenApiSchemas['CameraScanResult']
 
 export type CameraRtspDiagnostics = OpenApiSchemas['CameraRtspDiagnostics']
 
-export type CameraPtzDirection =
-  | 'up'
-  | 'down'
-  | 'left'
-  | 'right'
-  | 'up_left'
-  | 'up_right'
-  | 'down_left'
-  | 'down_right'
-  | 'zoom_in'
-  | 'zoom_out'
-  | 'stop'
-
 export type CameraPtzMoveRequest = OpenApiSchemas['CameraPtzMoveRequest']
+export type CameraPtzDirection = CameraPtzMoveRequest['direction']
 export type CameraPtzGotoPresetRequest = OpenApiSchemas['CameraPtzGotoPresetRequest']
 
 export type CameraPtzMoveResponse = OpenApiSchemas['CameraPtzMoveResponse']
@@ -123,17 +107,7 @@ export type SecurityPosture = OpenApiSchemas['SecurityPostureResponse']
 export type SecurityPermissions = OpenApiSchemas['SecurityPermissionsResponse']
 export type SetupStatus = OpenApiSchemas['SetupStatusResponse']
 
-export interface AuditEvent {
-  timestamp: string
-  action: string
-  actor: string | null
-  success: boolean
-  source_ip: string | null
-  metadata: Record<string, unknown>
-  previous_hash?: string | null
-  event_hash?: string | null
-  hash_algorithm?: string | null
-}
+export type AuditEvent = OpenApiSchemas['AuditEventResponse']
 
 export type NVRScanRequest = OpenApiSchemas['NVRScanRequest']
 

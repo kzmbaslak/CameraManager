@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraPtzGotoPresetRequest, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, PaginatedResponse, StreamTokenResponse, OpenApiSchemas } from '../types/api'
+import type { Camera, CameraCreate, CameraPageResponse, CameraPtzGotoPresetRequest, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, StreamTokenResponse, OpenApiSchemas } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export type CameraUpdate = OpenApiSchemas['CameraUpdate']
@@ -21,8 +21,8 @@ export const camerasApi = {
     status?: CameraStatus | 'all'
     ai_filter?: 'all' | 'enabled' | 'disabled'
     sort?: string
-  }): Promise<PaginatedResponse<Camera>> => {
-    const { data } = await client.get<PaginatedResponse<Camera>>('/cameras/', {
+  }): Promise<CameraPageResponse> => {
+    const { data } = await client.get<CameraPageResponse>('/cameras/', {
       params: { paginated: true, ...params },
     })
     return data
