@@ -71,7 +71,7 @@ const optionLabel = <T extends string>(options: { value: T | 'all'; label: strin
 const severityLabel = (value: AlarmSeverity) =>
   SEVERITY_OPTIONS.find((item) => item.value === value)?.label ?? value
 
-const percentLabel = (value: number | null) =>
+const percentLabel = (value: number | null | undefined) =>
   value == null ? '-' : `${Math.round(value * 100)}%`
 
 const csvCell = (value: unknown) => {

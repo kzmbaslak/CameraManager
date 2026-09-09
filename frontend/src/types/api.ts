@@ -82,68 +82,12 @@ export interface Alarm {
   resolved_at: string | null
 }
 
-export interface AlarmTrainingFeedbackItem {
-  alarm_id: number
-  camera_id: number
-  created_at: string | null
-  confidence: number | null
-  bounding_box: BoundingBox | null
-  false_positive: boolean
-  severity: AlarmSeverity
-  operator_note: string | null
-  resolution_reason: string | null
-  snapshot_sha256: string | null
-  snapshot_annotated_sha256: string | null
-}
-
-export interface AlarmEvidenceFileItem {
-  variant: string
-  available: boolean
-  filename: string | null
-  sha256: string | null
-  size_bytes: number | null
-  status: string
-}
-
-export interface AlarmEvidenceManifest {
-  alarm_id: number
-  camera_id: number
-  alarm_type: AlarmType
-  status: AlarmStatus
-  severity: AlarmSeverity
-  false_positive: boolean
-  confidence: number | null
-  bounding_box: BoundingBox | null
-  created_at: string | null
-  acknowledged_at: string | null
-  resolved_at: string | null
-  generated_at: string
-  files: AlarmEvidenceFileItem[]
-}
-
-export interface AlarmThresholdSuggestionItem {
-  camera_id: number
-  sample_count: number
-  false_positive_count: number
-  false_positive_rate: number
-  average_confidence: number | null
-  suggested_confidence_threshold: number | null
-  recommendation: string
-}
-
-export interface AlarmThresholdSuggestionApplyItem {
-  camera_id: number
-  previous_confidence_threshold: number
-  applied_confidence_threshold: number
-  sample_count: number
-  false_positive_rate: number
-}
-
-export interface AlarmThresholdSuggestionApplyResponse {
-  applied_count: number
-  skipped_count: number
-  items: AlarmThresholdSuggestionApplyItem[]
-}
+export type AlarmTrainingFeedbackItem = OpenApiSchemas['AlarmTrainingFeedbackItem']
+export type AlarmEvidenceFileItem = OpenApiSchemas['AlarmEvidenceFileItem']
+export type AlarmEvidenceManifest = OpenApiSchemas['AlarmEvidenceManifest']
+export type AlarmThresholdSuggestionItem = OpenApiSchemas['AlarmThresholdSuggestionItem']
+export type AlarmThresholdSuggestionApplyItem = OpenApiSchemas['AlarmThresholdSuggestionApplyItem']
+export type AlarmThresholdSuggestionApplyResponse = OpenApiSchemas['AlarmThresholdSuggestionApplyResponse']
 
 export interface NVR {
   id: number
