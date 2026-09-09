@@ -35,7 +35,7 @@ function dateRangeStart(range: DateRange) {
   return dayjs().subtract(30, 'day').toISOString()
 }
 
-function formatBytes(value: number | null) {
+function formatBytes(value: number | null | undefined) {
   if (value == null) return '-'
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
@@ -43,11 +43,11 @@ function formatBytes(value: number | null) {
   return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null | undefined) {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
-function formatConfidence(value: number | null) {
+function formatConfidence(value: number | null | undefined) {
   return value == null ? '-' : `${Math.round(value * 100)}%`
 }
 

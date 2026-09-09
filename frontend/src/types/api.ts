@@ -237,51 +237,10 @@ export type CameraHealthSample = OpenApiSchemas['CameraHealthSampleResponse']
 export type CameraHealthSummary = OpenApiSchemas['CameraHealthSummaryResponse']
 export type CameraHealthListItem = OpenApiSchemas['CameraHealthListItemResponse']
 
-export interface RecordingSegment {
-  id: number
-  camera_id: number
-  started_at: string
-  ended_at: string | null
-  recording_type: string
-  status: string
-  filename: string
-  duration_seconds: number | null
-  file_sha256: string | null
-  size_bytes: number | null
-  codec: string | null
-  width: number | null
-  height: number | null
-  fps: number | null
-  alarm_id: number | null
-  created_at: string | null
-}
-
-export interface RecordingSegmentListResponse {
-  items: RecordingSegment[]
-  total: number
-  limit: number
-}
-
-export interface RecordingMetadata {
-  segment_id: number
-  camera_id: number
-  alarm_id: number | null
-  frame_width: number | null
-  frame_height: number | null
-  detected_at: string | null
-  detections: Detection[]
-}
-
-export interface RecordingPruneResult {
-  retention_days: number
-  quota_mb: number
-  removed_count: number
-  removed_bytes: number
-  deleted_db_count: number
-  skipped_count: number
-  removed_filenames: string[]
-  skipped_reasons: string[]
-}
+export type RecordingSegment = OpenApiSchemas['RecordingSegmentResponse']
+export type RecordingSegmentListResponse = OpenApiSchemas['RecordingSegmentListResponse']
+export type RecordingMetadata = OpenApiSchemas['RecordingMetadataResponse']
+export type RecordingPruneResult = OpenApiSchemas['RecordingPruneResponse']
 
 export interface SecurityPostureFinding {
   severity: 'critical' | 'high' | 'medium' | 'low' | string
