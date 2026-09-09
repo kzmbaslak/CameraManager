@@ -23,5 +23,5 @@
 - Kamera PTZ preset'e git payload tipi `CameraPtzGotoPresetRequest` generated semasini kullanir.
 - Kamera PTZ response tipleri generated OpenAPI semalarindan beslenir.
 - Security posture, security permissions, setup status, readiness ve health response tipleri backend Pydantic `response_model` ile OpenAPI'ya dahil edilir; frontend bu sistem tiplerini generated sema haritasindan besler.
-- Audit event, kamera/NVR/kullanici sayfali response tipleri ve PTZ direction tipi generated OpenAPI semalarindan turetilir; frontend generic/manual REST response kopyalarini kullanmaz.
+- Audit event, kamera/NVR/kullanici sayfali response tipleri, NVR discovery response tipi ve PTZ direction tipi generated OpenAPI semalarindan turetilir; frontend generic/manual REST response kopyalarini kullanmaz.
 - Contract testi manuel tiplerin generated OpenAPI sema haritasini kullanmaya devam ettigini denetler.

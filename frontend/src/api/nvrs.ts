@@ -1,6 +1,6 @@
 // NVR CRUD, keşif, tarama ve kanal içe aktarma API çağrıları.
 import client from './client'
-import type { NVR, NVRCreate, NVRPageResponse, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, OpenApiSchemas } from '../types/api'
+import type { NVR, NVRCreate, NVRPageResponse, NVRChannelInfo, Camera, NVRScanRequest, NVRScanResponse, NVRProbeDiagnostics, NVRDiscoverResponse, OpenApiSchemas } from '../types/api'
 
 /** NVR güncelleme için kısmi veri tipi */
 export type NVRUpdate = OpenApiSchemas['NVRUpdate']
@@ -90,8 +90,8 @@ export const nvrsApi = {
   },
 
   /** WS-Discovery ile yerel ağdaki ONVIF/NVR cihazlarını arar. */
-  discover: async (): Promise<{ xaddr: string; host: string; port: number }[]> => {
-    const { data } = await client.post<{ xaddr: string; host: string; port: number }[]>('/nvrs/discover')
+  discover: async (): Promise<NVRDiscoverResponse[]> => {
+    const { data } = await client.post<NVRDiscoverResponse[]>('/nvrs/discover')
     return data
   },
 

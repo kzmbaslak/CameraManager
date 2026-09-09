@@ -38,6 +38,7 @@ export type NVRPageResponse = OpenApiSchemas['NVRPageResponse']
 
 export type NVRChannelInfo = OpenApiSchemas['NVRChannelInfo']
 export type NVRProbeDiagnostics = OpenApiSchemas['NVRProbeDiagnostics']
+export type NVRDiscoverResponse = OpenApiSchemas['NVRDiscoverResponse']
 
 export type User = OpenApiSchemas['UserResponse']
 
