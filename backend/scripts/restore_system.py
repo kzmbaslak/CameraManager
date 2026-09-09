@@ -16,6 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_RECORDING_DIR = BACKEND_DIR / "data" / "recordings"
 RESTORABLE_PREFIXES = ("data/", "models/", "snapshots/", "recordings/")
 RESTORABLE_FILES = {".env"}
+RESTORE_CONFIRMATION_PHRASE = "RESTORE_OVERWRITE_CONFIRMED"
 
 
 def _sha256(path: Path) -> str:
@@ -81,7 +82,12 @@ def _extract_and_verify(backup_path: Path, temp_root: Path) -> list[tuple[Path, 
     return restore_items
 
 
-def restore_backup(backup_path: Path, force: bool = False, dry_run: bool = False) -> list[str]:
+def restore_backup(
+    backup_path: Path,
+    force: bool = False,
+    dry_run: bool = False,
+    confirmation: str | None = None,
+) -> list[str]:
     """Yedeği doğrular, force verilirse dosyaları geri yükler."""
     if not backup_path.is_file():
         raise FileNotFoundError(f"Yedek bulunamadi: {backup_path}")
@@ -92,6 +98,11 @@ def restore_backup(backup_path: Path, force: bool = False, dry_run: bool = False
             return restored_paths
         if not force:
             raise RuntimeError("Geri yukleme dosya yazar; devam etmek icin --force kullanin.")
+        if confirmation != RESTORE_CONFIRMATION_PHRASE:
+            raise RuntimeError(
+                "Geri yukleme mevcut dosyalarin ustune yazar; devam etmek icin "
+                f"--confirm-restore {RESTORE_CONFIRMATION_PHRASE} kullanin."
+            )
         for source, target in restore_items:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
@@ -103,8 +114,13 @@ def main() -> None:
     parser.add_argument("backup", type=Path, help="Yedek zip dosyasi.")
     parser.add_argument("--force", action="store_true", help="Dogrulanan dosyalari hedefe yaz.")
     parser.add_argument("--dry-run", action="store_true", help="Sadece arsivi dogrula ve yazilacak dosyalari listele.")
+    parser.add_argument(
+        "--confirm-restore",
+        default=None,
+        help=f"Yazma islemi icin ikinci onay metni: {RESTORE_CONFIRMATION_PHRASE}",
+    )
     args = parser.parse_args()
-    restored = restore_backup(args.backup, force=args.force, dry_run=args.dry_run)
+    restored = restore_backup(args.backup, force=args.force, dry_run=args.dry_run, confirmation=args.confirm_restore)
     action = "Dogrulandi" if args.dry_run or not args.force else "Geri yuklendi"
     print(f"{action}: {len(restored)} dosya")
     for path in restored:

@@ -145,10 +145,10 @@ Arşivi yazmadan doğrulamak için:
 venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --dry-run
 ```
 
-Geri yükleme mevcut dosyaların üstüne yazar; `recordings/` arşiv prefix'i o andaki `RECORDING_STORAGE_DIR` hedefine açılır. Uygulama kapalıyken ve yalnızca doğrulanmış arşivlerde çalıştırılmalıdır:
+Geri yükleme mevcut dosyaların üstüne yazar; `recordings/` arşiv prefix'i o andaki `RECORDING_STORAGE_DIR` hedefine açılır. Uygulama kapalıyken ve yalnızca doğrulanmış arşivlerde, iki aşamalı onayla çalıştırılmalıdır:
 
 ```bash
-venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --force
+venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --force --confirm-restore RESTORE_OVERWRITE_CONFIRMED
 ```
 
 ### 4.2. Alarm Operasyon Raporları

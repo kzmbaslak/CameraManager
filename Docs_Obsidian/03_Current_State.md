@@ -1,6 +1,7 @@
 # Latest Camera/NVR Connectivity Note
 
 - 2026-09-09: Sistem yedegi dis kayit storage kapsamiyla genisletildi. `RECORDING_STORAGE_DIR` varsayilan `backend/data` disina tasinmissa video kayitlari arsivde `recordings/` prefix'iyle SHA-256 manifestine eklenir; restore script'i bu prefix'i mevcut `RECORDING_STORAGE_DIR` hedefine guvenli path siniriyla acar.
+- 2026-09-09: Restore yazma islemi cift onayli hale getirildi. `--dry-run` yalniz dogrulama yapar; gercek geri yukleme icin `--force` yaninda `--confirm-restore RESTORE_OVERWRITE_CONFIRMED` gerekir.
 - 2026-07-28: Login brute-force gorunurlugu security posture'a eklendi. `/api/security/posture` aktif basarisiz login penceresini anahtar/IP/kullanici sizdirmadan toplam deneme, aktif anahtar, anahtar basina maksimum deneme, limit ve pencere suresi olarak raporlar; Dashboard Guvenlik Kontrolu aktif deneme varsa `login deneme` ozetini gosterir.
 - 2026-07-29: Login rate-limit tetiklendiginde `auth.login_rate_limited` audit olayi yazilir. Olay kullanici adini normalize eder, kaynak IP'yi audit alaninda tutar ve metadata'da yalnizca deneme sayisi, limit ve pencere suresini kaydeder; parola veya token yazilmaz.
 - 2026-07-29: Parola degistirme akisi basarisiz denemeleri de audit log'a yazar. Kullanici yok/pasif ve eski parola uyusmazligi durumlari `auth.change_password` basarisiz olayi olarak yalnizca neden kodu, actor ve kaynak IP ile kaydedilir; parola degeri loglanmaz.

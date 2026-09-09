@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import os
 import sqlite3
 import tempfile
@@ -87,6 +89,35 @@ class SystemBackupRecordingTests(unittest.TestCase):
                 restore_system.DEFAULT_RECORDING_DIR = old_default_recording_dir
 
             self.assertEqual(target, recording_root / "cam_1" / "event.mp4")
+
+    def test_force_restore_requires_explicit_confirmation_phrase(self):
+        restore_system = _load_restore_module()
+        with tempfile.TemporaryDirectory() as backend_tmp:
+            backend_root = Path(backend_tmp)
+            source_file = backend_root / "source.txt"
+            source_file.write_text("restored", encoding="utf-8")
+            archive_path = backend_root / "backup.zip"
+            digest = hashlib.sha256(source_file.read_bytes()).hexdigest()
+            manifest = {"files": [{"path": ".env", "sha256": digest, "size": source_file.stat().st_size}]}
+            with zipfile.ZipFile(archive_path, "w") as archive:
+                archive.write(source_file, ".env")
+                archive.writestr("manifest.json", json.dumps(manifest))
+
+            old_backend_dir = restore_system.BACKEND_DIR
+            try:
+                restore_system.BACKEND_DIR = backend_root
+                with self.assertRaisesRegex(RuntimeError, "--confirm-restore"):
+                    restore_system.restore_backup(archive_path, force=True)
+                restored = restore_system.restore_backup(
+                    archive_path,
+                    force=True,
+                    confirmation=restore_system.RESTORE_CONFIRMATION_PHRASE,
+                )
+            finally:
+                restore_system.BACKEND_DIR = old_backend_dir
+
+            self.assertIn(str(backend_root / ".env"), restored)
+            self.assertEqual((backend_root / ".env").read_text(encoding="utf-8"), "restored")
 
 
 if __name__ == "__main__":
