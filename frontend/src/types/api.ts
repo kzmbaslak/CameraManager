@@ -117,84 +117,11 @@ export type RecordingSegmentListResponse = OpenApiSchemas['RecordingSegmentListR
 export type RecordingMetadata = OpenApiSchemas['RecordingMetadataResponse']
 export type RecordingPruneResult = OpenApiSchemas['RecordingPruneResponse']
 
-export interface SecurityPostureFinding {
-  severity: 'critical' | 'high' | 'medium' | 'low' | string
-  message: string
-}
-
-export interface SetupCheck {
-  key: string
-  ok: boolean
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | string
-  message: string
-}
-
-export interface SecurityPosture {
-  status: 'hardened' | 'attention' | string
-  jwt_secret_configured: boolean
-  camera_encryption_key_configured: boolean
-  cors_origins_configured: boolean
-  trusted_hosts_configured: boolean
-  https_enabled: boolean
-  secure_cookie_auth: boolean
-  audit_chain_secret_configured: boolean
-  audit_webhook_configured: boolean
-  alarm_report_webhook_configured: boolean
-  alarm_report_email_configured: boolean
-  app_log_rotation_configured: boolean
-  app_log_json_format: boolean
-  app_log_sensitive_query_masking: boolean
-  device_password_rotation_days: number
-  device_password_rotation_compliant: boolean
-  device_password_total_count: number
-  device_total_count: number
-  device_without_password_count: number
-  camera_without_password_count: number
-  nvr_without_password_count: number
-  camera_default_rtsp_port_count: number
-  camera_default_onvif_port_count: number
-  nvr_default_onvif_port_count: number
-  device_default_onvif_port_count: number
-  camera_onvif_capability_unknown_count: number
-  camera_ptz_supported_count: number
-  overdue_device_password_count: number
-  missing_device_password_rotation_count: number
-  overdue_camera_password_count: number
-  overdue_nvr_password_count: number
-  security_headers_enabled: boolean
-  content_security_policy_enabled: boolean
-  setup_checks: SetupCheck[]
-  stream_token_transport: string
-  stream_token_ttl_seconds: number
-  active_failed_login_key_count: number
-  active_failed_login_attempt_count: number
-  max_failed_login_attempts_for_key: number
-  failed_login_limit: number
-  failed_login_window_seconds: number
-  recording_storage_dir_configured: boolean
-  recording_retention_days: number
-  recording_max_storage_mb: number
-  recording_prune_interval_minutes: number
-  recording_event_pre_seconds: number
-  recording_event_post_seconds: number
-  recording_continuous_enabled: boolean
-  continuous_recording_excluded_camera_count: number
-  recording_continuous_segment_seconds: number
-  recording_continuous_fps: number
-  recording_continuous_active_start: string | null
-  recording_continuous_active_end: string | null
-  findings: SecurityPostureFinding[]
-}
-
-export interface SecurityPermissions {
-  role: string | null
-  permissions: string[]
-}
-
-export interface SetupStatus {
-  ready: boolean
-  checks: SetupCheck[]
-}
+export type SecurityPostureFinding = OpenApiSchemas['SecurityPostureFindingResponse']
+export type SetupCheck = OpenApiSchemas['SetupCheckResponse']
+export type SecurityPosture = OpenApiSchemas['SecurityPostureResponse']
+export type SecurityPermissions = OpenApiSchemas['SecurityPermissionsResponse']
+export type SetupStatus = OpenApiSchemas['SetupStatusResponse']
 
 export interface AuditEvent {
   timestamp: string

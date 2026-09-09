@@ -29,17 +29,24 @@ from src.presentation.api.routes.nvrs import router as nvrs_router
 from src.presentation.api.routes.recordings import router as recordings_router
 from src.presentation.api.routes.streams import router as streams_router
 from src.presentation.api.routes.users import router as users_router
+from src.presentation.api.schemas.system_schema import (
+    HealthResponse,
+    ReadinessResponse,
+    SecurityPermissionsResponse,
+    SecurityPostureResponse,
+    SetupStatusResponse,
+)
 
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 def health_check():
     """Sistemin ayakta olup olmadigini kontrol eder."""
     return {"status": "healthy"}
 
 
-@router.get("/health/ready")
+@router.get("/health/ready", response_model=ReadinessResponse)
 def readiness_check(response: Response):
     """Servis monitorleri icin hassas detay sizdirmayan hazirlik kontrolu."""
     checks = collect_setup_checks()
@@ -65,7 +72,7 @@ def readiness_check(response: Response):
     }
 
 
-@router.get("/security/posture")
+@router.get("/security/posture", response_model=SecurityPostureResponse)
 def security_posture(
     current_user: dict = Depends(get_security_status_user),
     db: Session = Depends(get_db),
@@ -350,7 +357,7 @@ def security_posture(
     }
 
 
-@router.get("/security/permissions")
+@router.get("/security/permissions", response_model=SecurityPermissionsResponse)
 def security_permissions(current_user: dict = Depends(get_current_user)):
     """Mevcut kullanicinin rol ve politika izinlerini dondurur."""
     permissions = sorted(get_role_permissions(current_user.get("role")))
@@ -360,7 +367,7 @@ def security_permissions(current_user: dict = Depends(get_current_user)):
     }
 
 
-@router.get("/setup/status")
+@router.get("/setup/status", response_model=SetupStatusResponse)
 def setup_status(current_user: dict = Depends(get_security_status_user)):
     """Kurulum dosyasi, model, DB semasi ve admin hazirligini raporlar."""
     checks = [

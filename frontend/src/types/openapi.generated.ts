@@ -527,6 +527,7 @@ export type OpenApiSchemaName =
   | "CameraStreamTokenResponse"
   | "CameraUpdate"
   | "ChangePasswordRequest"
+  | "HealthResponse"
   | "HTTPValidationError"
   | "LoginRequest"
   | "NVRChannelInfo"
@@ -539,11 +540,18 @@ export type OpenApiSchemaName =
   | "NVRScanRequest"
   | "NVRScanResponse"
   | "NVRUpdate"
+  | "ReadinessCheckResponse"
+  | "ReadinessResponse"
   | "RecordingDetectionItem"
   | "RecordingMetadataResponse"
   | "RecordingPruneResponse"
   | "RecordingSegmentListResponse"
   | "RecordingSegmentResponse"
+  | "SecurityPermissionsResponse"
+  | "SecurityPostureFindingResponse"
+  | "SecurityPostureResponse"
+  | "SetupCheckResponse"
+  | "SetupStatusResponse"
   | "TokenResponse"
   | "UserCreate"
   | "UserPageResponse"
@@ -1002,6 +1010,9 @@ export type OpenApiSchemas = {
     "new_password": string
     "old_password": string
   }
+  "HealthResponse": {
+    "status": string
+  }
   "HTTPValidationError": {
     "detail"?: Array<OpenApiSchemas["ValidationError"]>
   }
@@ -1098,6 +1109,18 @@ export type OpenApiSchemas = {
     "password"?: (string) | (null)
     "username"?: (string) | (null)
   }
+  "ReadinessCheckResponse": {
+    "key": string
+    "ok": boolean
+    "severity": ("critical" | "high" | "medium" | "low" | "info") | (string)
+  }
+  "ReadinessResponse": {
+    "blocking_issue_count": number
+    "checks": Array<OpenApiSchemas["ReadinessCheckResponse"]>
+    "ready": boolean
+    "status": ("ready" | "degraded") | (string)
+    "warning_count": number
+  }
   "RecordingDetectionItem": {
     "bounding_box": OpenApiSchemas["BoundingBoxSchema"]
     "confidence": number
@@ -1144,6 +1167,80 @@ export type OpenApiSchemas = {
     "started_at": string
     "status": string
     "width"?: (number) | (null)
+  }
+  "SecurityPermissionsResponse": {
+    "permissions": Array<string>
+    "role"?: (string) | (null)
+  }
+  "SecurityPostureFindingResponse": {
+    "message": string
+    "severity": ("critical" | "high" | "medium" | "low") | (string)
+  }
+  "SecurityPostureResponse": {
+    "active_failed_login_attempt_count": number
+    "active_failed_login_key_count": number
+    "alarm_report_email_configured": boolean
+    "alarm_report_webhook_configured": boolean
+    "app_log_json_format": boolean
+    "app_log_rotation_configured": boolean
+    "app_log_sensitive_query_masking": boolean
+    "audit_chain_secret_configured": boolean
+    "audit_webhook_configured": boolean
+    "camera_default_onvif_port_count": number
+    "camera_default_rtsp_port_count": number
+    "camera_encryption_key_configured": boolean
+    "camera_onvif_capability_unknown_count": number
+    "camera_ptz_supported_count": number
+    "camera_without_password_count": number
+    "content_security_policy_enabled": boolean
+    "continuous_recording_excluded_camera_count": number
+    "cors_origins_configured": boolean
+    "device_default_onvif_port_count": number
+    "device_password_rotation_compliant": boolean
+    "device_password_rotation_days": number
+    "device_password_total_count": number
+    "device_total_count": number
+    "device_without_password_count": number
+    "failed_login_limit": number
+    "failed_login_window_seconds": number
+    "findings": Array<OpenApiSchemas["SecurityPostureFindingResponse"]>
+    "https_enabled": boolean
+    "jwt_secret_configured": boolean
+    "max_failed_login_attempts_for_key": number
+    "missing_device_password_rotation_count": number
+    "nvr_default_onvif_port_count": number
+    "nvr_without_password_count": number
+    "overdue_camera_password_count": number
+    "overdue_device_password_count": number
+    "overdue_nvr_password_count": number
+    "recording_continuous_active_end"?: (string) | (null)
+    "recording_continuous_active_start"?: (string) | (null)
+    "recording_continuous_enabled": boolean
+    "recording_continuous_fps": number
+    "recording_continuous_segment_seconds": number
+    "recording_event_post_seconds": number
+    "recording_event_pre_seconds": number
+    "recording_max_storage_mb": number
+    "recording_prune_interval_minutes": number
+    "recording_retention_days": number
+    "recording_storage_dir_configured": boolean
+    "secure_cookie_auth": boolean
+    "security_headers_enabled": boolean
+    "setup_checks": Array<OpenApiSchemas["SetupCheckResponse"]>
+    "status": ("hardened" | "attention") | (string)
+    "stream_token_transport": string
+    "stream_token_ttl_seconds": number
+    "trusted_hosts_configured": boolean
+  }
+  "SetupCheckResponse": {
+    "key": string
+    "message": string
+    "ok": boolean
+    "severity": ("critical" | "high" | "medium" | "low" | "info") | (string)
+  }
+  "SetupStatusResponse": {
+    "checks": Array<OpenApiSchemas["SetupCheckResponse"]>
+    "ready": boolean
   }
   "TokenResponse": {
     "access_token": string

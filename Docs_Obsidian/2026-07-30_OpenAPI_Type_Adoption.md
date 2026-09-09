@@ -22,4 +22,5 @@
 - `camerasApi` toplu AI payload tipi `CameraBulkAiSettingsRequest` generated semasini kullanir.
 - Kamera PTZ preset'e git payload tipi `CameraPtzGotoPresetRequest` generated semasini kullanir.
 - Kamera PTZ response tipleri generated OpenAPI semalarindan beslenir.
+- Security posture, security permissions, setup status, readiness ve health response tipleri backend Pydantic `response_model` ile OpenAPI'ya dahil edilir; frontend bu sistem tiplerini generated sema haritasindan besler.
 - Contract testi manuel tiplerin generated OpenAPI sema haritasini kullanmaya devam ettigini denetler.
