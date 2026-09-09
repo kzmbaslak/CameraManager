@@ -60,27 +60,7 @@ export interface Detection {
   bounding_box: BoundingBox
 }
 
-export interface Alarm {
-  id: number
-  camera_id: number
-  alarm_type: AlarmType
-  status: AlarmStatus
-  confidence: number | null
-  bounding_box: BoundingBox | null
-  snapshot_path: string | null
-  snapshot_sha256: string | null
-  snapshot_annotated_path: string | null
-  snapshot_annotated_sha256: string | null
-  message: string | null
-  severity: AlarmSeverity
-  false_positive: boolean
-  assigned_to: string | null
-  operator_note: string | null
-  resolution_reason: string | null
-  created_at: string | null
-  acknowledged_at: string | null
-  resolved_at: string | null
-}
+export type Alarm = OpenApiSchemas['AlarmResponse']
 
 export type AlarmTrainingFeedbackItem = OpenApiSchemas['AlarmTrainingFeedbackItem']
 export type AlarmEvidenceFileItem = OpenApiSchemas['AlarmEvidenceFileItem']

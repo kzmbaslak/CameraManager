@@ -54,6 +54,7 @@ const severityLabel = { low: 'Dusuk', medium: 'Orta', high: 'Yuksek', critical: 
 const severityVariant = { low: 'neutral', medium: 'warning', high: 'danger', critical: 'danger' } as const
 
 export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowledging }: AlarmRowProps) {
+  const severity = alarm.severity ?? 'medium'
   const cfg = typeConfig[alarm.alarm_type] ?? {
     label: alarm.alarm_type,
     icon: null,
@@ -89,8 +90,8 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
           <Badge variant={statusVariant[alarm.status]} dot>
             {alarm.false_positive ? 'Yanlis Alarm' : statusLabel[alarm.status]}
           </Badge>
-          <Badge variant={severityVariant[alarm.severity]}>
-            {severityLabel[alarm.severity]}
+          <Badge variant={severityVariant[severity]}>
+            {severityLabel[severity]}
           </Badge>
         </div>
       </td>

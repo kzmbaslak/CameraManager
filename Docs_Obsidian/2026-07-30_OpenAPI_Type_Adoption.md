@@ -11,6 +11,7 @@
 - Kamera health sample/summary/list response tipleri generated OpenAPI semalarindan beslenir; health paneli eksik latency alanini guvenli varsayilanla karsilar.
 - Kayit segment/list/metadata/prune response tipleri generated OpenAPI semalarindan beslenir; kayit ekrani optional boyut/tarih/confidence alanlarini guvenli formatter'larla karsilar.
 - Alarm evidence/training-feedback/threshold response tipleri generated OpenAPI semalarindan beslenir; threshold tablosu optional confidence alanlarini guvenli formatter'la karsilar.
+- Alarm ana response tipi generated OpenAPI semasindan beslenir; alarm satiri ve detay formu eksik severity alanini `medium` varsayilaniyla karsilar.
 - Auth token ve kamera stream token response tipleri generated OpenAPI semalarindan beslenir; stream token endpoint'i backend response_model ile OpenAPI'ya dahil edilir.
 - Kamera, NVR ve kullanici update payload tipleri generated OpenAPI semalarindan beslenir.
 - Alarm update, alarm resolve ve threshold uygulama payload tipleri generated OpenAPI semalarindan beslenir.

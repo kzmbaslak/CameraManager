@@ -68,7 +68,7 @@ function dateRangeStart(range: DateRange): Date | null {
 const optionLabel = <T extends string>(options: { value: T | 'all'; label: string }[], value: T) =>
   options.find((item) => item.value === value)?.label ?? value
 
-const severityLabel = (value: AlarmSeverity) =>
+const severityLabel = (value: AlarmSeverity | undefined) =>
   SEVERITY_OPTIONS.find((item) => item.value === value)?.label ?? value
 
 const percentLabel = (value: number | null | undefined) =>
@@ -109,7 +109,7 @@ function buildAlarmCsv(alarms: Alarm[], cameraNames: Record<number, string>) {
     cameraNames[alarm.camera_id] ?? `Kamera #${alarm.camera_id}`,
     optionLabel(TYPE_OPTIONS, alarm.alarm_type),
     alarm.false_positive ? 'Yanlis Alarm' : optionLabel(STATUS_OPTIONS, alarm.status),
-    severityLabel(alarm.severity),
+    severityLabel(alarm.severity ?? 'medium'),
     alarm.false_positive ? 'Evet' : 'Hayir',
     alarm.confidence == null ? '' : `${Math.round(alarm.confidence * 100)}%`,
     alarm.assigned_to ?? '',
@@ -329,7 +329,7 @@ function AlarmDetailDrawer({
   const [assignedTo, setAssignedTo] = useState(alarm.assigned_to ?? '')
   const [operatorNote, setOperatorNote] = useState(alarm.operator_note ?? '')
   const [resolutionReason, setResolutionReason] = useState(alarm.resolution_reason ?? '')
-  const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity)
+  const [severity, setSeverity] = useState<AlarmSeverity>(alarm.severity ?? 'medium')
   const snapshotFilename = alarm.snapshot_annotated_path ? `alarm-${alarm.id}-kutulu-kanit.jpg` : `alarm-${alarm.id}-snapshot.jpg`
   const rawSnapshotFilename = `alarm-${alarm.id}-ham-kanit.jpg`
 

@@ -82,6 +82,7 @@ assertContains(authApi, '/auth/change-password', 'auth change password endpoint'
 assertContains(alarmsApi, '/alarms/threshold-suggestions/apply', 'alarm threshold apply endpoint')
 assertContains(alarmsApi, '/evidence-manifest', 'alarm evidence manifest endpoint')
 assertContains(alarmsApi, '/evidence-report', 'alarm evidence report endpoint')
+assertContains(frontendApiTypes, "OpenApiSchemas['AlarmResponse']", 'frontend alarm response uses generated schema')
 assertContains(alarmsApi, "OpenApiSchemas['AlarmUpdate']", 'alarm update payload uses generated schema')
 assertContains(alarmsApi, "OpenApiSchemas['AlarmResolveRequest']", 'alarm resolve payload uses generated schema')
 assertContains(alarmsApi, "OpenApiSchemas['AlarmThresholdSuggestionApplyRequest']", 'alarm threshold apply payload uses generated schema')
