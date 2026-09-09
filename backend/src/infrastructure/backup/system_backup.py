@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import tempfile
 import zipfile
@@ -15,6 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_DIR = BACKEND_DIR / "backups"
 BACKUP_FILE_PATTERN = "kamera-backup-*.zip"
 DB_PATH = BACKEND_DIR / "data" / "nvr_system.db"
+DEFAULT_RECORDING_DIR = BACKEND_DIR / "data" / "recordings"
 INCLUDE_PATHS = [
     BACKEND_DIR / ".env",
     BACKEND_DIR / "data",
@@ -41,6 +43,46 @@ def _iter_files(paths: list[Path]) -> list[Path]:
         elif path.is_file():
             files.append(path)
     return sorted(set(files))
+
+
+def _recording_storage_dir() -> Path:
+    """Kayit kok dizinini backup icin env veya varsayilandan cozer."""
+    return Path(os.environ.get("RECORDING_STORAGE_DIR", str(DEFAULT_RECORDING_DIR))).resolve()
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    return path == root or root in path.parents
+
+
+def _is_covered_by_static_include(path: Path) -> bool:
+    for include_path in INCLUDE_PATHS:
+        resolved = include_path.resolve()
+        if _is_within(path, resolved):
+            return True
+    return False
+
+
+def _backup_entries(files: list[Path]) -> list[tuple[Path, str]]:
+    entries: dict[str, Path] = {}
+    for file_path in files:
+        if file_path == DB_PATH:
+            continue
+        if file_path.name == "nvr_system.db" and file_path.parent.name == "data" and not _is_within(file_path, BACKEND_DIR):
+            entries["data/nvr_system.db"] = file_path
+            continue
+        if _is_within(file_path, BACKEND_DIR):
+            arcname = file_path.relative_to(BACKEND_DIR).as_posix()
+        else:
+            continue
+        entries[arcname] = file_path
+
+    recording_root = _recording_storage_dir()
+    if recording_root.exists() and not _is_covered_by_static_include(recording_root):
+        for file_path in _iter_files([recording_root]):
+            relative = file_path.relative_to(recording_root).as_posix()
+            entries[f"recordings/{relative}"] = file_path
+
+    return [(path, arcname) for arcname, path in sorted(entries.items())]
 
 
 def _backup_sqlite(source: Path, target: Path) -> None:
@@ -77,13 +119,7 @@ def create_backup(output: Path | None = None) -> Path:
             "files": [],
         }
         with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for file_path in files:
-                if file_path == DB_PATH:
-                    continue
-                if file_path == db_copy:
-                    arcname = "data/nvr_system.db"
-                else:
-                    arcname = file_path.relative_to(BACKEND_DIR).as_posix()
+            for file_path, arcname in _backup_entries(files):
                 archive.write(file_path, arcname)
                 manifest["files"].append({
                     "path": arcname,

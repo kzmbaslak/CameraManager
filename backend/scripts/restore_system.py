@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import tempfile
 import zipfile
@@ -12,7 +13,8 @@ from pathlib import Path
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-RESTORABLE_PREFIXES = ("data/", "models/", "snapshots/")
+DEFAULT_RECORDING_DIR = BACKEND_DIR / "data" / "recordings"
+RESTORABLE_PREFIXES = ("data/", "models/", "snapshots/", "recordings/")
 RESTORABLE_FILES = {".env"}
 
 
@@ -28,12 +30,22 @@ def _is_restorable(path: str) -> bool:
     return path in RESTORABLE_FILES or any(path.startswith(prefix) for prefix in RESTORABLE_PREFIXES)
 
 
+def _recording_storage_dir() -> Path:
+    return Path(os.environ.get("RECORDING_STORAGE_DIR", str(DEFAULT_RECORDING_DIR))).resolve()
+
+
 def _safe_target(path: str) -> Path:
+    if not _is_restorable(path):
+        raise ValueError(f"Arsiv yolu geri yukleme kapsaminda degil: {path}")
+    if path.startswith("recordings/"):
+        target = (_recording_storage_dir() / path.removeprefix("recordings/")).resolve()
+        recording_root = _recording_storage_dir()
+        if recording_root not in target.parents and target != recording_root:
+            raise ValueError(f"Arsiv yolu guvenli degil: {path}")
+        return target
     target = (BACKEND_DIR / path).resolve()
     if BACKEND_DIR not in target.parents and target != BACKEND_DIR:
         raise ValueError(f"Arsiv yolu guvenli degil: {path}")
-    if not _is_restorable(path):
-        raise ValueError(f"Arsiv yolu geri yukleme kapsaminda degil: {path}")
     return target
 
 

@@ -120,7 +120,7 @@ Yetkili `setup/status` ve `security/posture` kontrolleri ayrıntılı mesaj dön
 
 ### 4.1. Yedekleme ve Geri Yükleme
 
-SQLite veritabanı, `.env`, `backend/data`, YOLO modeli ve snapshot dosyalarını SHA-256 manifest ile yedeklemek için:
+SQLite veritabanı, `.env`, `backend/data`, YOLO modeli, snapshot dosyaları ve `RECORDING_STORAGE_DIR` dış storage'a taşınmışsa video kayıtlarını SHA-256 manifest ile yedeklemek için:
 
 ```bash
 venv\Scripts\python scripts\backup_system.py
@@ -145,7 +145,7 @@ Arşivi yazmadan doğrulamak için:
 venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --dry-run
 ```
 
-Geri yükleme mevcut dosyaların üstüne yazar; uygulama kapalıyken ve yalnızca doğrulanmış arşivlerde çalıştırılmalıdır:
+Geri yükleme mevcut dosyaların üstüne yazar; `recordings/` arşiv prefix'i o andaki `RECORDING_STORAGE_DIR` hedefine açılır. Uygulama kapalıyken ve yalnızca doğrulanmış arşivlerde çalıştırılmalıdır:
 
 ```bash
 venv\Scripts\python scripts\restore_system.py backups\kamera-backup-YYYYMMDD-HHMMSS.zip --force
