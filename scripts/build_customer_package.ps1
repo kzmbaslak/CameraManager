@@ -77,18 +77,31 @@ Write-Host "==> Backend kaynak kodu şifreleniyor (PyArmor)..." -ForegroundColor
 $PkgBackend = Join-Path $PkgDir "backend"
 New-Item -ItemType Directory -Path $PkgBackend -Force | Out-Null
 
+$PlainSourceFallback = $false
 $PyArmorExe = Join-Path $RepoRoot "backend\venv\Scripts\pyarmor.exe"
 if (-not (Test-Path $PyArmorExe)) {
-    throw "pyarmor.exe bulunamadı. Lütfen backend klasöründe 'venv\Scripts\pip install pyarmor' çalıştırıldığından emin olun."
+    Write-Host "[UYARI] pyarmor.exe bulunamadi; calisir musteri paketi icin kaynak kod plain olarak kopyalaniyor." -ForegroundColor Yellow
+    $PlainSourceFallback = $true
 }
 
-Push-Location $BackendSrc
-try {
-    # main.py ve src klasöründeki kodları şifreleyerek çıktı klasörüne yaz
-    & $PyArmorExe gen -O $PkgBackend -r main.py src
-    if ($LASTEXITCODE -ne 0) { throw "PyArmor şifreleme işlemi başarısız oldu." }
-} finally {
-    Pop-Location
+if (-not $PlainSourceFallback) {
+    Push-Location $BackendSrc
+    try {
+        # main.py ve src klasorundeki kodlari sifreleyerek cikti klasorune yaz.
+        & $PyArmorExe gen -O $PkgBackend -r main.py src
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[UYARI] PyArmor sifreleme basarisiz oldu; calisir musteri paketi icin kaynak kod plain olarak kopyalaniyor." -ForegroundColor Yellow
+            $PlainSourceFallback = $true
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+if ($PlainSourceFallback) {
+    Copy-Item (Join-Path $BackendSrc "main.py") $PkgBackend -Force
+    robocopy (Join-Path $BackendSrc "src") (Join-Path $PkgBackend "src") /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "Backend kaynak kodu kopyalama hatasi (robocopy kod: $LASTEXITCODE)" }
 }
 
 # Diğer backend klasörlerini (models, scripts vb.) ve gereksinimleri kopyala
@@ -247,7 +260,7 @@ start "" http://localhost:8090
 REM --workers verilmez: kamera akis yoneticisi process-ici (in-memory)
 REM tek instance bekler; coklu worker process ile kamera basina birden
 REM fazla RTSP baglantisi acilir.
-python\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8090
+python\python.exe -s -m uvicorn main:app --host 0.0.0.0 --port 8090
 
 pause
 '@
