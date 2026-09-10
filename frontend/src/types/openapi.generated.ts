@@ -1190,6 +1190,10 @@ export type OpenApiSchemas = {
     "camera_default_onvif_port_count": number
     "camera_default_rtsp_port_count": number
     "camera_encryption_key_configured": boolean
+    "camera_health_critical_availability_percent": number
+    "camera_health_max_latency_ms": number
+    "camera_health_stale_sample_seconds": number
+    "camera_health_warning_availability_percent": number
     "camera_onvif_capability_unknown_count": number
     "camera_ptz_supported_count": number
     "camera_without_password_count": number

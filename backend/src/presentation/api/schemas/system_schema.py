@@ -51,6 +51,10 @@ class SecurityPostureResponse(BaseModel):
     alarm_report_webhook_configured: bool
     alarm_report_email_configured: bool
     backup_external_archive_configured: bool
+    camera_health_critical_availability_percent: float
+    camera_health_warning_availability_percent: float
+    camera_health_max_latency_ms: float
+    camera_health_stale_sample_seconds: int
     app_log_rotation_configured: bool
     app_log_json_format: bool
     app_log_sensitive_query_masking: bool

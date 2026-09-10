@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from src.application.services.camera_health_policy import CameraHealthPolicy
 from src.infrastructure.backup.system_backup import external_archive_dir
 from src.infrastructure.database.database import get_db
 from src.infrastructure.database.models import CameraModel, NVRModel
@@ -296,6 +297,8 @@ def security_posture(
     if not backup_external_archive_configured:
         findings.append({"severity": "low", "message": "BACKUP_EXTERNAL_ARCHIVE_DIR ile yedekler kurumsal/NAS/kasa hedefine kopyalanmali."})
 
+    camera_health_policy = CameraHealthPolicy.from_environment()
+
     setup_checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
         for check in collect_setup_checks()
@@ -322,6 +325,10 @@ def security_posture(
         "alarm_report_webhook_configured": alarm_report_webhook_configured,
         "alarm_report_email_configured": alarm_report_email_configured,
         "backup_external_archive_configured": backup_external_archive_configured,
+        "camera_health_critical_availability_percent": camera_health_policy.critical_availability_percent,
+        "camera_health_warning_availability_percent": camera_health_policy.warning_availability_percent,
+        "camera_health_max_latency_ms": camera_health_policy.max_latency_ms,
+        "camera_health_stale_sample_seconds": camera_health_policy.stale_sample_seconds,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,

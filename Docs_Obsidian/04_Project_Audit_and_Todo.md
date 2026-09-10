@@ -55,6 +55,8 @@ Riskler:
 
 ### P1 - AI ve Olay Tespiti
 
+- Kamera saglik/kayip kapasite esikleri `CAMERA_HEALTH_CRITICAL_AVAILABILITY_PERCENT`, `CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT`, `CAMERA_HEALTH_MAX_LATENCY_MS` ve `CAMERA_HEALTH_STALE_SAMPLE_SECONDS` ile merkezi politikaya baglandi. Arka plan `camera_health_degraded` alarm servisi ve kamera listesi saglik ozeti ayni esikleri kullanir; `/api/security/posture` bu degerleri operator/admin gorunurlugune tasir. Kalan is saglik metriklerini daha ayrintili gecmis grafikleriyle zenginlestirmek.
+
 - AI pipeline ayrıştırıldı: canlı yayın capture hattı artık ayrı çalışıyor, AI tespiti ise arka planda bağımsız görev olarak tetikleniyor. Kamera bazlı frame stride ve düşük çözünürlüklü AI örnekleme ayarları eklendi; bounding box koordinatları orijinal kareye geri ölçekleniyor. Kalan iş bu ayarları otomatik yük/adaptif kalite politikasına bağlamak.
 - RTSP açılış optimizasyonu ve sağlık görünürlüğü genişletildi: `OpenCVStreamReader` ilk başarılı frame'i cache'ler, cihaz bazlı warm-up/backoff uygular; health checker TCP erişilebilirlik, latency ve hata nedenini kaydeder. Canlı stream diagnostics son 10 saniyelik FPS, producer uptime/start sayısı ve RTSP reconnect sayısını gösterir; kalıcı stream-history özeti Dashboard Kapasite Trendi kartında görünür. Kalan iyileştirme, bu metrikleri ayrıntılı geçmiş grafiğine ve yönetilebilir eşik tabanlı kapasite alarm politikasına bağlamak.
 - Vite build kökü açıkça sabitlendi; Windows path çözümleme kaynaklı HTML emit hatası giderildi ve frontend build tekrar kararlı.

@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-09-10: Kamera saglik/kayip kapasite esikleri merkezi politikaya alindi. `CAMERA_HEALTH_CRITICAL_AVAILABILITY_PERCENT`, `CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT`, `CAMERA_HEALTH_MAX_LATENCY_MS` ve `CAMERA_HEALTH_STALE_SAMPLE_SECONDS` env ayarlari hem arka plan `camera_health_degraded` alarm kararinda hem de kamera listesi saglik ozetinde kullanilir; `/api/security/posture` bu esikleri raporlar.
 - 2026-09-09: Sistem yedegi dis kayit storage kapsamiyla genisletildi. `RECORDING_STORAGE_DIR` varsayilan `backend/data` disina tasinmissa video kayitlari arsivde `recordings/` prefix'iyle SHA-256 manifestine eklenir; restore script'i bu prefix'i mevcut `RECORDING_STORAGE_DIR` hedefine guvenli path siniriyla acar.
 - 2026-09-09: Restore yazma islemi cift onayli hale getirildi. `--dry-run` yalniz dogrulama yapar; gercek geri yukleme icin `--force` yaninda `--confirm-restore RESTORE_OVERWRITE_CONFIRMED` gerekir.
 - 2026-09-09: Yedekler icin opsiyonel dis arsiv hedefi eklendi. `BACKUP_EXTERNAL_ARCHIVE_DIR` tanimliysa sistem yedegi bu dizine kopyalanir ve `.sha256` sidecar yazilir; security posture ve Dashboard dis arsiv durumunu raporlar.

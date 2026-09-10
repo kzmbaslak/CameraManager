@@ -30,6 +30,7 @@ from src.presentation.api.dependencies import (
     frame_source,
 )
 from src.application.use_cases.camera_use_cases import CameraUseCases
+from src.application.services.camera_health_policy import CameraHealthPolicy
 from src.application.services.camera_stream_manager import CameraStreamManager
 from src.presentation.api.schemas.camera_schema import (
     CameraCreate,
@@ -130,23 +131,24 @@ def _camera_health_level(
     latest_failure_reason: str | None,
 ) -> tuple[str, str]:
     """Kamera saglik ozetinden operator icin karar seviyesi uretir."""
+    health_policy = CameraHealthPolicy.from_environment()
     if latest_reachable is None or latest_checked_at is None:
         return "unknown", "Saglik olcumu bekleniyor."
 
     age_seconds = (utc_now() - latest_checked_at).total_seconds()
-    if age_seconds > 120:
+    if age_seconds > health_policy.stale_sample_seconds:
         return "warning", f"Son saglik olcumu {int(age_seconds)} saniye once."
 
     if latest_reachable is False:
         return "critical", latest_failure_reason or "Kamera son olcumde erisilemedi."
 
-    if availability_percent is not None and availability_percent < 90:
+    if availability_percent is not None and availability_percent < health_policy.critical_availability_percent:
         return "critical", f"Son olcumlerde erisilebilirlik %{availability_percent}."
 
-    if availability_percent is not None and availability_percent < 98:
+    if availability_percent is not None and availability_percent < health_policy.warning_availability_percent:
         return "warning", f"Son olcumlerde erisilebilirlik %{availability_percent}."
 
-    if latest_latency_ms is not None and latest_latency_ms > 1000:
+    if latest_latency_ms is not None and latest_latency_ms > health_policy.max_latency_ms:
         return "warning", f"Yuksek latency: {latest_latency_ms:.0f} ms."
 
     return "ok", (

@@ -346,7 +346,7 @@ function OperatorAssistPanel({
           <p className="text-xs uppercase tracking-wide text-text-secondary">Kapasite Trendi</p>
           <p className="truncate text-sm text-text-primary">
             {streamTrends.length > 0
-              ? `FPS ort ${averageFps === null ? '-' : averageFps.toFixed(1)} | min ${minimumFps === null ? '-' : minimumFps.toFixed(1)} | reconnect ${trendReconnects} | hata ${trendOpenFailures}`
+              ? `FPS ort ${averageFps === null ? '-' : averageFps.toFixed(1)} | min ${minimumFps === null ? '-' : minimumFps.toFixed(1)} | latency esik ${security?.camera_health_max_latency_ms ?? 1000} ms | reconnect ${trendReconnects} | hata ${trendOpenFailures}`
               : 'Trend verisi toplaniyor'}
           </p>
         </div>

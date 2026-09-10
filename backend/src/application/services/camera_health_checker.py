@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
+from src.application.services.camera_health_policy import CameraHealthPolicy
 from src.infrastructure.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class CameraHealthChecker:
         camera_repository_factory=None,
         alarm_repository_factory=None,
         health_repository_factory=None,
+        health_policy: CameraHealthPolicy | None = None,
     ):
         self._check_interval = check_interval
         self._timeout = timeout
@@ -38,6 +40,7 @@ class CameraHealthChecker:
         self._camera_repository_factory = camera_repository_factory
         self._alarm_repository_factory = alarm_repository_factory
         self._health_repository_factory = health_repository_factory
+        self._health_policy = health_policy or CameraHealthPolicy.from_environment()
         self._task: asyncio.Task | None = None
         self._last_offline_alarm: Dict[int, datetime] = {}
         self._last_degraded_alarm: Dict[int, datetime] = {}
@@ -107,11 +110,11 @@ class CameraHealthChecker:
         sample_count = len(samples)
         reachable_count = sum(1 for sample in samples if sample.reachable)
         availability = (reachable_count / sample_count) * 100 if sample_count else 100.0
-        if availability < 90:
+        if availability < self._health_policy.critical_availability_percent:
             return True, f"Kamera saglik uyarisi: erisilebilirlik %{availability:.1f}.", AlarmSeverity.HIGH
-        if availability < 98:
+        if availability < self._health_policy.warning_availability_percent:
             return True, f"Kamera saglik uyarisi: erisilebilirlik %{availability:.1f}.", AlarmSeverity.MEDIUM
-        if latest.latency_ms is not None and latest.latency_ms > 1000:
+        if latest.latency_ms is not None and latest.latency_ms > self._health_policy.max_latency_ms:
             return True, f"Kamera saglik uyarisi: yuksek latency {latest.latency_ms:.0f} ms.", AlarmSeverity.MEDIUM
         return False, "", AlarmSeverity.LOW
 
