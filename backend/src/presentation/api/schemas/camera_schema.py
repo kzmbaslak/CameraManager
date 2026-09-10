@@ -167,6 +167,47 @@ class CameraBulkAiSettingsRequest(BaseModel):
         return unique_ids
 
 
+class CameraBulkRecordingPolicyRequest(BaseModel):
+    """Secili kamera veya konum kapsamina kayit politikasini toplu uygular."""
+
+    camera_ids: list[int] = Field(default_factory=list, max_length=250)
+    continuous_recording_enabled: bool
+    site: Optional[str] = Field(default=None, max_length=120)
+    building: Optional[str] = Field(default=None, max_length=120)
+    floor: Optional[str] = Field(default=None, max_length=80)
+    zone: Optional[str] = Field(default=None, max_length=120)
+
+    @field_validator("camera_ids")
+    @classmethod
+    def _validate_camera_ids(cls, value: list[int]) -> list[int]:
+        unique_ids = []
+        seen = set()
+        for camera_id in value:
+            if camera_id <= 0:
+                raise ValueError("Kamera ID pozitif olmalidir.")
+            if camera_id not in seen:
+                seen.add(camera_id)
+                unique_ids.append(camera_id)
+        return unique_ids
+
+    @field_validator("site", "building", "floor", "zone")
+    @classmethod
+    def _normalize_scope_value(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
+
+
+class CameraBulkRecordingPolicyResponse(BaseModel):
+    """Toplu kayit politikasi uygulama sonucunu dondurur."""
+
+    updated_count: int
+    camera_ids: list[int]
+    continuous_recording_enabled: bool
+    scope: dict[str, Optional[str]]
+
+
 class CameraResponse(BaseModel):
     """Kamera yaniti."""
 

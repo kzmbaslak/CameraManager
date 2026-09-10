@@ -1,7 +1,7 @@
 // Kamera listesi, ekleme, düzenleme, silme ve AI tespiti yönetimi sayfası
 import { useMemo, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Plus, Trash2, Power, Pencil, Play, Search, SlidersHorizontal } from 'lucide-react'
+import { Activity, Film, Plus, Trash2, Power, Pencil, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { camerasApi, type CameraUpdate } from '../api/cameras'
 import { usePermissions } from '../hooks/usePermissions'
 import { Table } from '../components/ui/Table'
@@ -954,6 +954,7 @@ export function CamerasPage() {
   const [deleteTarget, setDeleteTarget] = useState<Camera | null>(null)
   const [selectedCameraIds, setSelectedCameraIds] = useState<Set<number>>(() => new Set())
   const [bulkAiPresetKey, setBulkAiPresetKey] = useState<(typeof AI_PRESETS)[number]['key']>('balanced')
+  const [bulkRecordingPolicy, setBulkRecordingPolicy] = useState<'continuous' | 'event'>('continuous')
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
   const { canManageCameras, canEditCameras } = usePermissions()
@@ -1023,6 +1024,10 @@ export function CamerasPage() {
     .filter((id) => selectedCameraIds.has(id))
   const allVisibleSelected = filteredCameras.length > 0 && selectedVisibleCameraIds.length === filteredCameras.length
   const selectedBulkAiPreset = AI_PRESETS.find((preset) => preset.key === bulkAiPresetKey) ?? AI_PRESETS[1]
+  const bulkRecordingTargetIds = selectedCameraIds.size > 0
+    ? Array.from(selectedCameraIds)
+    : filteredCameras.map((camera) => camera.id)
+  const bulkRecordingTargetLabel = selectedCameraIds.size > 0 ? 'secili kamera' : 'gorunen grup'
 
   const resetCameraFilters = () => {
     setCameraSearch('')
@@ -1127,6 +1132,26 @@ export function CamerasPage() {
     }),
   })
 
+  const bulkUpdateRecordingPolicy = useMutation({
+    mutationFn: () => camerasApi.bulkUpdateRecordingPolicy({
+      camera_ids: bulkRecordingTargetIds,
+      continuous_recording_enabled: bulkRecordingPolicy === 'continuous',
+    }),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({
+        variant: 'success',
+        title: 'Kayit sablonu uygulandi',
+        description: `${result.updated_count} kameraya ${result.continuous_recording_enabled ? 'surekli dahil' : 'olay klibi'} politikasi uygulandi.`,
+      })
+    },
+    onError: (err) => showToast({
+      variant: 'danger',
+      title: 'Kayit sablonu uygulanamadi',
+      description: getCameraErrorMessage(err, 'Secili kamera listesini, gorunen grubu ve yetkinizi kontrol edin.'),
+    }),
+  })
+
   const { data: streamHistory } = useQuery({
     queryKey: ['camera-stream-history', diagnosticResult?.camera_id],
     queryFn: () => camerasApi.diagnoseStreamHistory(diagnosticResult!.camera_id),
@@ -1150,8 +1175,8 @@ export function CamerasPage() {
         <input
           type="checkbox"
           checked={selectedCameraIds.has(c.id)}
-          disabled={!canEditCameras || bulkUpdateAiSettings.isPending}
-          aria-label={`${c.name} kamerasini toplu AI profili icin sec`}
+          disabled={!canEditCameras || bulkUpdateAiSettings.isPending || bulkUpdateRecordingPolicy.isPending}
+          aria-label={`${c.name} kamerasini toplu profil icin sec`}
           onChange={() => toggleCameraSelection(c.id)}
           className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
         />
@@ -1383,9 +1408,9 @@ export function CamerasPage() {
               <input
                 type="checkbox"
                 checked={allVisibleSelected}
-                disabled={filteredCameras.length === 0 || bulkUpdateAiSettings.isPending}
+                disabled={filteredCameras.length === 0 || bulkUpdateAiSettings.isPending || bulkUpdateRecordingPolicy.isPending}
                 onChange={toggleVisibleCameraSelection}
-                aria-label="Gorunen kameralari toplu AI profili icin sec"
+                aria-label="Gorunen kameralari toplu profil icin sec"
                 className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
               />
               Gorunenleri sec
@@ -1413,6 +1438,29 @@ export function CamerasPage() {
             >
               AI Profilini Uygula
             </Button>
+            <select
+              value={bulkRecordingPolicy}
+              onChange={(event) => setBulkRecordingPolicy(event.target.value as 'continuous' | 'event')}
+              aria-label="Toplu kayit sablonu sec"
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+            >
+              <option value="continuous">Surekli Dahil</option>
+              <option value="event">Olay Klibi</option>
+            </select>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Film size={14} />}
+              loading={bulkUpdateRecordingPolicy.isPending}
+              disabled={bulkRecordingTargetIds.length === 0}
+              onClick={() => bulkUpdateRecordingPolicy.mutate()}
+              title={selectedCameraIds.size > 0 ? 'Secili kameralara kayit sablonu uygula' : 'Ekrandaki filtreli kamera grubuna kayit sablonu uygula'}
+            >
+              Kayit Sablonunu Uygula
+            </Button>
+            <span className="text-xs text-[var(--text-secondary)]">
+              Hedef: {bulkRecordingTargetIds.length} {bulkRecordingTargetLabel}
+            </span>
           </div>
         </div>
       )}

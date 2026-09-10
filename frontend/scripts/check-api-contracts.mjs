@@ -102,8 +102,11 @@ assertContains(camerasApi, 'CameraPtzGotoPresetRequest', 'camera PTZ goto preset
 assertContains(camerasApi, '/ptz/home', 'camera PTZ home endpoint')
 assertContains(camerasApi, '/ptz/patrol', 'camera PTZ patrol endpoint')
 assertContains(camerasApi, '/cameras/bulk-ai-settings', 'camera bulk AI settings endpoint')
+assertContains(camerasApi, '/cameras/bulk-recording-policy', 'camera bulk recording policy endpoint')
 assertContains(camerasApi, "OpenApiSchemas['CameraUpdate']", 'camera update payload uses generated schema')
 assertContains(camerasApi, "OpenApiSchemas['CameraBulkAiSettingsRequest']", 'camera bulk AI payload uses generated schema')
+assertContains(camerasApi, "OpenApiSchemas['CameraBulkRecordingPolicyRequest']", 'camera bulk recording policy payload uses generated schema')
+assertContains(camerasApi, "OpenApiSchemas['CameraBulkRecordingPolicyResponse']", 'camera bulk recording policy response uses generated schema')
 assertContains(recordingsApi, '/recordings/', 'recording segment list endpoint')
 assertContains(recordingsApi, 'alarm_id?: number', 'recording alarm filter API parameter')
 assertContains(recordingsApi, '/recordings/${segmentId}/file', 'recording file endpoint')
@@ -360,6 +363,9 @@ assertContains(camerasPage, 'Guvenlik icin varsayilan kullanici/parola doldurulm
 assertContains(nvrPage, 'Guvenlik icin varsayilan kullanici/parola doldurulmaz', 'NVR scan credential safety hint')
 assertContains(camerasPage, 'Profile S', 'camera ONVIF Profile S compatibility UI')
 assertContains(camerasPage, 'Event Sub', 'camera ONVIF event subscription UI')
+assertContains(camerasPage, 'bulkUpdateRecordingPolicy', 'camera page bulk recording policy mutation')
+assertContains(camerasPage, 'Kayit Sablonunu Uygula', 'camera page bulk recording policy operator action')
+assertContains(camerasPage, 'bulkRecordingTargetIds', 'camera page filtered group recording target')
 assertContains(nvrPage, 'ONVIF Kontrol Listesi', 'NVR ONVIF troubleshooting checklist')
 assertContains(nvrPage, 'analitik metadata NVR', 'NVR fallback metadata ownership explanation')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/move', 'generated OpenAPI PTZ move path')
@@ -368,9 +374,12 @@ assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/presets/goto
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/home', 'generated OpenAPI PTZ home path')
 assertContains(generatedOpenApiTypes, '/api/cameras/{camera_id}/ptz/patrol', 'generated OpenAPI PTZ patrol path')
 assertContains(generatedOpenApiTypes, '/api/cameras/bulk-ai-settings', 'generated OpenAPI camera bulk AI settings path')
+assertContains(generatedOpenApiTypes, '/api/cameras/bulk-recording-policy', 'generated OpenAPI camera bulk recording policy path')
 assertContains(generatedOpenApiTypes, 'export type OpenApiSchemas', 'generated OpenAPI schema type map')
 assertContains(generatedOpenApiTypes, '"CameraResponse": {', 'generated OpenAPI camera response schema type')
 assertContains(generatedOpenApiTypes, '"CameraBulkAiSettingsRequest": {', 'generated OpenAPI camera bulk AI request schema type')
+assertContains(generatedOpenApiTypes, '"CameraBulkRecordingPolicyRequest": {', 'generated OpenAPI camera bulk recording policy request schema type')
+assertContains(generatedOpenApiTypes, '"CameraBulkRecordingPolicyResponse": {', 'generated OpenAPI camera bulk recording policy response schema type')
 assertContains(generatedOpenApiTypes, '"AlarmResponse": {', 'generated OpenAPI alarm response schema type')
 assertContains(generatedOpenApiTypes, '/api/recordings/', 'generated OpenAPI recording list path')
 assertContains(generatedOpenApiTypes, '/api/recordings/{segment_id}/file', 'generated OpenAPI recording file path')
@@ -406,6 +415,11 @@ assertContains(
   read('../backend/src/presentation/api/routes/cameras.py'),
   '@router.post("/bulk-ai-settings"',
   'backend camera bulk AI settings route',
+)
+assertContains(
+  read('../backend/src/presentation/api/routes/cameras.py'),
+  '@router.post("/bulk-recording-policy"',
+  'backend camera bulk recording policy route',
 )
 assertContains(
   read('../backend/src/presentation/api/routes/cameras.py'),

@@ -6,6 +6,8 @@ import type { Camera, CameraCreate, CameraPageResponse, CameraPtzGotoPresetReque
 export type CameraUpdate = OpenApiSchemas['CameraUpdate']
 
 export type CameraBulkAiSettingsPayload = OpenApiSchemas['CameraBulkAiSettingsRequest']
+export type CameraBulkRecordingPolicyPayload = OpenApiSchemas['CameraBulkRecordingPolicyRequest']
+export type CameraBulkRecordingPolicyResult = OpenApiSchemas['CameraBulkRecordingPolicyResponse']
 
 export const camerasApi = {
   /** Sistemdeki tüm kameraları listeler. */
@@ -170,6 +172,12 @@ export const camerasApi = {
   /** Secili kameralara ayni AI profil ayarlarini uygular. */
   bulkUpdateAiSettings: async (payload: CameraBulkAiSettingsPayload): Promise<Camera[]> => {
     const { data } = await client.post<Camera[]>('/cameras/bulk-ai-settings', payload)
+    return data
+  },
+
+  /** Secili kamera veya konum kapsamina kayit politikasini uygular. */
+  bulkUpdateRecordingPolicy: async (payload: CameraBulkRecordingPolicyPayload): Promise<CameraBulkRecordingPolicyResult> => {
+    const { data } = await client.post<CameraBulkRecordingPolicyResult>('/cameras/bulk-recording-policy', payload)
     return data
   },
 }

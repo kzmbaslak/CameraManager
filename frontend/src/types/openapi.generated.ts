@@ -197,6 +197,11 @@ export const openApiOperations = [
     "operationId": "bulk_update_camera_ai_settings_api_cameras_bulk_ai_settings_post"
   },
   {
+    "method": "post",
+    "path": "/api/cameras/bulk-recording-policy",
+    "operationId": "bulk_update_camera_recording_policy_api_cameras_bulk_recording_policy_post"
+  },
+  {
     "method": "get",
     "path": "/api/cameras/diagnostics/health-summary",
     "operationId": "diagnose_camera_health_summary_api_cameras_diagnostics_health_summary_get"
@@ -380,6 +385,7 @@ export type OpenApiPath =
   | "/api/cameras/{camera_id}/stream-token"
   | "/api/cameras/bulk-add"
   | "/api/cameras/bulk-ai-settings"
+  | "/api/cameras/bulk-recording-policy"
   | "/api/cameras/diagnostics/health-summary"
   | "/api/cameras/diagnostics/onvif-preview"
   | "/api/cameras/diagnostics/rtsp-preview"
@@ -451,6 +457,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/cameras/{camera_id}/stream-token"; operationId: "create_camera_stream_token_api_cameras__camera_id__stream_token_get" }
   | { method: "post"; path: "/api/cameras/bulk-add"; operationId: "bulk_add_cameras_api_cameras_bulk_add_post" }
   | { method: "post"; path: "/api/cameras/bulk-ai-settings"; operationId: "bulk_update_camera_ai_settings_api_cameras_bulk_ai_settings_post" }
+  | { method: "post"; path: "/api/cameras/bulk-recording-policy"; operationId: "bulk_update_camera_recording_policy_api_cameras_bulk_recording_policy_post" }
   | { method: "get"; path: "/api/cameras/diagnostics/health-summary"; operationId: "diagnose_camera_health_summary_api_cameras_diagnostics_health_summary_get" }
   | { method: "post"; path: "/api/cameras/diagnostics/onvif-preview"; operationId: "preview_camera_onvif_api_cameras_diagnostics_onvif_preview_post" }
   | { method: "post"; path: "/api/cameras/diagnostics/rtsp-preview"; operationId: "preview_camera_rtsp_api_cameras_diagnostics_rtsp_preview_post" }
@@ -498,6 +505,8 @@ export type OpenApiSchemaName =
   | "AuditEventResponse"
   | "BoundingBoxSchema"
   | "CameraBulkAiSettingsRequest"
+  | "CameraBulkRecordingPolicyRequest"
+  | "CameraBulkRecordingPolicyResponse"
   | "CameraCreate"
   | "CameraHealthListItemResponse"
   | "CameraHealthSampleResponse"
@@ -683,6 +692,22 @@ export type OpenApiSchemas = {
     "ai_inference_width": number
     "ai_iou_threshold": number
     "camera_ids": Array<number>
+  }
+  "CameraBulkRecordingPolicyRequest": {
+    "building"?: (string) | (null)
+    "camera_ids"?: Array<number>
+    "continuous_recording_enabled": boolean
+    "floor"?: (string) | (null)
+    "site"?: (string) | (null)
+    "zone"?: (string) | (null)
+  }
+  "CameraBulkRecordingPolicyResponse": {
+    "camera_ids": Array<number>
+    "continuous_recording_enabled": boolean
+    "scope": {
+    [key: string]: (string) | (null)
+  }
+    "updated_count": number
   }
   "CameraCreate": {
     "ai_active_end"?: (string) | (null)

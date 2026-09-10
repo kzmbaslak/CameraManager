@@ -36,6 +36,8 @@ from src.presentation.api.schemas.camera_schema import (
     CameraCreate,
     CameraUpdate,
     CameraBulkAiSettingsRequest,
+    CameraBulkRecordingPolicyRequest,
+    CameraBulkRecordingPolicyResponse,
     CameraResponse,
     CameraScanRequest,
     CameraScanResult,
@@ -991,6 +993,79 @@ async def bulk_update_camera_ai_settings(
         },
     )
     return updated
+
+
+@router.post("/bulk-recording-policy", response_model=CameraBulkRecordingPolicyResponse)
+async def bulk_update_camera_recording_policy(
+    data: CameraBulkRecordingPolicyRequest,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    sm: CameraStreamManager = Depends(get_stream_manager),
+    current_user: dict = Depends(get_camera_manage_user),
+):
+    """Secili kameralara veya konum kapsamina ayni kayit politikasini uygular."""
+    scope = {
+        "site": data.site,
+        "building": data.building,
+        "floor": data.floor,
+        "zone": data.zone,
+    }
+    has_scope = any(value for value in scope.values())
+    if not data.camera_ids and not has_scope:
+        raise HTTPException(status_code=400, detail="Kamera ID veya konum kapsami secilmelidir.")
+
+    if data.camera_ids:
+        missing_ids = []
+        cameras_to_update = []
+        for camera_id in data.camera_ids:
+            camera = use_cases.get_camera(camera_id)
+            if not camera:
+                missing_ids.append(camera_id)
+                continue
+            cameras_to_update.append(camera)
+        if missing_ids:
+            raise HTTPException(status_code=404, detail=f"Kamera bulunamadi: {', '.join(str(item) for item in missing_ids)}")
+    else:
+        def same_scope(left: str | None, right: str | None) -> bool:
+            if right is None:
+                return True
+            return (left or "").strip().casefold() == right.casefold()
+
+        cameras_to_update = [
+            camera for camera in use_cases.list_cameras()
+            if same_scope(camera.site, data.site)
+            and same_scope(camera.building, data.building)
+            and same_scope(camera.floor, data.floor)
+            and same_scope(camera.zone, data.zone)
+        ]
+
+    if not cameras_to_update:
+        raise HTTPException(status_code=404, detail="Kayit politikasi icin eslesen kamera bulunamadi.")
+
+    updated_ids = []
+    for camera in cameras_to_update:
+        camera.continuous_recording_enabled = data.continuous_recording_enabled
+        updated_camera = use_cases.update_camera(camera)
+        updated_ids.append(updated_camera.id)
+        await sm.ensure_running_state(updated_camera.id)
+
+    write_audit_event(
+        "camera.bulk_recording_policy",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={
+            "camera_ids": updated_ids,
+            "camera_count": len(updated_ids),
+            "continuous_recording_enabled": data.continuous_recording_enabled,
+            "scope": scope,
+        },
+    )
+    return CameraBulkRecordingPolicyResponse(
+        updated_count=len(updated_ids),
+        camera_ids=updated_ids,
+        continuous_recording_enabled=data.continuous_recording_enabled,
+        scope=scope,
+    )
 
 
 @router.get("/{camera_id:int}/diagnostics/rtsp", response_model=CameraRtspDiagnostics)
