@@ -27,13 +27,17 @@ def _load_restore_module():
 
 class SystemBackupRecordingTests(unittest.TestCase):
     def setUp(self):
-        self._env_backup = os.environ.get("RECORDING_STORAGE_DIR")
+        self._env_backup = {
+            "RECORDING_STORAGE_DIR": os.environ.get("RECORDING_STORAGE_DIR"),
+            "BACKUP_EXTERNAL_ARCHIVE_DIR": os.environ.get("BACKUP_EXTERNAL_ARCHIVE_DIR"),
+        }
 
     def tearDown(self):
-        if self._env_backup is None:
-            os.environ.pop("RECORDING_STORAGE_DIR", None)
-        else:
-            os.environ["RECORDING_STORAGE_DIR"] = self._env_backup
+        for key, value in self._env_backup.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
     def test_external_recording_storage_is_archived_under_recordings_prefix(self):
         with tempfile.TemporaryDirectory() as backend_tmp, tempfile.TemporaryDirectory() as recording_tmp:
@@ -71,6 +75,40 @@ class SystemBackupRecordingTests(unittest.TestCase):
                 self.assertIn("data/nvr_system.db", names)
                 self.assertIn("recordings/cam_1/event.mp4", names)
                 self.assertIn("manifest.json", names)
+
+    def test_backup_is_mirrored_to_external_archive_with_checksum_sidecar(self):
+        with tempfile.TemporaryDirectory() as backend_tmp, tempfile.TemporaryDirectory() as archive_tmp:
+            backend_root = Path(backend_tmp)
+            archive_root = Path(archive_tmp)
+            db_path = backend_root / "data" / "nvr_system.db"
+            db_path.parent.mkdir(parents=True)
+            sqlite3.connect(db_path).close()
+            os.environ["BACKUP_EXTERNAL_ARCHIVE_DIR"] = str(archive_root)
+
+            old_backend_dir = system_backup.BACKEND_DIR
+            old_default_output_dir = system_backup.DEFAULT_OUTPUT_DIR
+            old_db_path = system_backup.DB_PATH
+            old_default_recording_dir = system_backup.DEFAULT_RECORDING_DIR
+            old_include_paths = system_backup.INCLUDE_PATHS
+            try:
+                system_backup.BACKEND_DIR = backend_root
+                system_backup.DEFAULT_OUTPUT_DIR = backend_root / "backups"
+                system_backup.DB_PATH = db_path
+                system_backup.DEFAULT_RECORDING_DIR = backend_root / "data" / "recordings"
+                system_backup.INCLUDE_PATHS = [backend_root / "data"]
+                backup_path = system_backup.create_backup(backend_root / "backup.zip")
+            finally:
+                system_backup.BACKEND_DIR = old_backend_dir
+                system_backup.DEFAULT_OUTPUT_DIR = old_default_output_dir
+                system_backup.DB_PATH = old_db_path
+                system_backup.DEFAULT_RECORDING_DIR = old_default_recording_dir
+                system_backup.INCLUDE_PATHS = old_include_paths
+
+            mirrored_path = archive_root / backup_path.name
+            checksum_path = archive_root / f"{backup_path.name}.sha256"
+            self.assertTrue(mirrored_path.is_file())
+            self.assertTrue(checksum_path.is_file())
+            self.assertIn(hashlib.sha256(mirrored_path.read_bytes()).hexdigest(), checksum_path.read_text(encoding="utf-8"))
 
     def test_restore_recordings_prefix_targets_configured_recording_storage(self):
         restore_system = _load_restore_module()

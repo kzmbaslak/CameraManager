@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import tempfile
 import zipfile
@@ -31,6 +32,12 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def external_archive_dir() -> Path | None:
+    """Opsiyonel kurumsal dis arsiv dizinini cozer."""
+    raw_path = os.environ.get("BACKUP_EXTERNAL_ARCHIVE_DIR", "").strip()
+    return Path(raw_path).expanduser().resolve() if raw_path else None
 
 
 def _iter_files(paths: list[Path]) -> list[Path]:
@@ -98,6 +105,32 @@ def _backup_sqlite(source: Path, target: Path) -> None:
         source_conn.close()
 
 
+def mirror_backup_to_external_archive(backup_path: Path, archive_dir: Path | None = None) -> Path | None:
+    """Yedegi opsiyonel dis arsiv dizinine kopyalar ve SHA-256 sidecar yazar."""
+    target_dir = archive_dir or external_archive_dir()
+    if target_dir is None:
+        return None
+    resolved_backup = backup_path.resolve()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = (target_dir / backup_path.name).resolve()
+    if target_path == resolved_backup:
+        digest = _sha256(resolved_backup)
+        target_path.with_suffix(target_path.suffix + ".sha256").write_text(
+            f"{digest}  {target_path.name}\n",
+            encoding="utf-8",
+        )
+        return target_path
+    if target_dir not in target_path.parents and target_path != target_dir:
+        raise ValueError("Dis arsiv hedefi guvenli degil.")
+    shutil.copy2(resolved_backup, target_path)
+    digest = _sha256(target_path)
+    target_path.with_suffix(target_path.suffix + ".sha256").write_text(
+        f"{digest}  {target_path.name}\n",
+        encoding="utf-8",
+    )
+    return target_path
+
+
 def create_backup(output: Path | None = None) -> Path:
     """Create a backup zip file and return its path."""
     DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -127,6 +160,7 @@ def create_backup(output: Path | None = None) -> Path:
                     "size": file_path.stat().st_size,
                 })
             archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+    mirror_backup_to_external_archive(output_path)
     return output_path
 
 

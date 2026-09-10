@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from src.infrastructure.backup.system_backup import external_archive_dir
 from src.infrastructure.database.database import get_db
 from src.infrastructure.database.models import CameraModel, NVRModel
 from src.infrastructure.recording.retention import (
@@ -290,6 +291,11 @@ def security_posture(
     elif not alarm_report_email_configured:
         findings.append({"severity": "low", "message": "ALARM_REPORT_SMTP_HOST/EMAIL_TO ile alarm raporlari e-posta kanalina dagitilmali."})
 
+    backup_external_archive_dir = external_archive_dir()
+    backup_external_archive_configured = backup_external_archive_dir is not None
+    if not backup_external_archive_configured:
+        findings.append({"severity": "low", "message": "BACKUP_EXTERNAL_ARCHIVE_DIR ile yedekler kurumsal/NAS/kasa hedefine kopyalanmali."})
+
     setup_checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
         for check in collect_setup_checks()
@@ -315,6 +321,7 @@ def security_posture(
         "audit_webhook_configured": audit_webhook_configured,
         "alarm_report_webhook_configured": alarm_report_webhook_configured,
         "alarm_report_email_configured": alarm_report_email_configured,
+        "backup_external_archive_configured": backup_external_archive_configured,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,

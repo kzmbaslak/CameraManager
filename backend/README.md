@@ -84,6 +84,7 @@ venv\Scripts\python -c "import os,base64; print(base64.b64encode(os.urandom(32))
 | `AUDIT_WEBHOOK_TIMEOUT_SECONDS` | Audit webhook gönderim zaman aşımı |
 | `BACKUP_RETENTION_DAYS` | Otomatik yedek arşivlerinin saklanacağı gün sayısı |
 | `BACKUP_KEEP_LATEST` | Retention süresi dolsa bile tutulacak en yeni otomatik yedek sayısı |
+| `BACKUP_EXTERNAL_ARCHIVE_DIR` | Opsiyonel kurumsal/NAS/kasa yedek dizini; oluşturulan zip ve `.sha256` sidecar buraya kopyalanır |
 | `ALARM_REPORT_WINDOW_HOURS` | Zamanlanmış alarm raporunun geriye dönük saat penceresi |
 | `ALARM_REPORT_LIMIT` | Alarm raporunda üretilecek maksimum satır sayısı |
 | `ALARM_REPORT_RETENTION_DAYS` | Alarm raporu dosyalarının saklanacağı gün sayısı |

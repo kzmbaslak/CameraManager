@@ -581,7 +581,7 @@ function BackupPanel({ enabled }: { enabled: boolean }) {
         </Button>
       </div>
       <p className="mt-3 rounded-md border border-[var(--warning)]/35 bg-[var(--warning)]/10 px-3 py-2 text-xs text-[var(--text-secondary)]">
-        Yedek dosyasi sifrelenmis kamera kimlik bilgileri ve ortam ayarlarini icerebilir; sadece kurumsal kasada saklayin.
+        Yedek dosyasi sifrelenmis kamera kimlik bilgileri, video kayitlari ve ortam ayarlarini icerebilir; BACKUP_EXTERNAL_ARCHIVE_DIR ile kurumsal/NAS/kasa arsivine kopyalayin.
       </p>
     </section>
   )

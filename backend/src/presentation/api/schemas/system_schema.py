@@ -50,6 +50,7 @@ class SecurityPostureResponse(BaseModel):
     audit_webhook_configured: bool
     alarm_report_webhook_configured: bool
     alarm_report_email_configured: bool
+    backup_external_archive_configured: bool
     app_log_rotation_configured: bool
     app_log_json_format: bool
     app_log_sensitive_query_masking: bool

@@ -23,6 +23,7 @@ class SecurityPostureTests(unittest.TestCase):
                 "TRUSTED_HOSTS",
                 "AUDIT_CHAIN_SECRET",
                 "AUTH_COOKIE_MODE",
+                "BACKUP_EXTERNAL_ARCHIVE_DIR",
             )
         }
         os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-with-more-than-32-characters"
@@ -31,6 +32,7 @@ class SecurityPostureTests(unittest.TestCase):
         os.environ["TRUSTED_HOSTS"] = "console.example.local"
         os.environ["AUDIT_CHAIN_SECRET"] = "test-audit-chain-secret-with-more-than-32"
         os.environ["AUTH_COOKIE_MODE"] = "secure"
+        os.environ["BACKUP_EXTERNAL_ARCHIVE_DIR"] = r"C:\secure-backups"
 
         self.engine = create_engine(
             "sqlite:///:memory:",
@@ -92,6 +94,7 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertIn("failed_login_limit", result)
         self.assertIn("failed_login_window_seconds", result)
         self.assertTrue(result["secure_cookie_auth"])
+        self.assertTrue(result["backup_external_archive_configured"])
         self.assertTrue(any(check["key"] == "migration_script_inventory" for check in result["setup_checks"]))
         self.assertTrue(any("cihaz parolasi kayitli degil" in item["message"] for item in result["findings"]))
         self.assertFalse(any("HttpOnly/SameSite secure cookie" in item["message"] for item in result["findings"]))

@@ -360,7 +360,7 @@ function OperatorAssistPanel({
             {security
               ? security.findings.length > 0
                 ? `${security.findings.length} sertlestirme maddesi · kurulum ${setupMissingCount} eksik · cihaz ${unsecuredDeviceCount} parolasiz · ONVIF ${uncheckedOnvifCount} bekliyor`
-                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · rapor ${security.alarm_report_email_configured ? 'e-posta' : security.alarm_report_webhook_configured ? 'webhook' : 'lokal'} · PTZ ${security.camera_ptz_supported_count}`
+                : `Temel kontroller temiz · token ${security.stream_token_ttl_seconds} sn · rapor ${security.alarm_report_email_configured ? 'e-posta' : security.alarm_report_webhook_configured ? 'webhook' : 'lokal'} · yedek ${security.backup_external_archive_configured ? 'dis arsiv' : 'lokal'} · PTZ ${security.camera_ptz_supported_count}`
               : 'Guvenlik durusu okunuyor'}
             {security ? ` · parola ${overduePasswordCount > 0 ? `${overduePasswordCount} gecikmis` : `${security.device_password_rotation_days} gun uygun`}` : ''}
             {security?.recording_continuous_enabled ? ` · kayit haric ${recordingExcludedCount}` : ''}

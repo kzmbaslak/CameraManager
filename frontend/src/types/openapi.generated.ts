@@ -1186,6 +1186,7 @@ export type OpenApiSchemas = {
     "app_log_sensitive_query_masking": boolean
     "audit_chain_secret_configured": boolean
     "audit_webhook_configured": boolean
+    "backup_external_archive_configured": boolean
     "camera_default_onvif_port_count": number
     "camera_default_rtsp_port_count": number
     "camera_encryption_key_configured": boolean
