@@ -118,14 +118,12 @@ foreach ($folder in $BackendFoldersToCopy) {
 
 Copy-Item (Join-Path $BackendSrc "requirements.txt") $PkgBackend -Force
 
-# data klasorunu kopyala (rtsp_paths.json vb. statik veriler dahil)
+# data klasorunu olustur ve yalnizca statik RTSP path verisini kopyala.
+# Veritabani, audit log ve runtime kayitlari musteri paketine tasinmaz.
 $srcData = Join-Path $BackendSrc "data"
 $dstData = Join-Path $PkgBackend "data"
 New-Item -ItemType Directory -Path $dstData -Force | Out-Null
-if (Test-Path $srcData) {
-    robocopy $srcData $dstData /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
-    if ($LASTEXITCODE -ge 8) { throw "data/ kopyalama hatasi (robocopy kod: $LASTEXITCODE)" }
-} else {
+if (-not (Test-Path $srcData)) {
     throw "backend/data/ klasoru bulunamadi. Statik RTSP path verileri olmadan paket olusturulamaz."
 }
 
@@ -134,6 +132,7 @@ $dstRtspPaths = Join-Path $dstData "rtsp_paths.json"
 if (-not (Test-Path $srcRtspPaths)) {
     throw "Kaynak backend/data/rtsp_paths.json bulunamadi."
 }
+Copy-Item $srcRtspPaths $dstRtspPaths -Force
 if (-not (Test-Path $dstRtspPaths)) {
     throw "Paket dogrulamasi basarisiz: backend/data/rtsp_paths.json hedefe kopyalanmadi."
 }
@@ -162,10 +161,13 @@ function New-RandomHex($bytes) {
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($buf)
     return -join ($buf | ForEach-Object { $_.ToString("x2") })
 }
+$InitialAdminPassword = New-RandomHex 12
 $envContent = @"
 CAMERA_ENCRYPTION_KEY=$(New-RandomBase64 32)
 JWT_SECRET_KEY=$(New-RandomHex 32)
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=480
+INITIAL_ADMIN_USERNAME=admin
+INITIAL_ADMIN_PASSWORD=$InitialAdminPassword
 "@
 Set-Content -Path (Join-Path $PkgBackend ".env") -Value $envContent -Encoding ascii
 
@@ -241,7 +243,7 @@ if ($LASTEXITCODE -ne 0) { throw "pip install basarisiz oldu." }
 # 7) Calistir.bat - musteri bilgisayarinda tek tikla baslatma, INTERNET GEREKTIRMEZ
 # ---------------------------------------------------------------------------
 Write-Host "==> Calistir.bat olusturuluyor..." -ForegroundColor Cyan
-$calistirBat = @'
+$calistirBat = @"
 @echo off
 chcp 65001 >nul
 title Kamera Yonetimi Sistemi
@@ -250,7 +252,8 @@ cd /d "%~dp0backend"
 echo ============================================================
 echo  Kamera Yonetimi Sistemi baslatiliyor...
 echo  Adres: http://localhost:8090
-echo  Varsayilan giris: admin / admin123  (ilk giriste degistirin)
+echo  Ilk giris: admin / $InitialAdminPassword
+echo  Guvenlik icin ilk giriste bu parolayi degistirin.
 echo  Durdurmak icin bu pencereyi kapatin veya CTRL+C
 echo ============================================================
 echo.
@@ -263,7 +266,7 @@ REM fazla RTSP baglantisi acilir.
 python\python.exe -s -m uvicorn main:app --host 0.0.0.0 --port 8090
 
 pause
-'@
+"@
 Set-Content -Path (Join-Path $PkgDir "Calistir.bat") -Value $calistirBat -Encoding ascii
 
 # 7.2) Durdur.bat - musteri bilgisayarinda arka plandaki python sunucusunu kapatma
@@ -277,10 +280,18 @@ echo  Kamera Yonetimi Sistemi durduruluyor...
 echo ============================================================
 echo.
 
-taskkill /f /im python.exe >nul 2>&1
+set FOUND=0
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":8090 .*LISTENING"') do (
+    set FOUND=1
+    taskkill /f /pid %%P >nul 2>&1
+)
 
 echo.
-echo Sistem durduruldu.
+if "%FOUND%"=="1" (
+    echo Sistem durduruldu.
+) else (
+    echo 8090 portunda calisan Kamera Yonetimi sureci bulunamadi.
+)
 echo Bu pencereyi kapatabilirsiniz.
 timeout /t 3
 '@
@@ -292,27 +303,28 @@ Copy-Item $VcRedistPath (Join-Path $PkgDir "vc_redist.x64.exe") -Force
 # ---------------------------------------------------------------------------
 # 8) Kisa Turkce Benioku
 # ---------------------------------------------------------------------------
-$readme = @'
+$readme = @"
 KAMERA YONETIMI SISTEMI - MUSTERI PAKETI
 ==========================================
 
-Kurulum ve Kullanım Seçenekleri:
+Kurulum ve Kullanim Secenekleri:
 
-Seçenek A) Doğrudan Kurulum Sihirbazı (Eğer KameraYonetimi_Kurulum.exe ürettiyseniz):
-1. "KameraYonetimi_Kurulum.exe" dosyasını çalıştırın ve adımları takip edin.
-2. Masaüstündeki kısayola çift tıklayarak sistemi başlatın.
+Secenek A) Dogrudan Kurulum Sihirbazi (KameraYonetimi_Kurulum.exe varsa):
+1. "KameraYonetimi_Kurulum.exe" dosyasini calistirin ve adimlari takip edin.
+2. Masaustundeki kisayola cift tiklayarak sistemi baslatin.
 
-Seçenek B) Taşınabilir (Portable) Klasör Kullanımı:
-1. Bu klasörü komple müşteri bilgisayarına kopyalayın.
-2. EĞER sistemi başlatırken "DLL load failed" veya "Belirtilen modül bulunamadı" şeklinde bir hata alırsanız, klasör içindeki "vc_redist.x64.exe" dosyasını çalıştırıp kurun (Microsoft C++ kütüphanelerini yükler).
-3. "Calistir.bat" dosyasına çift tıklayarak başlatın.
+Secenek B) Tasinabilir (Portable) Klasor Kullanimi:
+1. Bu klasoru komple musteri bilgisayarina kopyalayin.
+2. "DLL load failed" veya "Belirtilen modul bulunamadi" hatasi alirsaniz klasor icindeki "vc_redist.x64.exe" dosyasini kurun.
+3. "Calistir.bat" dosyasina cift tiklayarak baslatin.
 
 Genel Bilgiler:
-- Tarayıcıda otomatik olarak http://localhost:8090 açılır.
-- Varsayılan kullanıcı adı/şifre: admin / admin123 (ilk girişte değiştirin).
-- Sistem tamamen internet bağlantısı GEREKTİRMEDEN çalışır.
-- Sunucuyu kapatmak için açılan siyah pencereyi (komut satırı) kapatabilir veya "Durdur.bat" dosyasını çalıştırabilirsiniz.
-'@
+- Tarayicida otomatik olarak http://localhost:8090 acilir.
+- Ilk giris: admin / $InitialAdminPassword
+- Guvenlik icin ilk giriste bu parola degistirilmelidir.
+- Sistem musteri bilgisayarinda internet baglantisi gerektirmeden calisir.
+- Sunucuyu kapatmak icin komut penceresini kapatabilir veya "Durdur.bat" dosyasini calistirabilirsiniz.
+"@
 Set-Content -Path (Join-Path $PkgDir "BENIOKU.txt") -Value $readme -Encoding ascii
 
 # ---------------------------------------------------------------------------
