@@ -28,11 +28,12 @@ const DATE_RANGE_OPTIONS: { value: DateRange; label: string }[] = [
 ]
 const PLAYBACK_SPEED_OPTIONS = [0.5, 1, 2, 4]
 
-function dateRangeStart(range: DateRange) {
+function dateRangeStart(range: DateRange, anchorMs = Date.now()) {
   if (range === 'all') return undefined
-  if (range === '24h') return dayjs().subtract(24, 'hour').toISOString()
-  if (range === '7d') return dayjs().subtract(7, 'day').toISOString()
-  return dayjs().subtract(30, 'day').toISOString()
+  const anchor = dayjs(anchorMs)
+  if (range === '24h') return anchor.subtract(24, 'hour').toISOString()
+  if (range === '7d') return anchor.subtract(7, 'day').toISOString()
+  return anchor.subtract(30, 'day').toISOString()
 }
 
 function formatBytes(value: number | null | undefined) {
@@ -62,9 +63,9 @@ function cameraName(cameraById: Record<number, Camera>, cameraId: number) {
   return cameraById[cameraId]?.name ?? `Kamera #${cameraId}`
 }
 
-function timelineBounds(segments: RecordingSegment[], range: DateRange) {
-  const rangeStart = dateRangeStart(range)
-  const fallbackEnd = dayjs()
+function timelineBounds(segments: RecordingSegment[], range: DateRange, anchorMs: number) {
+  const rangeStart = dateRangeStart(range, anchorMs)
+  const fallbackEnd = dayjs(anchorMs)
   const fallbackStart = rangeStart ? dayjs(rangeStart) : fallbackEnd.subtract(24, 'hour')
   const timestamps = segments.flatMap((segment) => [
     dayjs(segment.started_at).valueOf(),
@@ -114,6 +115,7 @@ export function RecordingsPage() {
   const [range, setRange] = useState<DateRange>(
     initialRange && DATE_RANGE_OPTIONS.some((option) => option.value === initialRange) ? initialRange : '24h',
   )
+  const [rangeAnchorMs, setRangeAnchorMs] = useState(() => Date.now())
   const [limit, setLimit] = useState(100)
   const previewFrameRef = useRef<HTMLDivElement>(null)
   const previewVideoRef = useRef<HTMLVideoElement>(null)
@@ -138,7 +140,7 @@ export function RecordingsPage() {
     enabled: canViewRecordings,
   })
 
-  const rangeSince = useMemo(() => dateRangeStart(range), [range])
+  const rangeSince = useMemo(() => dateRangeStart(range, rangeAnchorMs), [range, rangeAnchorMs])
   const queryParams = useMemo(() => ({
     camera_id: selectedCameraId === 'all' ? undefined : Number(selectedCameraId),
     alarm_id: linkedAlarmId ?? undefined,
@@ -156,7 +158,16 @@ export function RecordingsPage() {
     queryKey: ['recordings', queryParams],
     queryFn: () => recordingsApi.list(queryParams),
     enabled: canViewRecordings,
+    refetchOnWindowFocus: false,
   })
+
+  const refreshRecordings = () => {
+    if (range === 'all') {
+      void recordingsQuery.refetch()
+      return
+    }
+    setRangeAnchorMs(Date.now())
+  }
 
   const pruneMutation = useMutation({
     mutationFn: () => recordingsApi.prune(),
@@ -166,7 +177,7 @@ export function RecordingsPage() {
         title: 'Kayit temizligi tamamlandi',
         description: `${result.removed_count} segment silindi, ${formatBytes(result.removed_bytes)} alan acildi.`,
       })
-      void recordingsQuery.refetch()
+      refreshRecordings()
     },
     onError: (err) => showToast({
       variant: 'danger',
@@ -184,7 +195,7 @@ export function RecordingsPage() {
   const eventCount = segments.filter((segment) => segment.recording_type === 'event').length
   const openCount = segments.filter((segment) => segment.status === 'recording').length
   const timeline = useMemo(() => {
-    const bounds = timelineBounds(segments, range)
+    const bounds = timelineBounds(segments, range, rangeAnchorMs)
     const grouped = new Map<number, RecordingSegment[]>()
     for (const segment of segments) {
       const items = grouped.get(segment.camera_id) ?? []
@@ -200,7 +211,7 @@ export function RecordingsPage() {
         }))
         .sort((left, right) => cameraName(cameraById, left.cameraId).localeCompare(cameraName(cameraById, right.cameraId))),
     }
-  }, [cameraById, range, segments])
+  }, [cameraById, range, rangeAnchorMs, segments])
 
   useEffect(() => () => {
     if (preview?.url) URL.revokeObjectURL(preview.url)
@@ -409,7 +420,7 @@ export function RecordingsPage() {
           <p className="mt-1 text-sm text-text-secondary">Olay klipleri, segment envanteri ve kayit bakimi</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" icon={<RotateCcw size={15} />} onClick={() => recordingsQuery.refetch()}>
+          <Button variant="secondary" icon={<RotateCcw size={15} />} onClick={refreshRecordings}>
             Yenile
           </Button>
           {canManageRecordings && (
@@ -474,7 +485,10 @@ export function RecordingsPage() {
             <select
               aria-label="Kayit zaman filtresi"
               value={range}
-              onChange={(event) => setRange(event.target.value as DateRange)}
+              onChange={(event) => {
+                setRange(event.target.value as DateRange)
+                setRangeAnchorMs(Date.now())
+              }}
               className="rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
             >
               {DATE_RANGE_OPTIONS.map((option) => (

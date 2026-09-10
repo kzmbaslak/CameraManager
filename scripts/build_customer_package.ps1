@@ -3,8 +3,8 @@
 # Bu script, internet erisimi OLMAYAN musteri bilgisayarlarinda calistirilabilecek
 # tamamen kendi icinde (self-contained) bir paket uretir:
 #   - Frontend derlenir (npm run build) -> backend FastAPI tarafindan statik sunulur
-#   - Python'un "embeddable" dagitimi indirilir ve pip ile TUM bagimliliklar
-#     (requirements.txt) bu dagitimin icine kurulur -> musteri bilgisayarinda
+#   - Python'un "embeddable" dagitimi indirilir ve backend venv bagimliliklari
+#     bu dagitimin icine kopyalanir -> musteri bilgisayarinda
 #     Python kurulu olmasi GEREKMEZ, "py install" gibi internetten indirme
 #     yapan hicbir komut musteri tarafinda calismaz.
 #   - Sonuc klasor "Calistir.bat" ile dogrudan calistirilabilir.
@@ -21,8 +21,6 @@ $FrontendSrc = Join-Path $RepoRoot "frontend"
 
 $PythonVersion = "3.14.2"               # backend/venv ile ayni surum (ABI uyumu icin)
 $PythonEmbedUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
-$GetPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-
 $OutDir = Join-Path $RepoRoot "customer_package"
 $PkgDir = Join-Path $OutDir "KameraYonetimi"
 
@@ -221,23 +219,23 @@ Add-Content -Path $pthFile.FullName -Value ".." -Encoding ascii
 $PyExe = Join-Path $PyEmbedDir "python.exe"
 
 # ---------------------------------------------------------------------------
-# 6) pip kur + requirements.txt yukle (TUMU paketin icine - musteri internet kullanmayacak)
+# 6) Python bagimliliklarini paket icine al (musteri internet kullanmayacak)
 # ---------------------------------------------------------------------------
-$GetPipPath = Join-Path $CacheDir "get-pip.py"
-if (-not (Test-Path $GetPipPath)) {
-    Write-Host "==> get-pip.py indiriliyor..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $GetPipUrl -OutFile $GetPipPath -UseBasicParsing
-} else {
-    Write-Host "==> get-pip.py yerel önbellekten kullanılıyor." -ForegroundColor Green
+$VenvSitePackages = Join-Path $BackendSrc "venv\Lib\site-packages"
+if (-not (Test-Path $VenvSitePackages)) {
+    throw "backend\venv\Lib\site-packages bulunamadi. Musteri paketi internet gerektirmemesi icin once backend venv bagimliliklarini kurun."
 }
 
-Write-Host "==> pip kuruluyor..." -ForegroundColor Cyan
-& $PyExe -s $GetPipPath --no-warn-script-location --isolated
-if ($LASTEXITCODE -ne 0) { throw "pip kurulumu basarisiz oldu." }
+$PkgSitePackages = Join-Path $PyEmbedDir "Lib\site-packages"
+New-Item -ItemType Directory -Path $PkgSitePackages -Force | Out-Null
 
-Write-Host "==> requirements.txt yukleniyor (bu islem biraz surebilir)..." -ForegroundColor Cyan
-& $PyExe -s -m pip install --isolated --no-warn-script-location -r (Join-Path $PkgBackend "requirements.txt")
-if ($LASTEXITCODE -ne 0) { throw "pip install basarisiz oldu." }
+Write-Host "==> Python bagimliliklari yerel venv'den paketleniyor..." -ForegroundColor Cyan
+robocopy $VenvSitePackages $PkgSitePackages /E /XD "__pycache__" /XF "*.pyc" /NFL /NDL /NJH /NJS /NC /NS | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "Python bagimlilik kopyalama hatasi (robocopy kod: $LASTEXITCODE)" }
+
+Write-Host "==> Python bagimliliklari dogrulaniyor (pip check)..." -ForegroundColor Cyan
+& $PyExe -s -m pip check
+if ($LASTEXITCODE -ne 0) { throw "Paket Python bagimlilik dogrulamasi basarisiz oldu." }
 
 # ---------------------------------------------------------------------------
 # 7) Calistir.bat - musteri bilgisayarinda tek tikla baslatma, INTERNET GEREKTIRMEZ
@@ -381,11 +379,25 @@ if (-not $IsccExe) {
 if ($IsccExe) {
     Write-Host "==> Inno Setup bulundu: $IsccExe" -ForegroundColor Green
     Write-Host "==> Kurulum paketi derleniyor (KameraYonetimi_Kurulum.exe)..." -ForegroundColor Cyan
-    $IssPath = Join-Path $RepoRoot "scripts\setup.iss"
-    & $IsccExe "/Q" $IssPath
+    $InnoStageRoot = Join-Path $env:TEMP "KameraYonetimiInnoStage"
+    $InnoPkgDir = Join-Path $InnoStageRoot "KameraYonetimi"
+    $InnoVcRedistPath = Join-Path $InnoStageRoot "vc_redist.x64.exe"
+    $InnoIssPath = Join-Path $InnoStageRoot "setup.iss"
+    $InnoExePath = Join-Path $InnoStageRoot "KameraYonetimi_Kurulum.exe"
+    $FinalInnoExePath = Join-Path $OutDir "KameraYonetimi_Kurulum.exe"
+
+    if (Test-Path $InnoStageRoot) { Remove-Item $InnoStageRoot -Recurse -Force }
+    New-Item -ItemType Directory -Path $InnoStageRoot -Force | Out-Null
+    robocopy $PkgDir $InnoPkgDir /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "Inno staging kopyalama hatasi (robocopy kod: $LASTEXITCODE)" }
+    Copy-Item $VcRedistPath $InnoVcRedistPath -Force
+    Copy-Item (Join-Path $RepoRoot "scripts\setup.iss") $InnoIssPath -Force
+
+    & $IsccExe "/Q" "/DPackageSource=$InnoPkgDir" "/DPackageOutput=$InnoStageRoot" "/DVcRedistSource=$InnoVcRedistPath" $InnoIssPath
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[UYARI] Inno Setup derleme sirasinda hata verdi." -ForegroundColor Yellow
     } else {
+        Copy-Item $InnoExePath $FinalInnoExePath -Force
         Write-Host "==> Kurulum programi basariyla uretildi!" -ForegroundColor Green
         Write-Host "    Dosya: customer_package\KameraYonetimi_Kurulum.exe" -ForegroundColor Green
     }

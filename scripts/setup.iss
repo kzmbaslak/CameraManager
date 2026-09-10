@@ -4,6 +4,15 @@
 #define AppVersion "1.0.0"
 #define AppPublisher "kzm"
 #define AppExeName "Calistir.bat"
+#ifndef PackageSource
+#define PackageSource "..\customer_package\KameraYonetimi"
+#endif
+#ifndef PackageOutput
+#define PackageOutput "..\customer_package"
+#endif
+#ifndef VcRedistSource
+#define VcRedistSource "..\scripts\cache\vc_redist.x64.exe"
+#endif
 
 [Setup]
 AppId={{D37E885B-7FB3-4CF5-9610-DFCFED1D5173}
@@ -13,7 +22,7 @@ AppPublisher={#AppPublisher}
 DefaultDirName=C:\KameraYonetimi
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-OutputDir=..\customer_package
+OutputDir={#PackageOutput}
 OutputBaseFilename=KameraYonetimi_Kurulum
 Compression=lzma
 SolidCompression=yes
@@ -27,8 +36,8 @@ Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "..\customer_package\KameraYonetimi\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
-Source: "..\scripts\cache\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VcRedistNeedsInstall
+Source: "{#PackageSource}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "{#VcRedistSource}"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VcRedistNeedsInstall
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\backend\python\python.exe"; IconIndex: 0
