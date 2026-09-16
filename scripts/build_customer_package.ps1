@@ -23,6 +23,8 @@ $PythonVersion = "3.14.2"               # backend/venv ile ayni surum (ABI uyumu
 $PythonEmbedUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
 $OutDir = Join-Path $RepoRoot "customer_package"
 $PkgDir = Join-Path $OutDir "KameraYonetimi"
+$CacheDir = Join-Path $RepoRoot "scripts\cache"
+if (-not (Test-Path $CacheDir)) { New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null }
 
 Write-Host "==> Eski paket temizleniyor..." -ForegroundColor Cyan
 if (Test-Path $OutDir) {
@@ -86,9 +88,18 @@ if (-not $PlainSourceFallback) {
     Push-Location $BackendSrc
     try {
         # main.py ve src klasorundeki kodlari sifreleyerek cikti klasorune yaz.
-        & $PyArmorExe gen -O $PkgBackend -r main.py src
-        if ($LASTEXITCODE -ne 0) {
+        $PyArmorLogPath = Join-Path $CacheDir "pyarmor-package.log"
+        $PreviousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            & $PyArmorExe gen -O $PkgBackend -r main.py src > $PyArmorLogPath 2>&1
+            $PyArmorExitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $PreviousErrorActionPreference
+        }
+        if ($PyArmorExitCode -ne 0) {
             Write-Host "[UYARI] PyArmor sifreleme basarisiz oldu; calisir musteri paketi icin kaynak kod plain olarak kopyalaniyor." -ForegroundColor Yellow
+            Write-Host "        Ayrinti: scripts\cache\pyarmor-package.log" -ForegroundColor Yellow
             $PlainSourceFallback = $true
         }
     } finally {
@@ -181,9 +192,6 @@ if ($LASTEXITCODE -ge 8) { throw "Frontend dist kopyalama hatasi (robocopy kod: 
 # ---------------------------------------------------------------------------
 # 5) Embeddable Python indir + cikar (Yerel önbellek destekli)
 # ---------------------------------------------------------------------------
-$CacheDir = Join-Path $RepoRoot "scripts\cache"
-if (-not (Test-Path $CacheDir)) { New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null }
-
 $PyZipPath = Join-Path $CacheDir "python-embed-$PythonVersion.zip"
 if (-not (Test-Path $PyZipPath)) {
     Write-Host "==> Python $PythonVersion (embeddable) indiriliyor..." -ForegroundColor Cyan
@@ -393,9 +401,34 @@ if ($IsccExe) {
     Copy-Item $VcRedistPath $InnoVcRedistPath -Force
     Copy-Item (Join-Path $RepoRoot "scripts\setup.iss") $InnoIssPath -Force
 
-    & $IsccExe "/Q" "/DPackageSource=$InnoPkgDir" "/DPackageOutput=$InnoStageRoot" "/DVcRedistSource=$InnoVcRedistPath" $InnoIssPath
-    if ($LASTEXITCODE -ne 0) {
+    $InnoLogPath = Join-Path $CacheDir "inno-package.log"
+    $InnoErrPath = Join-Path $CacheDir "inno-package.err.log"
+    $InnoTimeoutSeconds = 900
+    if ($env:PACKAGE_INNO_TIMEOUT_SECONDS) {
+        $parsedInnoTimeout = 0
+        if ([int]::TryParse($env:PACKAGE_INNO_TIMEOUT_SECONDS, [ref]$parsedInnoTimeout) -and $parsedInnoTimeout -gt 0) {
+            $InnoTimeoutSeconds = $parsedInnoTimeout
+        }
+    }
+    $InnoArgs = @(
+        "/Q",
+        "/DPackageSource=$InnoPkgDir",
+        "/DPackageOutput=$InnoStageRoot",
+        "/DVcRedistSource=$InnoVcRedistPath",
+        $InnoIssPath
+    )
+    $InnoProcess = Start-Process -FilePath $IsccExe -ArgumentList $InnoArgs -NoNewWindow -PassThru -RedirectStandardOutput $InnoLogPath -RedirectStandardError $InnoErrPath
+    if (-not $InnoProcess.WaitForExit($InnoTimeoutSeconds * 1000)) {
+        Write-Host "[UYARI] Inno Setup $InnoTimeoutSeconds saniye icinde tamamlanmadi; zip paketi teslim icin hazir." -ForegroundColor Yellow
+        Write-Host "        Ayrinti: scripts\cache\inno-package.log" -ForegroundColor Yellow
+        try { Stop-Process -Id $InnoProcess.Id -Force -ErrorAction Stop } catch {}
+        if (Test-Path $InnoExePath) {
+            Copy-Item $InnoExePath $FinalInnoExePath -Force
+            Write-Host "==> Mevcut kurulum programi hedefe kopyalandi." -ForegroundColor Yellow
+        }
+    } elseif ($InnoProcess.ExitCode -ne 0) {
         Write-Host "[UYARI] Inno Setup derleme sirasinda hata verdi." -ForegroundColor Yellow
+        Write-Host "        Ayrinti: scripts\cache\inno-package.log" -ForegroundColor Yellow
     } else {
         Copy-Item $InnoExePath $FinalInnoExePath -Force
         Write-Host "==> Kurulum programi basariyla uretildi!" -ForegroundColor Green

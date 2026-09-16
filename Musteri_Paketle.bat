@@ -1,5 +1,5 @@
 @echo off
-REM Musteri Paketi Olusturucu — Kamera Yonetimi Sistemi
+REM Musteri Paketi Olusturucu - Kamera Yonetimi Sistemi
 REM
 REM Bu dosyayi SADECE internet baglantisi olan GELISTIRME bilgisayaninda
 REM calistirin. Frontend'i derler, Python'un "embeddable" dagitimini indirir,
@@ -10,7 +10,7 @@ REM bilgisayarinda INTERNET GEREKTIRMEDEN calisacak tam bir paket uretir.
 setlocal
 cd /d "%~dp0"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\build_customer_package.ps1"
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\build_customer_package.ps1"
 if errorlevel 1 (
     echo.
     echo [HATA] Paketleme basarisiz oldu. Yukaridaki mesajlari kontrol edin.

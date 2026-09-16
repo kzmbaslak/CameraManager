@@ -24,8 +24,8 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir={#PackageOutput}
 OutputBaseFilename=KameraYonetimi_Kurulum
-Compression=lzma
-SolidCompression=yes
+Compression=lzma/fast
+SolidCompression=no
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64
 
