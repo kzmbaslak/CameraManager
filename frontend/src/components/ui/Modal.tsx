@@ -40,9 +40,9 @@ export function Modal({ open, onClose, title, children, width = 'max-w-md' }: Mo
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className={`relative w-full ${width} bg-bg-card border border-border rounded-lg shadow-2xl`}
+            className={`relative flex max-h-[calc(100vh-2rem)] w-full ${width} flex-col bg-bg-card border border-border rounded-lg shadow-2xl`}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+            <div className="flex shrink-0 items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <h2 id={titleId} className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
               <button
                 type="button"
@@ -53,7 +53,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-md' }: Mo
                 <X size={16} />
               </button>
             </div>
-            <div className="p-5">{children}</div>
+            <div className="min-h-0 overflow-y-auto p-5">{children}</div>
           </motion.div>
         </div>
       )}

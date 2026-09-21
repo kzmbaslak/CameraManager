@@ -37,3 +37,10 @@ export function validateNewPassword(value: unknown, required: boolean): string |
   }
   return value.length >= 8 ? undefined : 'Sifre en az 8 karakter olmalidir.'
 }
+
+export function validateDevicePassword(value: unknown, required: boolean): string | undefined {
+  if (typeof value !== 'string' || !value) {
+    return required ? 'Sifre zorunludur.' : undefined
+  }
+  return value.length <= 256 ? undefined : 'Sifre en fazla 256 karakter olmalidir.'
+}

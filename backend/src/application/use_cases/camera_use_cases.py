@@ -40,6 +40,7 @@ class CameraUseCases:
         ai_active_start: Optional[str] = None,
         ai_active_end: Optional[str] = None,
         ai_roi_polygon: Optional[str] = None,
+        motion_detection_enabled: bool = False,
         continuous_recording_enabled: bool = True,
     ) -> Camera:
         if not name or not host:
@@ -90,6 +91,7 @@ class CameraUseCases:
             existing.ai_active_start = ai_active_start
             existing.ai_active_end = ai_active_end
             existing.ai_roi_polygon = ai_roi_polygon
+            existing.motion_detection_enabled = motion_detection_enabled
             existing.continuous_recording_enabled = continuous_recording_enabled
             if encrypted_password is not None:
                 existing.encrypted_password = self._encrypt_password(encrypted_password)
@@ -130,6 +132,7 @@ class CameraUseCases:
             ai_active_start=ai_active_start,
             ai_active_end=ai_active_end,
             ai_roi_polygon=ai_roi_polygon,
+            motion_detection_enabled=motion_detection_enabled,
             continuous_recording_enabled=continuous_recording_enabled,
         )
         return self.camera_repository.add(camera)
@@ -183,6 +186,14 @@ class CameraUseCases:
         camera.ai_detection_enabled = enabled
         return self.camera_repository.update(camera)
 
+    def update_camera_motion_detection(self, camera_id: int, enabled: bool) -> Camera:
+        """Basit hareket tespitini acar veya kapatir. Worker yonetimi route katmaninda yapilir."""
+        camera = self.camera_repository.get_by_id(camera_id)
+        if not camera:
+            raise ValueError(f"{camera_id} numarali kamera bulunamadi.")
+        camera.motion_detection_enabled = enabled
+        return self.camera_repository.update(camera)
+
     def bulk_add_cameras(self, cameras_list: list) -> list[Camera]:
         """Birden fazla kamerayı toplu olarak sisteme ekler. IP/Host veya NVR kanal çakışması durumunda üzerine yazar (Upsert)."""
         existing_cameras = self.camera_repository.list_all()
@@ -215,6 +226,7 @@ class CameraUseCases:
             building = cam.get("building")
             floor = cam.get("floor")
             zone = cam.get("zone")
+            motion_detection_enabled = bool(cam.get("motion_detection_enabled", False))
             
             if not name or not host:
                 continue
@@ -242,6 +254,7 @@ class CameraUseCases:
                     existing.building = building
                     existing.floor = floor
                     existing.zone = zone
+                    existing.motion_detection_enabled = motion_detection_enabled
                     added = self.camera_repository.update(existing)
                     added_cameras.append(added)
                 else:
@@ -262,6 +275,7 @@ class CameraUseCases:
                         building=building,
                         floor=floor,
                         zone=zone,
+                        motion_detection_enabled=motion_detection_enabled,
                     )
                     added = self.camera_repository.add(camera)
                     existing_standalone[standalone_key] = added
@@ -287,6 +301,7 @@ class CameraUseCases:
                     existing.building = building
                     existing.floor = floor
                     existing.zone = zone
+                    existing.motion_detection_enabled = motion_detection_enabled
                     added = self.camera_repository.update(existing)
                     added_cameras.append(added)
                 else:
@@ -308,6 +323,7 @@ class CameraUseCases:
                         building=building,
                         floor=floor,
                         zone=zone,
+                        motion_detection_enabled=motion_detection_enabled,
                     )
                     added = self.camera_repository.add(camera)
                     existing_nvr[nvr_key] = added

@@ -18,7 +18,7 @@ import { useAlarmStore } from '../stores/alarmStore'
 import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import { hasErrors, requiredText, validateHost, validateNewPassword, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
+import { hasErrors, requiredText, validateDevicePassword, validateHost, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
@@ -99,6 +99,20 @@ const cameraNetworkError =
 const getCameraErrorMessage = (error: unknown, fallback: string) =>
   getApiErrorMessage(error, fallback, cameraNetworkError)
 
+const rtspFieldsFromUri = (uri: string): Pick<CameraCreate, 'host' | 'rtsp_port' | 'rtsp_path'> | null => {
+  try {
+    const parsed = new URL(uri)
+    if (parsed.protocol.toLowerCase() !== 'rtsp:') return null
+    return {
+      host: parsed.hostname,
+      rtsp_port: parsed.port ? Number(parsed.port) : 554,
+      rtsp_path: `${parsed.pathname}${parsed.search}`,
+    }
+  } catch {
+    return null
+  }
+}
+
 /** Yeni kamera ekleme modal'ı */
 function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }) {
   return (
@@ -118,7 +132,7 @@ function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }
   )
 }
 
-function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResponse }) {
+function OnvifDiagnosticResultPanel({ result, onApplyStream }: { result: CameraOnvifPreviewResponse; onApplyStream?: (uri: string) => void }) {
   const profiles = result.profiles ?? []
   const profileCount = result.profile_count ?? profiles.length
   const streamUriCount = result.stream_uri_count ?? 0
@@ -164,9 +178,16 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
         </p>
       )}
       {result.first_stream_uri_masked && (
-        <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
-          {result.first_stream_uri_masked}
-        </p>
+        <div className="flex flex-col gap-2 rounded-md border border-[var(--border)] bg-[var(--bg-card)] p-2">
+          <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
+            {result.first_stream_uri_masked}
+          </p>
+          {onApplyStream && (
+            <Button type="button" size="sm" variant="secondary" onClick={() => onApplyStream(result.first_stream_uri_masked!)}>
+              Stream'i Forma Uygula
+            </Button>
+          )}
+        </div>
       )}
       {profiles.length > 0 && (
         <div className="max-h-36 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg-secondary)]">
@@ -200,7 +221,7 @@ function OnvifDiagnosticResultPanel({ result }: { result: CameraOnvifPreviewResp
 function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const showToast = useToastStore((state) => state.showToast)
-  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', continuous_recording_enabled: true })
+  const [form, setForm] = useState<CameraCreate>({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', motion_detection_enabled: false, continuous_recording_enabled: true })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const { mutate, isPending, error } = useMutation({
@@ -209,7 +230,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       qc.invalidateQueries({ queryKey: ['cameras'] })
       showToast({ variant: 'success', title: 'Kamera eklendi', description: form.name })
       onClose()
-      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', continuous_recording_enabled: true })
+      setForm({ name: '', host: '', rtsp_path: '', username: '', password: '', auto_rtsp_ports: false, site: '', building: '', floor: '', zone: '', motion_detection_enabled: false, continuous_recording_enabled: true })
       setFieldErrors({})
     },
     onError: (err) => showToast({ variant: 'danger', title: 'Kamera eklenemedi', description: getCameraErrorMessage(err, 'IP, port, RTSP path ve kullanici/sifre bilgisini kontrol edin.') }),
@@ -236,10 +257,37 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
       username: form.username,
       password: form.password,
     }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.first_stream_uri_masked || form.rtsp_path) return
+      const fields = rtspFieldsFromUri(result.first_stream_uri_masked)
+      if (!fields) return
+      setForm((current) => ({
+        ...current,
+        host: fields.host || current.host,
+        rtsp_port: fields.rtsp_port,
+        rtsp_path: fields.rtsp_path,
+      }))
+      showToast({ variant: 'success', title: 'ONVIF stream bulundu', description: `${fields.rtsp_path} forma yazildi.` })
+    },
   })
 
   const set = (field: keyof CameraCreate, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
+
+  const applyOnvifStream = (uri: string) => {
+    const fields = rtspFieldsFromUri(uri)
+    if (!fields) {
+      showToast({ variant: 'warning', title: 'Stream uygulanamadi', description: 'ONVIF RTSP URI formata uygun degil.' })
+      return
+    }
+    setForm((current) => ({
+      ...current,
+      host: fields.host || current.host || '',
+      rtsp_port: fields.rtsp_port,
+      rtsp_path: fields.rtsp_path,
+    }))
+    showToast({ variant: 'success', title: 'ONVIF stream forma uygulandi', description: fields.rtsp_path || '/' })
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -248,7 +296,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
     const hostError = validateHost(form.host)
     const rtspPortError = validatePort(form.rtsp_port ?? 554, 'RTSP port')
     const onvifPortError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
-    const passwordError = validateNewPassword(form.password, false)
+    const passwordError = validateDevicePassword(form.password, false)
     if (nameError) errors.name = nameError
     if (hostError) errors.host = hostError
     if (rtspPortError) errors.rtsp_port = rtspPortError
@@ -299,6 +347,17 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
           <input
             type="checkbox"
+            checked={form.motion_detection_enabled ?? false}
+            onChange={(e) => set('motion_detection_enabled', e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+          />
+          <span>
+            Basit hareket tespiti acik olsun. AI insan tespitinden bagimsiz hareket alarmlari uretir.
+          </span>
+        </label>
+        <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
             checked={form.continuous_recording_enabled ?? true}
             onChange={(e) => set('continuous_recording_enabled', e.target.checked)}
             className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
@@ -331,7 +390,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
               {getCameraErrorMessage(onvifError, 'ONVIF testi calistirilamadi.')}
             </p>
           )}
-          {onvifResult && <OnvifDiagnosticResultPanel result={onvifResult} />}
+          {onvifResult && <OnvifDiagnosticResultPanel result={onvifResult} onApplyStream={applyOnvifStream} />}
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -692,6 +751,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     ai_active_start: camera.ai_active_start ?? '',
     ai_active_end: camera.ai_active_end ?? '',
     ai_roi_polygon: camera.ai_roi_polygon ?? '',
+    motion_detection_enabled: camera.motion_detection_enabled,
     continuous_recording_enabled: camera.continuous_recording_enabled,
     site: camera.site ?? '',
     building: camera.building ?? '',
@@ -741,6 +801,18 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
       username: form.username,
       password: form.password,
     }),
+    onSuccess: (result) => {
+      if (!result.ok || !result.first_stream_uri_masked || form.rtsp_path) return
+      const fields = rtspFieldsFromUri(result.first_stream_uri_masked)
+      if (!fields) return
+      setForm((current) => ({
+        ...current,
+        host: fields.host || current.host,
+        rtsp_port: fields.rtsp_port,
+        rtsp_path: fields.rtsp_path,
+      }))
+      showToast({ variant: 'success', title: 'ONVIF stream bulundu', description: `${fields.rtsp_path} forma yazildi.` })
+    },
   })
 
   if (!camera) return null
@@ -762,6 +834,21 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     })
   }
 
+  const applyOnvifStream = (uri: string) => {
+    const fields = rtspFieldsFromUri(uri)
+    if (!fields) {
+      showToast({ variant: 'warning', title: 'Stream uygulanamadi', description: 'ONVIF RTSP URI formata uygun degil.' })
+      return
+    }
+    setForm((current) => ({
+      ...current,
+      host: fields.host || current.host || '',
+      rtsp_port: fields.rtsp_port,
+      rtsp_path: fields.rtsp_path,
+    }))
+    showToast({ variant: 'success', title: 'ONVIF stream forma uygulandi', description: fields.rtsp_path || '/' })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const errors: FieldErrors = {}
@@ -769,7 +856,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     const hostError = validateHost(form.host)
     const rtspPortError = validatePort(form.rtsp_port ?? 554, 'RTSP port')
     const onvifPortError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
-    const passwordError = validateNewPassword(form.password, false)
+    const passwordError = validateDevicePassword(form.password, false)
     const confidenceError = validateNumberRange(form.ai_confidence_threshold ?? 0.5, 'Confidence', 0.05, 0.95)
     const iouError = validateNumberRange(form.ai_iou_threshold ?? 0.45, 'IoU', 0.05, 0.95)
     const cooldownError = validateNumberRange(form.ai_alarm_cooldown_seconds ?? 60, 'Cooldown', 5, 3600)
@@ -810,6 +897,17 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         <p className="text-xs text-[var(--text-secondary)]">
           Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(camera.password_updated_at)}</span>. Politika: {rotationDays} gun. Yeni sifre bos birakilirsa kayitli sifre korunur.
         </p>
+        <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.motion_detection_enabled ?? false}
+            onChange={(e) => setForm((f) => ({ ...f, motion_detection_enabled: e.target.checked }))}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-primary)] text-[var(--accent)] focus:ring-[var(--accent)]"
+          />
+          <span>
+            Basit hareket tespiti acik olsun. AI insan tespitinden bagimsiz hareket alarmlari uretir.
+          </span>
+        </label>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -834,7 +932,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
               {getCameraErrorMessage(onvifTestError, 'ONVIF testi calistirilamadi.')}
             </p>
           )}
-          {onvifTestResult && <OnvifDiagnosticResultPanel result={onvifTestResult} />}
+          {onvifTestResult && <OnvifDiagnosticResultPanel result={onvifTestResult} onApplyStream={applyOnvifStream} />}
         </div>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1083,6 +1181,17 @@ export function CamerasPage() {
     onError: (err) => showToast({ variant: 'danger', title: 'AI ayari guncellenemedi', description: getCameraErrorMessage(err, 'AI tespiti degistirilemedi.') }),
   })
 
+  /** Basit hareket tespitini acar veya kapatir */
+  const toggleMotion = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      camerasApi.toggleMotion(id, enabled),
+    onSuccess: (camera) => {
+      qc.invalidateQueries({ queryKey: ['cameras'] })
+      showToast({ variant: 'success', title: 'Hareket tespiti guncellendi', description: camera.name })
+    },
+    onError: (err) => showToast({ variant: 'danger', title: 'Hareket ayari guncellenemedi', description: getCameraErrorMessage(err, 'Hareket tespiti degistirilemedi.') }),
+  })
+
   /** Kamerayı sistemden siler */
   const deleteCam = useMutation({
     mutationFn: camerasApi.delete,
@@ -1262,6 +1371,23 @@ export function CamerasPage() {
           />
           <span className={`text-xs ${c.ai_detection_enabled ? 'text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
             {c.ai_detection_enabled ? 'Açık' : 'Kapalı'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'motion',
+      header: 'Hareket',
+      render: (c: Camera) => (
+        <div className="flex items-center gap-2">
+          <Toggle
+            checked={c.motion_detection_enabled}
+            disabled={!canEditCameras || toggleMotion.isPending}
+            label="Hareket tespiti"
+            onChange={(enabled) => toggleMotion.mutate({ id: c.id, enabled })}
+          />
+          <span className={`text-xs ${c.motion_detection_enabled ? 'text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
+            {c.motion_detection_enabled ? 'Acik' : 'Kapali'}
           </span>
         </div>
       ),

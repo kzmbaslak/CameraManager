@@ -344,6 +344,7 @@ async def add_camera(
             ai_active_start=camera_data.ai_active_start,
             ai_active_end=camera_data.ai_active_end,
             ai_roi_polygon=camera_data.ai_roi_polygon,
+            motion_detection_enabled=camera_data.motion_detection_enabled,
             continuous_recording_enabled=camera_data.continuous_recording_enabled,
         )
         # RTSP doğrulaması başarılıysa kamerayı hemen aktif et ve akışı başlat
@@ -361,6 +362,7 @@ async def add_camera(
                 "floor": camera.floor,
                 "zone": camera.zone,
                 "password_configured": bool(password),
+                "motion_detection_enabled": camera.motion_detection_enabled,
                 "continuous_recording_enabled": camera.continuous_recording_enabled,
                 "password_updated_at": camera.password_updated_at.isoformat() + "Z" if camera.password_updated_at else None,
             },
@@ -913,6 +915,10 @@ async def update_camera(
     if data.ai_roi_polygon is not None:
         camera.ai_roi_polygon = data.ai_roi_polygon
         ai_settings_changed = True
+    motion_settings_changed = False
+    if data.motion_detection_enabled is not None:
+        camera.motion_detection_enabled = data.motion_detection_enabled
+        motion_settings_changed = True
     recording_policy_changed = False
     if data.continuous_recording_enabled is not None:
         camera.continuous_recording_enabled = data.continuous_recording_enabled
@@ -922,7 +928,7 @@ async def update_camera(
     # Bağlantı ayarları değiştiyse yayını sıfırla ve yeniden bağlandır
     if connection_changed:
         await sm.reset_stream(camera_id)
-    elif ai_settings_changed or recording_policy_changed:
+    elif ai_settings_changed or motion_settings_changed or recording_policy_changed:
         await sm.ensure_running_state(camera_id)
 
     write_audit_event(
@@ -933,6 +939,8 @@ async def update_camera(
             "camera_id": camera_id,
             "connection_changed": connection_changed,
             "ai_settings_changed": ai_settings_changed,
+            "motion_settings_changed": motion_settings_changed,
+            "motion_detection_enabled": updated_camera.motion_detection_enabled,
             "recording_policy_changed": recording_policy_changed,
             "continuous_recording_enabled": updated_camera.continuous_recording_enabled,
             "password_rotated": password_rotated,
@@ -1357,6 +1365,33 @@ async def update_camera_ai(
 
     write_audit_event(
         "camera.ai",
+        actor=current_user.get("sub"),
+        source_ip=request.client.host if request.client else None,
+        metadata={"camera_id": camera_id, "enabled": enabled},
+    )
+    return camera
+
+
+@router.patch("/{camera_id:int}/motion", response_model=CameraResponse)
+async def update_camera_motion(
+    camera_id: int,
+    enabled: bool,
+    request: Request,
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    sm: CameraStreamManager = Depends(get_stream_manager),
+    current_user: dict = Depends(get_camera_manage_user),
+):
+    """Basit hareket tespitini acar veya kapatir."""
+    try:
+        camera = use_cases.update_camera_motion_detection(camera_id, enabled)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    if camera.status == CameraStatus.ACTIVE:
+        await sm.ensure_running_state(camera_id)
+
+    write_audit_event(
+        "camera.motion",
         actor=current_user.get("sub"),
         source_ip=request.client.host if request.client else None,
         metadata={"camera_id": camera_id, "enabled": enabled},

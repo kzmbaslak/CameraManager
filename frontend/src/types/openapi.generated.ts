@@ -152,6 +152,11 @@ export const openApiOperations = [
     "operationId": "diagnose_camera_stream_api_cameras__camera_id__diagnostics_stream_get"
   },
   {
+    "method": "patch",
+    "path": "/api/cameras/{camera_id}/motion",
+    "operationId": "update_camera_motion_api_cameras__camera_id__motion_patch"
+  },
+  {
     "method": "post",
     "path": "/api/cameras/{camera_id}/ptz/home",
     "operationId": "goto_camera_ptz_home_api_cameras__camera_id__ptz_home_post"
@@ -376,6 +381,7 @@ export type OpenApiPath =
   | "/api/cameras/{camera_id}/diagnostics/rtsp"
   | "/api/cameras/{camera_id}/diagnostics/stream-history"
   | "/api/cameras/{camera_id}/diagnostics/stream"
+  | "/api/cameras/{camera_id}/motion"
   | "/api/cameras/{camera_id}/ptz/home"
   | "/api/cameras/{camera_id}/ptz/move"
   | "/api/cameras/{camera_id}/ptz/patrol"
@@ -448,6 +454,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/rtsp"; operationId: "diagnose_camera_rtsp_api_cameras__camera_id__diagnostics_rtsp_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream-history"; operationId: "diagnose_camera_stream_history_api_cameras__camera_id__diagnostics_stream_history_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream"; operationId: "diagnose_camera_stream_api_cameras__camera_id__diagnostics_stream_get" }
+  | { method: "patch"; path: "/api/cameras/{camera_id}/motion"; operationId: "update_camera_motion_api_cameras__camera_id__motion_patch" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/home"; operationId: "goto_camera_ptz_home_api_cameras__camera_id__ptz_home_post" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/move"; operationId: "move_camera_ptz_api_cameras__camera_id__ptz_move_post" }
   | { method: "post"; path: "/api/cameras/{camera_id}/ptz/patrol"; operationId: "run_camera_ptz_patrol_api_cameras__camera_id__ptz_patrol_post" }
@@ -725,6 +732,7 @@ export type OpenApiSchemas = {
     "floor"?: (string) | (null)
     "host": string
     "model"?: (string) | (null)
+    "motion_detection_enabled"?: boolean
     "name": string
     "onvif_port"?: (number) | (null)
     "password"?: (string) | (null)
@@ -1022,6 +1030,7 @@ export type OpenApiSchemas = {
     "continuous_recording_enabled"?: (boolean) | (null)
     "floor"?: (string) | (null)
     "host"?: (string) | (null)
+    "motion_detection_enabled"?: (boolean) | (null)
     "name"?: (string) | (null)
     "onvif_port"?: (number) | (null)
     "password"?: (string) | (null)

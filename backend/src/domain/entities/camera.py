@@ -58,4 +58,6 @@ class Camera:
 
     @property
     def is_enabled_for_detection(self) -> bool:
-        return self.status in {CameraStatus.ACTIVE, CameraStatus.ERROR} and self.ai_detection_enabled
+        return self.status in {CameraStatus.ACTIVE, CameraStatus.ERROR} and (
+            self.ai_detection_enabled or self.motion_detection_enabled
+        )

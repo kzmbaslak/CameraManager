@@ -417,19 +417,41 @@ if ($IsccExe) {
         "/DVcRedistSource=$InnoVcRedistPath",
         $InnoIssPath
     )
-    $InnoProcess = Start-Process -FilePath $IsccExe -ArgumentList $InnoArgs -NoNewWindow -PassThru -RedirectStandardOutput $InnoLogPath -RedirectStandardError $InnoErrPath
+    function Quote-ProcessArgument([string]$Value) {
+        if ($Value -match '^[A-Za-z0-9_./:=\\-]+$') { return $Value }
+        return '"' + ($Value -replace '"', '\"') + '"'
+    }
+    $InnoStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $InnoStartInfo.FileName = $IsccExe
+    $InnoStartInfo.Arguments = ($InnoArgs | ForEach-Object { Quote-ProcessArgument $_ }) -join " "
+    $InnoStartInfo.UseShellExecute = $false
+    $InnoStartInfo.RedirectStandardOutput = $true
+    $InnoStartInfo.RedirectStandardError = $true
+    $InnoStartInfo.CreateNoWindow = $true
+    $InnoProcess = New-Object System.Diagnostics.Process
+    $InnoProcess.StartInfo = $InnoStartInfo
+    [void]$InnoProcess.Start()
+    $InnoStdoutTask = $InnoProcess.StandardOutput.ReadToEndAsync()
+    $InnoStderrTask = $InnoProcess.StandardError.ReadToEndAsync()
     if (-not $InnoProcess.WaitForExit($InnoTimeoutSeconds * 1000)) {
         Write-Host "[UYARI] Inno Setup $InnoTimeoutSeconds saniye icinde tamamlanmadi; zip paketi teslim icin hazir." -ForegroundColor Yellow
         Write-Host "        Ayrinti: scripts\cache\inno-package.log" -ForegroundColor Yellow
         try { Stop-Process -Id $InnoProcess.Id -Force -ErrorAction Stop } catch {}
+        try { $InnoProcess.WaitForExit() } catch {}
+        Set-Content -Path $InnoLogPath -Value $InnoStdoutTask.Result -Encoding utf8
+        Set-Content -Path $InnoErrPath -Value $InnoStderrTask.Result -Encoding utf8
         if (Test-Path $InnoExePath) {
             Copy-Item $InnoExePath $FinalInnoExePath -Force
             Write-Host "==> Mevcut kurulum programi hedefe kopyalandi." -ForegroundColor Yellow
         }
     } elseif ($InnoProcess.ExitCode -ne 0) {
+        Set-Content -Path $InnoLogPath -Value $InnoStdoutTask.Result -Encoding utf8
+        Set-Content -Path $InnoErrPath -Value $InnoStderrTask.Result -Encoding utf8
         Write-Host "[UYARI] Inno Setup derleme sirasinda hata verdi." -ForegroundColor Yellow
         Write-Host "        Ayrinti: scripts\cache\inno-package.log" -ForegroundColor Yellow
     } else {
+        Set-Content -Path $InnoLogPath -Value $InnoStdoutTask.Result -Encoding utf8
+        Set-Content -Path $InnoErrPath -Value $InnoStderrTask.Result -Encoding utf8
         Copy-Item $InnoExePath $FinalInnoExePath -Force
         Write-Host "==> Kurulum programi basariyla uretildi!" -ForegroundColor Green
         Write-Host "    Dosya: customer_package\KameraYonetimi_Kurulum.exe" -ForegroundColor Green

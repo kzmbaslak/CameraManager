@@ -60,6 +60,10 @@ export interface StreamMessage {
   frame_height?: number | null
   detected_at?: string | null
   ai_inference_ms?: number | null
+  motion?: {
+    changed_ratio: number
+    changed_percent: number
+  } | null
 }
 
 export type CameraScanRequest = OpenApiSchemas['CameraScanRequest']

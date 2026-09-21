@@ -31,6 +31,17 @@ class DetectionAnalysisResult:
     inference_ms: Optional[float] = None
 
 
+@dataclass(frozen=True)
+class MotionAnalysisResult:
+    """Basit hareket analizi sonucunu ve varsa uretilen alarmi tasir."""
+
+    alarm: Optional[Alarm]
+    motion_ratio: float
+    frame_width: Optional[int]
+    frame_height: Optional[int]
+    detected_at: datetime
+
+
 class ProcessFrameUseCase:
     """Goruntu okuma, yapay zeka analizi ve alarm uretme is akisini yonetir."""
 
@@ -99,6 +110,44 @@ class ProcessFrameUseCase:
         cv2.imwrite(raw_path, frame)
         cv2.imwrite(annotated_path, self._draw_detection_boxes(frame, detections))
         return raw_path, self._file_sha256(raw_path), annotated_path, self._file_sha256(annotated_path)
+
+    def _motion_threshold_ratio(self) -> float:
+        try:
+            value = float(os.environ.get("MOTION_DETECTION_MIN_CHANGED_RATIO", "0.02") or "0.02")
+        except ValueError:
+            value = 0.02
+        return min(max(value, 0.001), 0.5)
+
+    def _motion_pixel_threshold(self) -> int:
+        try:
+            value = int(os.environ.get("MOTION_DETECTION_PIXEL_THRESHOLD", "25") or "25")
+        except ValueError:
+            value = 25
+        return min(max(value, 1), 255)
+
+    def _motion_changed_ratio(self, previous_frame: object, current_frame: object) -> float:
+        """Iki kare arasindaki anlamli piksel degisim oranini hesaplar."""
+        if previous_frame is None or current_frame is None:
+            return 0.0
+        if not hasattr(previous_frame, "shape") or not hasattr(current_frame, "shape"):
+            return 0.0
+        if previous_frame.shape[:2] != current_frame.shape[:2]:
+            previous_frame = cv2.resize(
+                previous_frame,
+                (int(current_frame.shape[1]), int(current_frame.shape[0])),
+                interpolation=cv2.INTER_AREA,
+            )
+
+        previous_gray = cv2.cvtColor(previous_frame, cv2.COLOR_BGR2GRAY)
+        current_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
+        previous_gray = cv2.GaussianBlur(previous_gray, (5, 5), 0)
+        current_gray = cv2.GaussianBlur(current_gray, (5, 5), 0)
+        delta = cv2.absdiff(previous_gray, current_gray)
+        _, thresholded = cv2.threshold(delta, self._motion_pixel_threshold(), 255, cv2.THRESH_BINARY)
+        thresholded = cv2.dilate(thresholded, None, iterations=2)
+        changed = cv2.countNonZero(thresholded)
+        total = int(thresholded.shape[0]) * int(thresholded.shape[1])
+        return 0.0 if total <= 0 else changed / total
 
     def _is_ai_schedule_active(self, camera) -> bool:
         """Kamera bazli AI aktif saat araligini kontrol eder."""
@@ -280,6 +329,56 @@ class ProcessFrameUseCase:
             frame_height=frame_height,
             detected_at=detected_at,
             inference_ms=inference_ms,
+        )
+
+    def analyze_motion_and_alarm(self, camera_id: int, previous_frame: object, current_frame: object, camera=None) -> MotionAnalysisResult:
+        """Ardisik karelerde hareketi tespit eder, gerekirse motion alarmi olusturur."""
+        frame_height = None
+        frame_width = None
+        if hasattr(current_frame, "shape") and len(current_frame.shape) >= 2:
+            frame_height = int(current_frame.shape[0])
+            frame_width = int(current_frame.shape[1])
+
+        detected_at = utc_now()
+        motion_ratio = self._motion_changed_ratio(previous_frame, current_frame)
+        saved_alarm = None
+        if motion_ratio >= self._motion_threshold_ratio():
+            cooldown_seconds = getattr(camera, "ai_alarm_cooldown_seconds", None)
+            original_cooldown = self.cooldown_seconds
+            if cooldown_seconds:
+                self.cooldown_seconds = cooldown_seconds
+            in_cooldown = self._is_in_cooldown(camera_id, AlarmType.MOTION_DETECTED)
+            self.cooldown_seconds = original_cooldown
+            if not in_cooldown:
+                open_alarm = self.alarm_repository.get_latest_open(camera_id, AlarmType.MOTION_DETECTED)
+                if open_alarm is None:
+                    snapshot_path, snapshot_sha256, snapshot_annotated_path, snapshot_annotated_sha256 = self._save_alarm_snapshots(current_frame, camera_id, ())
+                    alarm = Alarm(
+                        id=None,
+                        camera_id=camera_id,
+                        alarm_type=AlarmType.MOTION_DETECTED,
+                        status=AlarmStatus.NEW,
+                        confidence=min(max(motion_ratio, 0.0), 1.0),
+                        bounding_box=None,
+                        snapshot_path=snapshot_path,
+                        snapshot_sha256=snapshot_sha256,
+                        snapshot_annotated_path=snapshot_annotated_path,
+                        snapshot_annotated_sha256=snapshot_annotated_sha256,
+                        severity=AlarmSeverity.MEDIUM,
+                        message=f"Hareket tespit edildi! Degisen alan: %{int(motion_ratio * 100)}",
+                        created_at=detected_at,
+                    )
+                    saved_alarm = self.alarm_repository.add(alarm)
+                else:
+                    saved_alarm = open_alarm
+                self._last_alarms[(camera_id, AlarmType.MOTION_DETECTED)] = detected_at
+
+        return MotionAnalysisResult(
+            alarm=saved_alarm,
+            motion_ratio=motion_ratio,
+            frame_width=frame_width,
+            frame_height=frame_height,
+            detected_at=detected_at,
         )
 
     def detect_and_alarm(self, camera_id: int, frame: object) -> Optional[Alarm]:

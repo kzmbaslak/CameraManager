@@ -64,6 +64,14 @@ export const camerasApi = {
     return data
   },
 
+  /** Basit hareket tespitini acar veya kapatir; kamera aktifken worker guncellenir. */
+  toggleMotion: async (id: number, enabled: boolean): Promise<Camera> => {
+    const { data } = await client.patch<Camera>(`/cameras/${id}/motion`, null, {
+      params: { enabled },
+    })
+    return data
+  },
+
   /** Kamerayı sistemden siler. */
   delete: async (id: number): Promise<void> => {
     await client.delete(`/cameras/${id}`)

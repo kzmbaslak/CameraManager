@@ -81,9 +81,13 @@ class CameraStreamManager:
         self._last_alarm_times: Dict[int, Dict[Tuple[int, AlarmType], datetime]] = {}
         self._last_ai_time: Dict[int, float] = {}
         self._active_ai_tasks: Dict[int, asyncio.Task] = {}
+        self._active_motion_tasks: Dict[int, asyncio.Task] = {}
         self._ai_enabled_cache: Dict[int, bool] = {}
+        self._motion_enabled_cache: Dict[int, bool] = {}
         self._ai_frame_stride_cache: Dict[int, int] = {}
         self._ai_frame_counters: Dict[int, int] = {}
+        self._motion_frame_counters: Dict[int, int] = {}
+        self._motion_previous_frames: Dict[int, object] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
         self._recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
         self._continuous_recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
@@ -185,6 +189,10 @@ class CameraStreamManager:
         ai_task = self._active_ai_tasks.pop(camera_id, None)
         if ai_task and not ai_task.done():
             ai_task.cancel()
+        motion_task = self._active_motion_tasks.pop(camera_id, None)
+        if motion_task and not motion_task.done():
+            motion_task.cancel()
+        self._motion_previous_frames.pop(camera_id, None)
 
     # ------------------------------------------------------------------
     # Genel yönetim — uygulama başlangıcı/kapanışı, status/AI toggle route'ları
@@ -207,7 +215,7 @@ class CameraStreamManager:
                     f"host={cam.host}:{cam.rtsp_port}{cam.rtsp_path or ''}"
                 )
                 if cam.status == CameraStatus.ACTIVE and (
-                    cam.ai_detection_enabled or self._continuous_recording_enabled_for_camera(cam)
+                    cam.ai_detection_enabled or cam.motion_detection_enabled or self._continuous_recording_enabled_for_camera(cam)
                 ):
                     await self._ensure_producer(cam.id)
                     started += 1
@@ -233,6 +241,10 @@ class CameraStreamManager:
             if not task.done():
                 task.cancel()
         self._active_ai_tasks.clear()
+        for task in list(self._active_motion_tasks.values()):
+            if not task.done():
+                task.cancel()
+        self._active_motion_tasks.clear()
         self._executor.shutdown(wait=False)
         self._ai_executor.shutdown(wait=False)
         logger.info("[StreamManager] Tüm kamera producer'ları durduruldu.")
@@ -249,12 +261,12 @@ class CameraStreamManager:
             self._stop_flags[camera_id] = True
             return
 
-        status, ai_enabled, continuous_recording_enabled = camera_state
+        status, ai_enabled, motion_enabled, continuous_recording_enabled = camera_state
         if status != CameraStatus.ACTIVE:
             self._stop_flags[camera_id] = True
             return
 
-        needs_producer = ai_enabled or continuous_recording_enabled or bool(self._subscribers.get(camera_id))
+        needs_producer = ai_enabled or motion_enabled or continuous_recording_enabled or bool(self._subscribers.get(camera_id))
         if needs_producer:
             await self._ensure_producer(camera_id)
         else:
@@ -276,6 +288,10 @@ class CameraStreamManager:
         ai_task = self._active_ai_tasks.pop(camera_id, None)
         if ai_task and not ai_task.done():
             ai_task.cancel()
+        motion_task = self._active_motion_tasks.pop(camera_id, None)
+        if motion_task and not motion_task.done():
+            motion_task.cancel()
+        self._motion_previous_frames.pop(camera_id, None)
         self._producers.pop(camera_id, None)
         # Yeni bağlantı parametrelerine göre yayını tekrar başlat
         await self.ensure_running_state(camera_id)
@@ -307,12 +323,12 @@ class CameraStreamManager:
             while not self._stop_flags.get(camera_id, False):
                 t0 = loop.time()
                 try:
-                    frame, camera_active, ai_enabled, ai_frame_stride, continuous_recording_enabled = await loop.run_in_executor(
+                    frame, camera_active, ai_enabled, motion_enabled, ai_frame_stride, continuous_recording_enabled = await loop.run_in_executor(
                         self._executor, lambda: self._read_frame_sync(camera_id, frame_source)
                     )
                 except Exception as exc:
                     logger.warning(f"[StreamManager] Kamera {camera_id} kare okuma hatası: {exc}")
-                    frame, camera_active, ai_enabled, ai_frame_stride, continuous_recording_enabled = None, True, self._sync_check_ai_enabled_cached(camera_id), 1, False
+                    frame, camera_active, ai_enabled, motion_enabled, ai_frame_stride, continuous_recording_enabled = None, True, self._sync_check_ai_enabled_cached(camera_id), self._sync_check_motion_enabled_cached(camera_id), 1, False
 
                 if not camera_active:
                     logger.info(f"[StreamManager] Kamera {camera_id} pasif/silinmiş — producer durduruluyor.")
@@ -336,13 +352,21 @@ class CameraStreamManager:
 
                 has_subscribers = bool(self._subscribers.get(camera_id))
                 should_run_ai = frame is not None and ai_enabled and self._should_run_ai(camera_id, ai_frame_stride)
+                should_run_motion = frame is not None and motion_enabled and self._should_run_motion(camera_id)
 
                 if should_run_ai:
                     self._last_ai_time[camera_id] = loop.time()
                     self._schedule_ai_detection(camera_id, frame.copy())
+                if frame is not None and motion_enabled:
+                    previous_frame = self._motion_previous_frames.get(camera_id)
+                    if should_run_motion and previous_frame is not None:
+                        self._schedule_motion_detection(camera_id, previous_frame.copy(), frame.copy())
+                    self._motion_previous_frames[camera_id] = frame.copy()
+                elif not motion_enabled:
+                    self._motion_previous_frames.pop(camera_id, None)
 
                 # AI kapalı ve hiç izleyici yoksa RTSP oturumunu kısa bir süre sıcak tut.
-                if not has_subscribers and not ai_enabled and not continuous_recording_enabled:
+                if not has_subscribers and not ai_enabled and not motion_enabled and not continuous_recording_enabled:
                     if idle_since is None:
                         idle_since = loop.time()
                     elif loop.time() - idle_since >= self._idle_grace_seconds:
@@ -357,6 +381,7 @@ class CameraStreamManager:
         finally:
             frame_source.release(camera_id)
             self._producers.pop(camera_id, None)
+            self._motion_previous_frames.pop(camera_id, None)
 
     def _should_run_ai(self, camera_id: int, frame_stride: int = 1) -> bool:
         """AI taramasının bu turda tetiklenmeye uygun olup olmadığını döner."""
@@ -370,6 +395,69 @@ class CameraStreamManager:
             return False
         task = self._active_ai_tasks.get(camera_id)
         return task is None or task.done()
+
+    def _motion_frame_stride(self) -> int:
+        try:
+            value = int(os.environ.get("MOTION_DETECTION_FRAME_STRIDE", "5") or "5")
+        except ValueError:
+            value = 5
+        return min(max(value, 1), 60)
+
+    def _should_run_motion(self, camera_id: int) -> bool:
+        """Basit hareket analizinin bu turda calisip calismayacagini dondurur."""
+        stride = self._motion_frame_stride()
+        self._motion_frame_counters[camera_id] = self._motion_frame_counters.get(camera_id, 0) + 1
+        if (self._motion_frame_counters[camera_id] - 1) % stride != 0:
+            return False
+        task = self._active_motion_tasks.get(camera_id)
+        return task is None or task.done()
+
+    def _schedule_motion_detection(self, camera_id: int, previous_frame, current_frame) -> None:
+        """Hareket analizini capture dongusunden ayirip arka planda calistirir."""
+        loop = asyncio.get_running_loop()
+
+        async def _runner() -> None:
+            try:
+                result = await loop.run_in_executor(
+                    self._ai_executor,
+                    lambda: self._detect_motion_and_alarm_sync(camera_id, previous_frame, current_frame),
+                )
+                if result is None or result.alarm is None:
+                    return
+                alarm = result.alarm
+                detection_payload = self._serialize_motion_result(result)
+                self._broadcast(camera_id, {
+                    "frame": None,
+                    "alarm_triggered": True,
+                    "alarm_id": alarm.id,
+                    **detection_payload,
+                })
+                post_seconds = self._event_post_seconds()
+                if post_seconds > 0:
+                    await asyncio.sleep(post_seconds)
+                clip_frames = self._recording_clip_frames(camera_id)
+                if clip_frames:
+                    await loop.run_in_executor(
+                        self._executor,
+                        lambda: self._save_event_recording_clip_sync(camera_id, alarm.id, clip_frames, detection_payload),
+                    )
+                logger.info(
+                    "[StreamManager] Kamera %s hareket tespiti! Degisen alan: %%%s, Alarm ID: %s",
+                    camera_id,
+                    int(result.motion_ratio * 100),
+                    alarm.id,
+                )
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                logger.warning(f"[StreamManager] Kamera {camera_id} hareket gorevi hatasi: {exc}")
+            finally:
+                current = self._active_motion_tasks.get(camera_id)
+                if current is asyncio.current_task():
+                    self._active_motion_tasks.pop(camera_id, None)
+
+        task = asyncio.create_task(_runner(), name=f"cam_motion_{camera_id}")
+        self._active_motion_tasks[camera_id] = task
 
     def _schedule_ai_detection(self, camera_id: int, frame) -> None:
         """AI tespitini capture döngüsünden ayırıp arka planda çalıştırır."""
@@ -431,7 +519,7 @@ class CameraStreamManager:
                 default=self._frame_interval,
             )
             return selected
-        if self._sync_check_ai_enabled_cached(camera_id):
+        if self._sync_check_ai_enabled_cached(camera_id) or self._sync_check_motion_enabled_cached(camera_id):
             return self._ai_interval
         return self._frame_interval
 
@@ -691,6 +779,7 @@ class CameraStreamManager:
             "frame_height": detection_payload.get("frame_height"),
             "detected_at": detection_payload.get("detected_at"),
             "detections": detection_payload.get("detections") or [],
+            "motion": detection_payload.get("motion"),
         }
         with open(metadata_path, "w", encoding="utf-8") as file:
             json.dump(payload, file, ensure_ascii=False, separators=(",", ":"))
@@ -766,6 +855,20 @@ class CameraStreamManager:
             "ai_inference_ms": result.inference_ms,
         }
 
+    def _serialize_motion_result(self, result) -> dict:
+        """Hareket alarmini WebSocket ve event metadata formatina cevirir."""
+        return {
+            "detections": [],
+            "frame_width": result.frame_width,
+            "frame_height": result.frame_height,
+            "detected_at": result.detected_at.isoformat() + "Z",
+            "ai_inference_ms": None,
+            "motion": {
+                "changed_ratio": result.motion_ratio,
+                "changed_percent": round(result.motion_ratio * 100, 2),
+            },
+        }
+
     # ------------------------------------------------------------------
     # Bloklayıcı (senkron) işlemler — ThreadPoolExecutor içinde çalışır
     # ------------------------------------------------------------------
@@ -780,20 +883,24 @@ class CameraStreamManager:
         finally:
             db.close()
 
-    def _sync_get_state(self, camera_id: int) -> Optional[Tuple[CameraStatus, bool, bool]]:
+    def _sync_get_state(self, camera_id: int) -> Optional[Tuple[CameraStatus, bool, bool, bool]]:
         db = self._open_db()
         try:
             repo = self._camera_repo(db)
             cam = repo.get_by_id(camera_id)
             if not cam:
                 return None
-            return cam.status, cam.ai_detection_enabled, self._continuous_recording_enabled_for_camera(cam)
+            return cam.status, cam.ai_detection_enabled, cam.motion_detection_enabled, self._continuous_recording_enabled_for_camera(cam)
         finally:
             db.close()
 
     def _sync_check_ai_enabled_cached(self, camera_id: int) -> bool:
         """Son işlenen kare sırasında öğrenilen AI durumunu döner (ekstra DB sorgusu yok)."""
         return self._ai_enabled_cache.get(camera_id, False)
+
+    def _sync_check_motion_enabled_cached(self, camera_id: int) -> bool:
+        """Son islenen kare sirasinda ogrenilen hareket algilama durumunu doner."""
+        return self._motion_enabled_cache.get(camera_id, False)
 
     def get_runtime_telemetry(self, camera_id: int) -> dict:
         """Canlı akış üreticisinin çalışma durumunu özetler."""
@@ -802,6 +909,7 @@ class CameraStreamManager:
         now = time.monotonic()
         producer_task = self._producers.get(camera_id)
         ai_task = self._active_ai_tasks.get(camera_id)
+        motion_task = self._active_motion_tasks.get(camera_id)
         subscriber_count = len(self._subscribers.get(camera_id, ()))
         producer_started_at_monotonic = self._producer_started_at_monotonic.get(camera_id)
         return {
@@ -813,6 +921,7 @@ class CameraStreamManager:
             "active_profile": self._effective_profile_name(camera_id),
             "current_broadcast_fps": self._current_broadcast_fps(camera_id),
             "ai_task_running": bool(ai_task and not ai_task.done()),
+            "motion_task_running": bool(motion_task and not motion_task.done()),
             "ai_provider": getattr(self._ai_service, "active_provider", None),
             "ai_frame_stride": self._ai_frame_stride_cache.get(camera_id, 1),
             "last_ai_inference_ms": self._last_ai_inference_ms.get(camera_id),
@@ -836,9 +945,10 @@ class CameraStreamManager:
 
             camera = camera_repo.get_by_id(camera_id)
             if not camera or camera.status == CameraStatus.INACTIVE:
-                return None, False, False, 1, False
+                return None, False, False, False, 1, False
 
             self._ai_enabled_cache[camera_id] = camera.ai_detection_enabled
+            self._motion_enabled_cache[camera_id] = camera.motion_detection_enabled
             self._ai_frame_stride_cache[camera_id] = max(1, getattr(camera, "ai_frame_stride", 1) or 1)
             continuous_recording_enabled = self._continuous_recording_enabled_for_camera(camera)
 
@@ -853,9 +963,9 @@ class CameraStreamManager:
             # Önceden yüklenmiş kamera objesi geçiriliyor — çift DB sorgusunu önler
             frame = use_case.read_frame(camera_id, camera=camera)
             if frame is None:
-                return None, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
+                return None, True, camera.ai_detection_enabled, camera.motion_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
 
-            return frame, True, camera.ai_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
+            return frame, True, camera.ai_detection_enabled, camera.motion_detection_enabled, self._ai_frame_stride_cache[camera_id], continuous_recording_enabled
         finally:
             db.close()
 
@@ -880,6 +990,32 @@ class CameraStreamManager:
             )
             use_case._last_alarms = dict(self._last_alarm_times.get(camera_id, {}))
             result = use_case.analyze_and_alarm(camera_id, frame, camera=camera)
+            self._last_alarm_times[camera_id] = dict(use_case._last_alarms)
+            return result
+        finally:
+            db.close()
+
+    def _detect_motion_and_alarm_sync(self, camera_id: int, previous_frame, current_frame) -> Optional[object]:
+        """Onceden okunmus iki kare uzerinde hareket tespiti ve alarm uretimi yapar."""
+        from src.application.use_cases.frame_processing_use_case import ProcessFrameUseCase
+
+        db = self._open_db()
+        try:
+            camera_repo = self._camera_repo(db)
+            alarm_repo = self._alarm_repo(db)
+            camera = camera_repo.get_by_id(camera_id)
+            if not camera or not camera.motion_detection_enabled or camera.status != CameraStatus.ACTIVE:
+                return None
+
+            use_case = ProcessFrameUseCase(
+                camera_repository=camera_repo,
+                alarm_repository=alarm_repo,
+                frame_source=None,
+                ai_service=self._ai_service,
+                cooldown_seconds=self._cooldown_seconds,
+            )
+            use_case._last_alarms = dict(self._last_alarm_times.get(camera_id, {}))
+            result = use_case.analyze_motion_and_alarm(camera_id, previous_frame, current_frame, camera=camera)
             self._last_alarm_times[camera_id] = dict(use_case._last_alarms)
             return result
         finally:

@@ -16,7 +16,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
-import { hasErrors, requiredText, validateHost, validateNewPassword, validatePort, type FieldErrors } from '../utils/formValidation'
+import { hasErrors, requiredText, validateDevicePassword, validateHost, validatePort, type FieldErrors } from '../utils/formValidation'
 import type { NVR, NVRCreate, NVRChannelInfo, NVRProbeDiagnostics } from '../types/api'
 
 type NVRBulkAddPayload = NVRCreate[]
@@ -116,7 +116,7 @@ function AddNVRModal({
     const nameError = requiredText(form.name, 'Ad zorunludur.')
     const hostError = validateHost(form.host)
     const portError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
-    const passwordError = validateNewPassword(form.password, false)
+    const passwordError = validateDevicePassword(form.password, false)
     if (nameError) errors.name = nameError
     if (hostError) errors.host = hostError
     if (portError) errors.onvif_port = portError
@@ -186,7 +186,7 @@ function EditNVRModal({ nvr, onClose }: { nvr: NVR | null; onClose: () => void }
     const nameError = requiredText(form.name, 'Ad zorunludur.')
     const hostError = validateHost(form.host)
     const portError = validatePort(form.onvif_port ?? 80, 'ONVIF port')
-    const passwordError = validateNewPassword(form.password, false)
+    const passwordError = validateDevicePassword(form.password, false)
     if (nameError) errors.name = nameError
     if (hostError) errors.host = hostError
     if (portError) errors.onvif_port = portError
