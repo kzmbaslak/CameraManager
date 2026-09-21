@@ -1122,6 +1122,10 @@ export function CamerasPage() {
     .filter((id) => selectedCameraIds.has(id))
   const allVisibleSelected = filteredCameras.length > 0 && selectedVisibleCameraIds.length === filteredCameras.length
   const selectedBulkAiPreset = AI_PRESETS.find((preset) => preset.key === bulkAiPresetKey) ?? AI_PRESETS[1]
+  const bulkAiTargetIds = selectedCameraIds.size > 0
+    ? Array.from(selectedCameraIds)
+    : filteredCameras.map((camera) => camera.id)
+  const bulkAiTargetLabel = selectedCameraIds.size > 0 ? 'secili kamera' : 'gorunen grup'
   const bulkRecordingTargetIds = selectedCameraIds.size > 0
     ? Array.from(selectedCameraIds)
     : filteredCameras.map((camera) => camera.id)
@@ -1222,7 +1226,7 @@ export function CamerasPage() {
 
   const bulkUpdateAiSettings = useMutation({
     mutationFn: () => camerasApi.bulkUpdateAiSettings({
-      camera_ids: Array.from(selectedCameraIds),
+      camera_ids: bulkAiTargetIds,
       ...selectedBulkAiPreset.values,
     }),
     onSuccess: (updated) => {
@@ -1559,8 +1563,9 @@ export function CamerasPage() {
               variant="secondary"
               icon={<SlidersHorizontal size={14} />}
               loading={bulkUpdateAiSettings.isPending}
-              disabled={selectedCameraIds.size === 0}
+              disabled={bulkAiTargetIds.length === 0}
               onClick={() => bulkUpdateAiSettings.mutate()}
+              title={selectedCameraIds.size > 0 ? 'Secili kameralara AI profili uygula' : 'Ekrandaki filtreli kamera grubuna AI profili uygula'}
             >
               AI Profilini Uygula
             </Button>
@@ -1585,7 +1590,7 @@ export function CamerasPage() {
               Kayit Sablonunu Uygula
             </Button>
             <span className="text-xs text-[var(--text-secondary)]">
-              Hedef: {bulkRecordingTargetIds.length} {bulkRecordingTargetLabel}
+              AI: {bulkAiTargetIds.length} {bulkAiTargetLabel} / Kayit: {bulkRecordingTargetIds.length} {bulkRecordingTargetLabel}
             </span>
           </div>
         </div>
