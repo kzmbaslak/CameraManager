@@ -2,8 +2,12 @@
 
 import tempfile
 import unittest
+import os
 from datetime import timedelta
 from pathlib import Path
+
+os.environ.setdefault("CAMERA_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+os.environ.setdefault("JWT_SECRET_KEY", "0123456789abcdef0123456789abcdef")
 
 from fastapi import HTTPException, status
 
@@ -88,6 +92,24 @@ class RecordingFileAccessTests(unittest.TestCase):
             self.assertEqual(len(metadata.detections), 1)
             self.assertEqual(metadata.detections[0].bounding_box.x, 5)
 
+    def test_recording_metadata_reads_motion_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            path = root / "motion.mp4"
+            path.write_bytes(b"mp4")
+            path.with_suffix(".detections.json").write_text(
+                '{"frame_width":160,"frame_height":120,"detected_at":"2026-09-21T10:00:00Z",'
+                '"detections":[],"motion":{"changed_ratio":0.1875,"changed_percent":18.75}}',
+                encoding="utf-8",
+            )
+
+            metadata = _recording_metadata_response(self._segment(path), root)
+
+            self.assertEqual(metadata.detections, [])
+            self.assertIsNotNone(metadata.motion)
+            self.assertEqual(metadata.motion.changed_ratio, 0.1875)
+            self.assertEqual(metadata.motion.changed_percent, 18.75)
+
     def test_recording_metadata_returns_empty_when_sidecar_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
@@ -98,6 +120,7 @@ class RecordingFileAccessTests(unittest.TestCase):
 
             self.assertEqual(metadata.detections, [])
             self.assertEqual(metadata.frame_width, None)
+            self.assertIsNone(metadata.motion)
 
 
 if __name__ == "__main__":

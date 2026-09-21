@@ -560,6 +560,7 @@ export type OpenApiSchemaName =
   | "ReadinessResponse"
   | "RecordingDetectionItem"
   | "RecordingMetadataResponse"
+  | "RecordingMotionMetadata"
   | "RecordingPruneResponse"
   | "RecordingSegmentListResponse"
   | "RecordingSegmentResponse"
@@ -1167,7 +1168,12 @@ export type OpenApiSchemas = {
     "detections": Array<OpenApiSchemas["RecordingDetectionItem"]>
     "frame_height"?: (number) | (null)
     "frame_width"?: (number) | (null)
+    "motion"?: (OpenApiSchemas["RecordingMotionMetadata"]) | (null)
     "segment_id": number
+  }
+  "RecordingMotionMetadata": {
+    "changed_percent": number
+    "changed_ratio": number
   }
   "RecordingPruneResponse": {
     "deleted_db_count": number

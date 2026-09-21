@@ -70,6 +70,7 @@ def _recording_metadata_response(
             frame_height=segment.height,
             detected_at=None,
             detections=[],
+            motion=None,
         )
     try:
         with open(metadata_path, "r", encoding="utf-8") as file:
@@ -97,6 +98,18 @@ def _recording_metadata_response(
     detected_at = payload.get("detected_at")
     if isinstance(detected_at, str) and detected_at.endswith("Z"):
         detected_at = detected_at[:-1] + "+00:00"
+    motion = None
+    motion_payload = payload.get("motion")
+    if isinstance(motion_payload, dict):
+        try:
+            changed_ratio = float(motion_payload.get("changed_ratio") or 0)
+            changed_percent = float(motion_payload.get("changed_percent") or (changed_ratio * 100))
+            motion = {
+                "changed_ratio": min(max(changed_ratio, 0.0), 1.0),
+                "changed_percent": min(max(changed_percent, 0.0), 100.0),
+            }
+        except (TypeError, ValueError):
+            motion = None
     return RecordingMetadataResponse(
         segment_id=segment.id or 0,
         camera_id=segment.camera_id,
@@ -105,6 +118,7 @@ def _recording_metadata_response(
         frame_height=payload.get("frame_height") or segment.height,
         detected_at=detected_at,
         detections=detections,
+        motion=motion,
     )
 
 

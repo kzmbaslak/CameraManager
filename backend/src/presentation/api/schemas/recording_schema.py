@@ -59,6 +59,13 @@ class RecordingDetectionItem(BaseModel):
     bounding_box: BoundingBoxSchema
 
 
+class RecordingMotionMetadata(BaseModel):
+    """Hareket olayi icin normalize degisim ozeti."""
+
+    changed_ratio: float
+    changed_percent: float
+
+
 class RecordingMetadataResponse(BaseModel):
     """Kayit segmenti icin yol sizdirmayan playback metadata'si."""
 
@@ -69,3 +76,4 @@ class RecordingMetadataResponse(BaseModel):
     frame_height: Optional[int] = None
     detected_at: Optional[datetime] = None
     detections: list[RecordingDetectionItem]
+    motion: Optional[RecordingMotionMetadata] = None

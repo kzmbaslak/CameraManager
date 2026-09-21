@@ -52,6 +52,10 @@ function formatConfidence(value: number | null | undefined) {
   return value == null ? '-' : `${Math.round(value * 100)}%`
 }
 
+function formatPercent(value: number | null | undefined) {
+  return value == null ? '-' : `%${value.toFixed(1)}`
+}
+
 function recordingStatusVariant(status: string) {
   if (status === 'complete') return 'success'
   if (status === 'recording') return 'info'
@@ -130,6 +134,7 @@ export function RecordingsPage() {
     ? clampPercent((previewDetectionOffset / previewDuration) * 100)
     : null
   const previewDetections = preview?.metadata?.detections ?? []
+  const previewMotionPercent = preview?.metadata?.motion?.changed_percent ?? null
   const previewMaxConfidence = previewDetections.length
     ? Math.max(...previewDetections.map((detection) => detection.confidence))
     : null
@@ -674,8 +679,12 @@ export function RecordingsPage() {
                 <p className="mt-1 text-sm font-semibold text-text-primary">{previewDetections.length}</p>
               </div>
               <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase text-text-secondary">En Yuksek Guven</p>
-                <p className="mt-1 text-sm font-semibold text-text-primary">{formatConfidence(previewMaxConfidence)}</p>
+                <p className="text-[11px] font-semibold uppercase text-text-secondary">
+                  {previewMotionPercent !== null ? 'Hareket Orani' : 'En Yuksek Guven'}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-text-primary">
+                  {previewMotionPercent !== null ? formatPercent(previewMotionPercent) : formatConfidence(previewMaxConfidence)}
+                </p>
               </div>
               <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase text-text-secondary">Kanit Hash</p>
