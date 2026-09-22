@@ -1,5 +1,7 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-09-22: Kamera kurulum sihirbazi eklendi. Kameralar ekranindaki tek giris noktasi operatoru tek kamera ekleme, ag tarama veya NVR kanal import akisi arasinda yonlendirir; NVR sayfasi `?setup=1` ile acildiginda kayit cihazi ekleme, agda tarama ve kanal import adimlarini gorunur hale getirir.
+
 - 2026-09-21: Kamera ekleme/düzenleme UX'i iyilestirildi. Uzun modal icerigi artik viewport icinde scroll eder, ONVIF testi basarili olup stream URI buldugunda RTSP host/port/path forma otomatik veya tek tusla uygulanabilir ve kamera/NVR cihaz sifreleri icin uygulama kullanici parolasi gibi 8 karakter zorunlulugu uygulanmaz.
 - 2026-09-21: Basit hareket tespiti ilk fazi eklendi. Kamera create/update ve liste ekraninda `motion_detection_enabled` yonetilebilir; aktif kamerada izleyici olmasa da producer calisir, ardisik kare farkindan `motion_detected` alarmi ve olay klibi uretir. Hassasiyet `MOTION_DETECTION_MIN_CHANGED_RATIO`, piksel esigi `MOTION_DETECTION_PIXEL_THRESHOLD`, ornekleme `MOTION_DETECTION_FRAME_STRIDE` ile ayarlanabilir.
 - 2026-09-21: Hareket olayi playback metadata zinciri tamamlandi. Event sidecar icindeki `motion.changed_ratio/changed_percent` artik `/api/recordings/{id}/metadata` yanitinda doner ve Kayitlar oynaticisindaki olay inceleme karti insan kutusu olmayan hareket alarmlarinda hareket oranini gosterir.

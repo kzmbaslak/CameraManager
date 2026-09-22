@@ -1,7 +1,8 @@
 // Kamera listesi, ekleme, düzenleme, silme ve AI tespiti yönetimi sayfası
 import { useMemo, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Film, Plus, Trash2, Power, Pencil, Play, Search, SlidersHorizontal } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Activity, Film, Plus, Trash2, Power, Pencil, Play, Search, Server, SlidersHorizontal } from 'lucide-react'
 import { camerasApi, type CameraUpdate } from '../api/cameras'
 import { usePermissions } from '../hooks/usePermissions'
 import { Table } from '../components/ui/Table'
@@ -1036,8 +1037,74 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
   )
 }
 
+function CameraSetupWizard({
+  open,
+  onClose,
+  onSingleCamera,
+  onNetworkScan,
+  onNvrImport,
+}: {
+  open: boolean
+  onClose: () => void
+  onSingleCamera: () => void
+  onNetworkScan: () => void
+  onNvrImport: () => void
+}) {
+  const start = (action: () => void) => {
+    onClose()
+    action()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Kamera Kurulum Sihirbazi" width="max-w-3xl">
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => start(onSingleCamera)}
+            className="flex min-h-40 flex-col items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Plus size={20} className="text-[var(--accent)]" />
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Tek Kamera</span>
+            <span className="text-xs leading-5 text-[var(--text-secondary)]">
+              IP, RTSP ve ONVIF bilgisi bilinen tek kamerayi kaydetmeden test edip ekleyin.
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => start(onNetworkScan)}
+            className="flex min-h-40 flex-col items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Search size={20} className="text-[var(--accent)]" />
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Ag Taramasi</span>
+            <span className="text-xs leading-5 text-[var(--text-secondary)]">
+              IP araligindaki RTSP yayinlarini bulup secili kameralari toplu ekleyin.
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => start(onNvrImport)}
+            className="flex min-h-40 flex-col items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Server size={20} className="text-[var(--accent)]" />
+            <span className="text-sm font-semibold text-[var(--text-primary)]">NVR Kanallari</span>
+            <span className="text-xs leading-5 text-[var(--text-secondary)]">
+              Kayit cihazini ekleyin, ONVIF/RTSP kanal taramasi yapin ve kanallari kamera olarak ice aktarin.
+            </span>
+          </button>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2 text-xs leading-5 text-[var(--text-secondary)]">
+          Onerilen sira: once ONVIF testiyle stream URI'yi bulun, sonra RTSP frame testini gecirin, en son kamerayi izlemeye alin. NVR kullaniyorsaniz tek tek kamera eklemek yerine kanal import akisi daha hizlidir.
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 /** Kameralar sayfası — listeleme, ekleme, düzenleme, silme, AI tespiti yönetimi */
 export function CamerasPage() {
+  const navigate = useNavigate()
+  const [showSetupWizard, setShowSetupWizard] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
   const [showScan, setShowScan] = useState(false)
   const [editCamera, setEditCamera] = useState<Camera | null>(null)
@@ -1475,11 +1542,8 @@ export function CamerasPage() {
         </div>
         {canManageCameras && (
           <div className="flex gap-2">
-            <Button variant="secondary" icon={<Search size={15} />} onClick={() => setShowScan(true)}>
-              Kameraları Tara
-            </Button>
-            <Button icon={<Plus size={15} />} onClick={() => setShowAdd(true)}>
-              Kamera Ekle
+            <Button icon={<Plus size={15} />} onClick={() => setShowSetupWizard(true)}>
+              Kurulum Sihirbazi
             </Button>
           </div>
         )}
@@ -1611,6 +1675,13 @@ export function CamerasPage() {
         </>
       )}
 
+      <CameraSetupWizard
+        open={showSetupWizard}
+        onClose={() => setShowSetupWizard(false)}
+        onSingleCamera={() => setShowAdd(true)}
+        onNetworkScan={() => setShowScan(true)}
+        onNvrImport={() => navigate('/recorders?setup=1')}
+      />
       <AddCameraModal open={showAdd} onClose={() => setShowAdd(false)} />
       <ScanCamerasModal open={showScan} onClose={() => setShowScan(false)} />
       <EditCameraModal key={editCamera?.id ?? 'none'} camera={editCamera} onClose={() => setEditCamera(null)} />

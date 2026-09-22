@@ -1,6 +1,7 @@
 // NVR cihazı yönetimi sayfası — listeleme, ekleme, düzenleme, silme, kanal tarama ve seçili içe aktarma
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Trash2, Search, Download, Pencil, Power } from 'lucide-react'
 import { nvrsApi, type NVRUpdate } from '../api/nvrs'
 import { usePermissions } from '../hooks/usePermissions'
@@ -1053,6 +1054,8 @@ function DiscoverModal({
 
 /** NVR yönetim sayfası */
 export function NVRPage() {
+  const [searchParams] = useSearchParams()
+  const fromSetupWizard = searchParams.get('setup') === '1'
   const [showAdd, setShowAdd] = useState(false)
   const [showDiscover, setShowDiscover] = useState(false)
   const [prefilledDevice, setPrefilledDevice] = useState<{ host: string; port: number; username?: string; password?: string; brand?: string } | null>(null)
@@ -1231,6 +1234,29 @@ export function NVRPage() {
           )}
         </div>
       </div>
+
+      {fromSetupWizard && (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">NVR kamera kurulum akisi</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+                1. Kayit cihazini ekleyin veya agda bulun. 2. Listedeki Tara aksiyonuyla ONVIF/RTSP kanallari okuyun. 3. Secili kanallari kamera olarak ice aktarin.
+              </p>
+            </div>
+            {canManageNVRs && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" icon={<Search size={15} />} onClick={() => setShowDiscover(true)}>
+                  Agda Tara
+                </Button>
+                <Button icon={<Plus size={15} />} onClick={() => { setPrefilledDevice(null); setShowAdd(true) }}>
+                  Kayit Cihazi Ekle
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
