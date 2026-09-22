@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Activity, Bell, Check, CheckCircle, Gauge, LayoutGrid, MapPinned, PanelRight, Search, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Activity, AlertTriangle, Bell, Check, CheckCircle, Gauge, LayoutGrid, MapPinned, PanelRight, Search, ShieldCheck, Video, VolumeX, Wifi, WifiOff, X } from 'lucide-react'
 import { alarmsApi } from '../api/alarms'
 import { camerasApi } from '../api/cameras'
 import { systemApi } from '../api/system'
@@ -13,7 +14,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { usePermissions } from '../hooks/usePermissions'
 import { useAlarmStore } from '../stores/alarmStore'
 import { useAuthStore } from '../stores/authStore'
-import type { Alarm, Camera, CameraStreamDiagnostics, CameraStreamMetricSummary, SecurityPosture } from '../types/api'
+import type { Alarm, Camera, CameraStreamDiagnostics, CameraStreamMetricSummary, SecurityPosture, SetupStatus } from '../types/api'
 
 const DASHBOARD_GRID_KEY = 'dashboard-grid'
 const DASHBOARD_LOW_BANDWIDTH_KEY = 'dashboard-low-bandwidth'
@@ -382,7 +383,85 @@ function OperatorAssistPanel({
   )
 }
 
+function SetupReadinessPanel({
+  setup,
+  security,
+  cameraCount,
+  onOpenCameraSetup,
+  onOpenNvrSetup,
+  onOpenSystem,
+}: {
+  setup: SetupStatus | null
+  security: SecurityPosture | null
+  cameraCount: number
+  onOpenCameraSetup: () => void
+  onOpenNvrSetup: () => void
+  onOpenSystem: () => void
+}) {
+  const failedChecks = setup?.checks.filter((check) => !check.ok) ?? security?.setup_checks.filter((check) => !check.ok) ?? []
+  const hardeningCount = security?.findings.length ?? 0
+  const showPanel = cameraCount === 0 || failedChecks.length > 0 || hardeningCount > 0
+  if (!showPanel) return null
+
+  const primaryIssue = failedChecks[0]?.message ?? (
+    cameraCount === 0
+      ? 'Sistemde henuz kamera yok; izleme icin kamera veya NVR kanali ekleyin.'
+      : `${hardeningCount} guvenlik sertlestirme maddesi bekliyor.`
+  )
+
+  return (
+    <div className="rounded-md border border-warning/35 bg-warning/10 px-3 py-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text-primary">Kurulum kontrol listesi</p>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">{primaryIssue}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+              <span className="rounded border border-border bg-bg-card px-2 py-1 text-text-secondary">
+                Kamera: {cameraCount > 0 ? `${cameraCount} kayitli` : 'eklenmedi'}
+              </span>
+              <span className="rounded border border-border bg-bg-card px-2 py-1 text-text-secondary">
+                Hazirlik: {setup ? (setup.ready ? 'tamam' : `${failedChecks.length} eksik`) : 'okunuyor'}
+              </span>
+              {security && (
+                <span className="rounded border border-border bg-bg-card px-2 py-1 text-text-secondary">
+                  Sertlestirme: {hardeningCount === 0 ? 'temiz' : `${hardeningCount} madde`}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onOpenCameraSetup}
+            className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent hover:text-accent"
+          >
+            Kamera Kur
+          </button>
+          <button
+            type="button"
+            onClick={onOpenNvrSetup}
+            className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent hover:text-accent"
+          >
+            NVR Import
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSystem}
+            className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs font-semibold text-text-primary transition-colors hover:border-accent hover:text-accent"
+          >
+            Sistem Kontrolu
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DashboardPage() {
+  const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
   const { canAcknowledgeAlarms } = usePermissions()
   const defaultLayoutPreset = preferredPresetForRole(role)
@@ -434,6 +513,12 @@ export function DashboardPage() {
   const { data: securityPosture = null } = useQuery({
     queryKey: ['security-posture'],
     queryFn: systemApi.securityPosture,
+    refetchInterval: 60_000,
+  })
+
+  const { data: setupStatus = null } = useQuery({
+    queryKey: ['setup-status'],
+    queryFn: systemApi.setupStatus,
     refetchInterval: 60_000,
   })
 
@@ -635,6 +720,17 @@ export function DashboardPage() {
           streamTrends={streamTrends}
           security={securityPosture}
           canAcknowledgeAlarms={canAcknowledgeAlarms}
+        />
+      )}
+
+      {!isLoading && (
+        <SetupReadinessPanel
+          setup={setupStatus}
+          security={securityPosture}
+          cameraCount={cameras.length}
+          onOpenCameraSetup={() => navigate('/cameras')}
+          onOpenNvrSetup={() => navigate('/recorders?setup=1')}
+          onOpenSystem={() => navigate('/users')}
         />
       )}
 

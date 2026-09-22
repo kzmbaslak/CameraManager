@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-09-22: Dashboard kurulum kontrol listesi eklendi. `/api/setup/status` ve guvenlik durusu verisiyle eksik hazirlik kontrolleri, kamera eklenmemis durum ve sertlestirme maddeleri tek panelde gorunur; panel kamera kurulumu, NVR import ve sistem kontrollerine dogrudan aksiyon verir.
 - 2026-09-22: Kamera kurulum sihirbazi eklendi. Kameralar ekranindaki tek giris noktasi operatoru tek kamera ekleme, ag tarama veya NVR kanal import akisi arasinda yonlendirir; NVR sayfasi `?setup=1` ile acildiginda kayit cihazi ekleme, agda tarama ve kanal import adimlarini gorunur hale getirir.
 
 - 2026-09-21: Kamera ekleme/düzenleme UX'i iyilestirildi. Uzun modal icerigi artik viewport icinde scroll eder, ONVIF testi basarili olup stream URI buldugunda RTSP host/port/path forma otomatik veya tek tusla uygulanabilir ve kamera/NVR cihaz sifreleri icin uygulama kullanici parolasi gibi 8 karakter zorunlulugu uygulanmaz.
