@@ -21,7 +21,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useToastStore } from '../stores/toastStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateNewPassword, type FieldErrors } from '../utils/formValidation'
-import type { AuditEvent, User, UserCreate, UserRole } from '../types/api'
+import type { AuditEvent, SecurityPosture, User, UserCreate, UserRole } from '../types/api'
 
 /** Yeni kullanıcı ekleme modal'ı */
 function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -239,7 +239,7 @@ const auditEventCategory = (action: string): AuditCategory => {
 }
 
 /** İnsan tespiti sesli uyarı ayarlarını düzenler. */
-function GeneralSettingsPanel() {
+function GeneralSettingsPanel({ securityPosture }: { securityPosture?: SecurityPosture | null }) {
   const themeMode = useSystemSettingsStore((s) => s.themeMode)
   const setThemeMode = useSystemSettingsStore((s) => s.setThemeMode)
   const rotationDays = useSystemSettingsStore((s) => s.devicePasswordRotationDays)
@@ -250,6 +250,28 @@ function GeneralSettingsPanel() {
   const setSoundDuration = useSystemSettingsStore((s) => s.setHumanDetectionSoundDurationSeconds)
   const boxesVisible = useSystemSettingsStore((s) => s.humanDetectionBoxesVisible)
   const setBoxesVisible = useSystemSettingsStore((s) => s.setHumanDetectionBoxesVisible)
+  const cameraHealthPolicy = securityPosture ? [
+    {
+      label: 'Kritik erisilebilirlik',
+      value: `%${securityPosture.camera_health_critical_availability_percent}`,
+      env: 'CAMERA_HEALTH_CRITICAL_AVAILABILITY_PERCENT',
+    },
+    {
+      label: 'Uyari erisilebilirlik',
+      value: `%${securityPosture.camera_health_warning_availability_percent}`,
+      env: 'CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT',
+    },
+    {
+      label: 'Maks. latency',
+      value: `${securityPosture.camera_health_max_latency_ms} ms`,
+      env: 'CAMERA_HEALTH_MAX_LATENCY_MS',
+    },
+    {
+      label: 'Bayat ornek',
+      value: `${securityPosture.camera_health_stale_sample_seconds} sn`,
+      env: 'CAMERA_HEALTH_STALE_SAMPLE_SECONDS',
+    },
+  ] : []
 
   return (
     <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
@@ -306,6 +328,35 @@ function GeneralSettingsPanel() {
           value={rotationDays}
           onChange={(e) => setRotationDays(Number(e.target.value))}
         />
+      </div>
+
+      <div className="mb-5 border-b border-[var(--border)] pb-4">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <Activity size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Kamera Saglik Esikleri</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Kamera saglik alarmlari backend runtime policy degerleriyle uretilir. Deger degisikligi icin .env guncellenip servis yeniden baslatilmalidir.
+            </p>
+          </div>
+        </div>
+        {cameraHealthPolicy.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {cameraHealthPolicy.map((item) => (
+              <div key={item.env} className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+                <p className="text-[11px] text-[var(--text-secondary)]">{item.label}</p>
+                <p className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">{item.value}</p>
+                <p className="mt-1 truncate font-mono text-[10px] text-[var(--text-muted)]" title={item.env}>{item.env}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-3 text-xs text-[var(--text-secondary)]">
+            Kamera saglik esikleri security.status yetkisiyle okunur; admin veya operator oturumu gereklidir.
+          </p>
+        )}
       </div>
 
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
@@ -598,9 +649,17 @@ export function SettingsPage() {
   const [userPageSize, setUserPageSize] = useState(25)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const qc = useQueryClient()
-  const { canManageUsers } = usePermissions()
+  const { canManageUsers, isAdmin, isOperator } = usePermissions()
   const currentUsername = useAuthStore((s) => s.username)
   const showToast = useToastStore((state) => state.showToast)
+  const canViewSecurityPosture = isAdmin || isOperator
+
+  const { data: securityPosture = null } = useQuery({
+    queryKey: ['security-posture'],
+    queryFn: systemApi.securityPosture,
+    enabled: canViewSecurityPosture,
+    refetchOnWindowFocus: false,
+  })
 
   const { data: userPageData, isLoading } = useQuery({
     queryKey: ['users', 'paginated', userPage, userPageSize, userSearch, roleFilter, activeFilter, userSort],
@@ -721,7 +780,7 @@ export function SettingsPage() {
         )}
       </div>
 
-      <GeneralSettingsPanel />
+      <GeneralSettingsPanel securityPosture={securityPosture} />
 
       <BackupPanel enabled={canManageUsers} />
 
