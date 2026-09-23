@@ -20,7 +20,7 @@ import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateDevicePassword, validateHost, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
-import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraStreamMetric, CameraStreamMetricSummary } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
@@ -39,6 +39,70 @@ const formatOptionalFixed = (value: number | null | undefined, digits: number, s
   value == null ? 'Yok' : `${value.toFixed(digits)}${suffix}`
 const formatOptionalRounded = (value: number | null | undefined, suffix = '') =>
   value == null ? 'Yok' : `${Math.round(value)}${suffix}`
+const streamCapacityState = (history: CameraStreamMetricSummary) => {
+  if (history.sample_count === 0) return { variant: 'neutral' as const, label: 'Trend yok', detail: 'Kalici metrik bekleniyor' }
+  if ((history.minimum_broadcast_fps ?? 99) < 2 || (history.total_open_failures ?? 0) > 0) {
+    return { variant: 'danger' as const, label: 'Kritik trend', detail: 'FPS dususu veya acilis hatasi var' }
+  }
+  if ((history.average_host_cpu_load_percent ?? 0) >= 85 || (history.average_host_memory_used_percent ?? 0) >= 90 || (history.total_reconnects ?? 0) >= 3) {
+    return { variant: 'warning' as const, label: 'Kapasite uyarisi', detail: 'Kaynak kullanimini veya reconnect sayisini izleyin' }
+  }
+  return { variant: 'success' as const, label: 'Trend saglikli', detail: 'Kalici performans metrikleri normal' }
+}
+
+function MetricSparkline({
+  label,
+  samples,
+  getValue,
+  suffix = '',
+  maxValue,
+  warningBelow,
+  warningAbove,
+}: {
+  label: string
+  samples: CameraStreamMetric[]
+  getValue: (sample: CameraStreamMetric) => number | null | undefined
+  suffix?: string
+  maxValue?: number
+  warningBelow?: number
+  warningAbove?: number
+}) {
+  const values = samples
+    .map((sample) => getValue(sample))
+    .filter((value): value is number => value != null)
+  const max = maxValue ?? Math.max(...values, 1)
+  const latest = values.at(0)
+  const ordered = [...samples].reverse().slice(-48)
+
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--bg-card)] p-2">
+      <div className="mb-2 flex items-center justify-between gap-2 text-[11px]">
+        <span className="font-medium text-[var(--text-primary)]">{label}</span>
+        <span className="font-mono text-[var(--text-secondary)]">{latest == null ? 'Yok' : `${latest.toFixed(1)}${suffix}`}</span>
+      </div>
+      <div className="flex h-12 items-end gap-1 overflow-hidden" aria-label={`${label} trend grafigi`}>
+        {ordered.map((sample) => {
+          const value = getValue(sample)
+          const height = value == null ? 8 : Math.max(8, Math.min(100, (value / max) * 100))
+          const isWarning =
+            value != null &&
+            ((warningBelow != null && value < warningBelow) || (warningAbove != null && value > warningAbove))
+          return (
+            <span
+              key={sample.id}
+              title={`${new Date(sample.sampled_at).toLocaleString()} - ${value == null ? 'Yok' : `${value.toFixed(1)}${suffix}`}`}
+              className={`min-w-[3px] flex-1 rounded-sm ${value == null ? 'bg-[var(--border)]' : isWarning ? 'bg-[var(--warning)]' : 'bg-[var(--accent)]'}`}
+              style={{ height: `${height}%` }}
+            />
+          )
+        })}
+        {ordered.length === 0 && (
+          <span className="text-xs text-[var(--text-secondary)]">Trend verisi yok.</span>
+        )}
+      </div>
+    </div>
+  )
+}
 const cameraHealthState = (summary: CameraHealthListItem | undefined) => {
   if (!summary) {
     return { variant: 'neutral' as const, label: 'Veri yok', detail: 'Saglik olcumu bekleniyor' }
@@ -1762,7 +1826,11 @@ export function CamerasPage() {
                 </div>
                 {streamHistory && (
                   <div className="mt-3 border-t border-[var(--border)] pt-3">
-                    <p className="text-xs font-medium text-[var(--text-primary)]">Kalici Trend ({streamHistory.sample_count} ornek)</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-[var(--text-primary)]">Kalici Trend ({streamHistory.sample_count} ornek)</p>
+                      <Badge variant={streamCapacityState(streamHistory).variant}>{streamCapacityState(streamHistory).label}</Badge>
+                    </div>
+                    <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{streamCapacityState(streamHistory).detail}</p>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--text-secondary)]">
                       <span>Ort. FPS: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamHistory.average_broadcast_fps, 1)}</strong></span>
                       <span>Min FPS: <strong className="text-[var(--text-primary)]">{formatOptionalFixed(streamHistory.minimum_broadcast_fps, 1)}</strong></span>
@@ -1770,6 +1838,30 @@ export function CamerasPage() {
                       <span>Producer Aktif: <strong className="text-[var(--text-primary)]">{streamHistory.producer_running_count}/{streamHistory.sample_count}</strong></span>
                       <span>Toplam Reconnect: <strong className="text-[var(--text-primary)]">{streamHistory.total_reconnects}</strong></span>
                       <span>Toplam Open Hata: <strong className="text-[var(--text-primary)]">{streamHistory.total_open_failures}</strong></span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                      <MetricSparkline
+                        label="FPS"
+                        samples={streamHistory.samples}
+                        getValue={(sample) => sample.current_broadcast_fps}
+                        maxValue={Math.max(streamHistory.average_broadcast_fps ?? 0, streamHistory.latest_broadcast_fps ?? 0, 10)}
+                        warningBelow={2}
+                      />
+                      <MetricSparkline
+                        label="AI ms"
+                        samples={streamHistory.samples}
+                        getValue={(sample) => sample.average_ai_inference_ms}
+                        suffix=" ms"
+                        warningAbove={1500}
+                      />
+                      <MetricSparkline
+                        label="CPU"
+                        samples={streamHistory.samples}
+                        getValue={(sample) => sample.host_cpu_load_percent}
+                        suffix="%"
+                        maxValue={100}
+                        warningAbove={85}
+                      />
                     </div>
                   </div>
                 )}

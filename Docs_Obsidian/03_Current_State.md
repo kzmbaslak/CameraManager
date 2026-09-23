@@ -1,5 +1,6 @@
 # Latest Camera/NVR Connectivity Note
 
+- 2026-09-23: Kamera bazli kapasite drill-down gelistirildi. RTSP test modalindaki kalici stream-history verisi artik FPS, AI gecikmesi ve CPU mini trend grafiklerini, kapasite durum rozetini ve saglik gecmisiyle birlikte tek kamera performans incelemesini gosterir.
 - 2026-09-22: Dashboard kurulum kontrol listesi eklendi. `/api/setup/status` ve guvenlik durusu verisiyle eksik hazirlik kontrolleri, kamera eklenmemis durum ve sertlestirme maddeleri tek panelde gorunur; panel kamera kurulumu, NVR import ve sistem kontrollerine dogrudan aksiyon verir.
 - 2026-09-22: Kamera kurulum sihirbazi eklendi. Kameralar ekranindaki tek giris noktasi operatoru tek kamera ekleme, ag tarama veya NVR kanal import akisi arasinda yonlendirir; NVR sayfasi `?setup=1` ile acildiginda kayit cihazi ekleme, agda tarama ve kanal import adimlarini gorunur hale getirir.
 
