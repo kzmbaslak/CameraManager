@@ -20,7 +20,7 @@ import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateDevicePassword, validateHost, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
-import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraStreamMetric, CameraStreamMetricSummary } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamMetric, CameraStreamMetricSummary } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
@@ -197,7 +197,7 @@ function RtspDiagnosticResultPanel({ result }: { result: CameraRtspDiagnostics }
   )
 }
 
-function OnvifDiagnosticResultPanel({ result, onApplyStream }: { result: CameraOnvifPreviewResponse; onApplyStream?: (uri: string) => void }) {
+function OnvifDiagnosticResultPanel({ result, onApplyStream }: { result: CameraOnvifPreviewResponse; onApplyStream?: (uri: string, testAfterApply?: boolean) => void }) {
   const profiles = result.profiles ?? []
   const profileCount = result.profile_count ?? profiles.length
   const streamUriCount = result.stream_uri_count ?? 0
@@ -247,9 +247,12 @@ function OnvifDiagnosticResultPanel({ result, onApplyStream }: { result: CameraO
           <p className="break-all font-mono text-[11px] text-[var(--text-secondary)]">
             {result.first_stream_uri_masked}
           </p>
+          <p className="text-[10px] leading-4 text-[var(--text-secondary)]">
+            ONVIF testi cihazdan stream adresini okur. RTSP doğrulaması için bu adresi forma uygulayıp bağlantı testini çalıştırın.
+          </p>
           {onApplyStream && (
-            <Button type="button" size="sm" variant="secondary" onClick={() => onApplyStream(result.first_stream_uri_masked!)}>
-              Stream'i Forma Uygula
+            <Button type="button" size="sm" variant="secondary" onClick={() => onApplyStream(result.first_stream_uri_masked!, true)}>
+              Forma Uygula ve RTSP Test Et
             </Button>
           )}
         </div>
@@ -307,7 +310,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
     isPending: isPreviewingConnection,
     error: previewError,
   } = useMutation({
-    mutationFn: () => camerasApi.previewRtsp(form),
+    mutationFn: (payload?: CameraRtspPreviewRequest) => camerasApi.previewRtsp(payload ?? form),
   })
 
   const {
@@ -339,18 +342,24 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
   const set = (field: keyof CameraCreate, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
 
-  const applyOnvifStream = (uri: string) => {
+  const applyOnvifStream = (uri: string, testAfterApply = false) => {
     const fields = rtspFieldsFromUri(uri)
     if (!fields) {
       showToast({ variant: 'warning', title: 'Stream uygulanamadi', description: 'ONVIF RTSP URI formata uygun degil.' })
       return
     }
-    setForm((current) => ({
-      ...current,
-      host: fields.host || current.host || '',
+    const nextForm: CameraCreate = {
+      ...form,
+      host: fields.host || form.host || '',
       rtsp_port: fields.rtsp_port,
       rtsp_path: fields.rtsp_path,
-    }))
+    }
+    setForm(nextForm)
+    if (testAfterApply) {
+      previewConnection(nextForm)
+      showToast({ variant: 'info', title: 'ONVIF stream uygulandi', description: 'RTSP testi bu stream adresiyle baslatildi.' })
+      return
+    }
     showToast({ variant: 'success', title: 'ONVIF stream forma uygulandi', description: fields.rtsp_path || '/' })
   }
 
@@ -372,7 +381,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Kamera Ekle">
+    <Modal open={open} onClose={onClose} title="Kamera Ekle" width="max-w-3xl" bodyClassName="max-h-[calc(100vh-7rem)]">
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-2">
           <p className="text-xs text-[var(--text-secondary)] leading-5">
@@ -409,6 +418,9 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => set('username', e.target.value)} />
         <PasswordInput label="Şifre" value={form.password ?? ''} onChange={(e) => set('password', e.target.value)} error={fieldErrors.password} />
+        <p className="-mt-2 text-[10px] text-[var(--text-secondary)]">
+          Cihaz parolasi icin minimum uzunluk zorunlulugu yoktur; ureticinin kabul ettigi kisa parolalar da kaydedilebilir.
+        </p>
         <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-secondary)] cursor-pointer">
           <input
             type="checkbox"
@@ -471,7 +483,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
               variant="secondary"
               icon={<Activity size={13} />}
               loading={isPreviewingConnection}
-              onClick={() => previewConnection()}
+              onClick={() => previewConnection(form)}
             >
               Test Et
             </Button>
@@ -490,7 +502,7 @@ function AddCameraModal({ open, onClose }: { open: boolean; onClose: () => void 
             </p>
           </div>
         )}
-        <div className="flex gap-3 justify-end mt-1">
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-3 justify-end border-t border-[var(--border)] bg-[var(--bg-card)] px-5 py-4">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>{isPending ? 'Bağlantı Doğrulanıyor' : 'Ekle'}</Button>
         </div>
@@ -842,7 +854,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     isPending: isTestingConnection,
     error: testError,
   } = useMutation({
-    mutationFn: () => camerasApi.previewRtsp({
+    mutationFn: (payload?: CameraRtspPreviewRequest) => camerasApi.previewRtsp(payload ?? {
       camera_id: camera!.id,
       name: form.name,
       host: form.host,
@@ -899,18 +911,32 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
     })
   }
 
-  const applyOnvifStream = (uri: string) => {
+  const applyOnvifStream = (uri: string, testAfterApply = false) => {
     const fields = rtspFieldsFromUri(uri)
     if (!fields) {
       showToast({ variant: 'warning', title: 'Stream uygulanamadi', description: 'ONVIF RTSP URI formata uygun degil.' })
       return
     }
-    setForm((current) => ({
-      ...current,
-      host: fields.host || current.host || '',
+    const nextForm: CameraUpdate = {
+      ...form,
+      host: fields.host || form.host || '',
       rtsp_port: fields.rtsp_port,
       rtsp_path: fields.rtsp_path,
-    }))
+    }
+    setForm(nextForm)
+    if (testAfterApply) {
+      testConnection({
+        camera_id: camera!.id,
+        name: nextForm.name,
+        host: nextForm.host,
+        rtsp_port: nextForm.rtsp_port,
+        rtsp_path: nextForm.rtsp_path,
+        username: nextForm.username,
+        password: nextForm.password,
+      })
+      showToast({ variant: 'info', title: 'ONVIF stream uygulandi', description: 'RTSP testi bu stream adresiyle baslatildi.' })
+      return
+    }
     showToast({ variant: 'success', title: 'ONVIF stream forma uygulandi', description: fields.rtsp_path || '/' })
   }
 
@@ -942,7 +968,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
   }
 
   return (
-    <Modal open onClose={onClose} title={`Düzenle — ${camera.name}`}>
+    <Modal open onClose={onClose} title={`Düzenle — ${camera.name}`} width="max-w-3xl" bodyClassName="max-h-[calc(100vh-7rem)]">
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <Input label="Ad" value={form.name ?? ''} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required error={fieldErrors.name} />
         <Input label="IP / Host" value={form.host ?? ''} onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))} required error={fieldErrors.host} />
@@ -959,6 +985,9 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
         </div>
         <Input label="Kullanıcı Adı" value={form.username ?? ''} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
         <PasswordInput label="Yeni Şifre" placeholder="Değiştirmek için doldurun" onChange={(e) => setForm((f) => ({ ...f, password: e.target.value || undefined }))} error={fieldErrors.password} />
+        <p className="-mt-2 text-[10px] text-[var(--text-secondary)]">
+          Cihaz parolasi icin minimum uzunluk zorunlulugu yoktur; ureticinin kabul ettigi kisa parolalar da kaydedilebilir.
+        </p>
         <p className="text-xs text-[var(--text-secondary)]">
           Son sifre rotasyonu: <span className="font-medium text-[var(--text-primary)]">{formatRotationDate(camera.password_updated_at)}</span>. Politika: {rotationDays} gun. Yeni sifre bos birakilirsa kayitli sifre korunur.
         </p>
@@ -1013,7 +1042,15 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
               variant="secondary"
               icon={<Activity size={13} />}
               loading={isTestingConnection}
-              onClick={() => testConnection()}
+              onClick={() => testConnection({
+                camera_id: camera!.id,
+                name: form.name,
+                host: form.host,
+                rtsp_port: form.rtsp_port,
+                rtsp_path: form.rtsp_path,
+                username: form.username,
+                password: form.password,
+              })}
             >
               Test Et
             </Button>
@@ -1092,7 +1129,7 @@ function EditCameraModal({ camera, onClose }: { camera: Camera | null; onClose: 
           </label>
         </div>
         {error && <p className="text-xs text-[var(--danger)]">{getCameraErrorMessage(error, 'Kamera güncellenemedi.')}</p>}
-        <div className="flex gap-3 justify-end mt-1">
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-3 justify-end border-t border-[var(--border)] bg-[var(--bg-card)] px-5 py-4">
           <Button variant="secondary" type="button" onClick={onClose}>İptal</Button>
           <Button type="submit" loading={isPending}>Kaydet</Button>
         </div>

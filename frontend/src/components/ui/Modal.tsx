@@ -9,9 +9,10 @@ interface ModalProps {
   title: string
   children: ReactNode
   width?: string
+  bodyClassName?: string
 }
 
-export function Modal({ open, onClose, title, children, width = 'max-w-md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, width = 'max-w-md', bodyClassName = '' }: ModalProps) {
   const titleId = useId()
 
   // ESC tuşuyla kapat
@@ -53,7 +54,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-md' }: Mo
                 <X size={16} />
               </button>
             </div>
-            <div className="min-h-0 overflow-y-auto p-5">{children}</div>
+            <div className={`min-h-0 overflow-y-auto overscroll-contain p-5 ${bodyClassName}`}>{children}</div>
           </motion.div>
         </div>
       )}
