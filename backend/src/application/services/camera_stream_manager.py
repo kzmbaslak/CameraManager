@@ -7,13 +7,14 @@ import os
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Set, Tuple
 
 import asyncio
 import cv2
 
-from src.domain.entities.alarm import AlarmType
+from src.application.services.person_density_policy import PersonDensityPolicy
+from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmStatus, AlarmType
 from src.domain.entities.camera import CameraStatus
 from src.domain.entities.recording_segment import RecordingSegment
 from src.infrastructure.recording.retention import recording_storage_dir
@@ -70,6 +71,7 @@ class CameraStreamManager:
         self._ai_interval = ai_interval
         self._frame_interval = 1.0 / display_fps
         self._cooldown_seconds = cooldown_seconds
+        self._person_density_policy = PersonDensityPolicy.from_environment()
 
         self._producers: Dict[int, asyncio.Task] = {}
         self._stop_flags: Dict[int, bool] = {}
@@ -893,18 +895,73 @@ class CameraStreamManager:
         db = self._db_session_factory()
         try:
             repo = self._person_analytics_repository_factory(db)
-            repo.record_detection(
+            current_bucket = repo.record_detection(
                 camera_id=camera_id,
                 detected_at=detected_at,
                 person_count=len(detections),
                 max_confidence=max(confidences) if confidences else None,
             )
+            self._maybe_create_person_density_alarm_sync(db, repo, camera_id, current_bucket)
             retention_days = int(os.environ.get("PERSON_ANALYTICS_RETENTION_DAYS", "90") or "90")
             repo.prune_older_than(min(max(retention_days, 1), 3650))
         except Exception as exc:
             logger.debug("[PersonAnalytics] Kamera %s istatistik yazimi basarisiz: %s", camera_id, exc)
         finally:
             db.close()
+
+    def _maybe_create_person_density_alarm_sync(self, db, analytics_repo, camera_id: int, current_bucket) -> None:
+        """Saatlik insan yogunlugu beklenenin uzerindeyse ek guvenlik alarmi uretir."""
+        if not self._alarm_repository_factory or not self._person_density_policy.enabled:
+            return
+        now_value = utc_now()
+        alarm_type = AlarmType.PERSON_DENSITY_ANOMALY
+        camera_alarm_times = self._last_alarm_times.setdefault(camera_id, {})
+        last_alarm_at = camera_alarm_times.get((camera_id, alarm_type))
+        if last_alarm_at and now_value - last_alarm_at < timedelta(seconds=self._person_density_policy.alarm_cooldown_seconds):
+            return
+
+        since = current_bucket.hour_start - timedelta(hours=self._person_density_policy.baseline_window_hours)
+        until = current_bucket.hour_start - timedelta(seconds=1)
+        previous = analytics_repo.list_hourly(
+            camera_id,
+            since,
+            until,
+            limit=self._person_density_policy.baseline_window_hours,
+        )
+        result = self._person_density_policy.evaluate(current_bucket, previous)
+        if not result.triggered:
+            return
+
+        alarm_repo = self._alarm_repo(db)
+        open_alarm = alarm_repo.get_latest_open(camera_id, alarm_type)
+        if open_alarm is not None:
+            camera_alarm_times[(camera_id, alarm_type)] = now_value
+            return
+
+        baseline_text = "-"
+        if result.baseline_peak_average is not None:
+            baseline_text = f"{result.baseline_peak_average:.1f}"
+        alarm_repo.add(Alarm(
+            id=None,
+            camera_id=camera_id,
+            alarm_type=alarm_type,
+            status=AlarmStatus.NEW,
+            confidence=min(max(result.score, 0.0), 1.0),
+            bounding_box=None,
+            snapshot_path=None,
+            snapshot_sha256=None,
+            snapshot_annotated_path=None,
+            snapshot_annotated_sha256=None,
+            message=(
+                "Olagan disi insan yogunlugu: "
+                f"bu saatte tepe kisi sayisi {current_bucket.max_person_count}, "
+                f"toplam sayim {current_bucket.total_person_count}, "
+                f"gecmis saat ortalamasi {baseline_text}."
+            ),
+            severity=AlarmSeverity.HIGH,
+            created_at=now_value,
+        ))
+        camera_alarm_times[(camera_id, alarm_type)] = now_value
 
     # ------------------------------------------------------------------
     # Bloklayıcı (senkron) işlemler — ThreadPoolExecutor içinde çalışır

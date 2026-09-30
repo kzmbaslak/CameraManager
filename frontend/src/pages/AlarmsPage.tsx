@@ -36,6 +36,7 @@ const STATUS_OPTIONS: { value: AlarmStatus | 'all'; label: string }[] = [
 const TYPE_OPTIONS: { value: AlarmType | 'all'; label: string }[] = [
   { value: 'all', label: 'Tüm Tipler' },
   { value: 'human_detected', label: 'İnsan Tespiti' },
+  { value: 'person_density_anomaly', label: 'Yogunluk Anomalisi' },
   { value: 'motion_detected', label: 'Hareket Tespiti' },
   { value: 'camera_health_degraded', label: 'Kamera Saglik Uyarisi' },
   { value: 'camera_offline', label: 'Kamera Çevrimdışı' },

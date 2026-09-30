@@ -676,7 +676,7 @@ export type OpenApiSchemas = {
     "snapshot_annotated_sha256"?: (string) | (null)
     "snapshot_sha256"?: (string) | (null)
   }
-  "AlarmType": "human_detected" | "camera_offline" | "camera_health_degraded" | "motion_detected"
+  "AlarmType": "human_detected" | "camera_offline" | "camera_health_degraded" | "motion_detected" | "person_density_anomaly"
   "AlarmUpdate": {
     "assigned_to"?: (string) | (null)
     "false_positive"?: (boolean) | (null)

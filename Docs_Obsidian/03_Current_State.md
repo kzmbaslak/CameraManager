@@ -279,6 +279,8 @@ venv\Scripts\python.exe -c "import os,base64; print(base64.b64encode(os.urandom(
 
 ## Project Audit
 
+- [x] Insan yogunlugu analitigi: insan tespiti pozitif oldugunda kamera bazli saatlik istatistik tutulur; kamera tani ekraninda son 24 saat grafigi gorulur ve `person_density_anomaly` alarmi beklenmeyen kalabalik/yogunluk durumunu uyarir.
+
 - [x] Profesyonel VMS/NVR/AI kamera sistemleri araştırıldı.
 - [x] Backend, frontend, UX, güvenlik ve operasyon eksikleri çıkarıldı.
 - [x] Detaylı yapılacaklar listesi `Docs_Obsidian/04_Project_Audit_and_Todo.md` dosyasına eklendi.
