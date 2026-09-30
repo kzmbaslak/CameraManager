@@ -7,7 +7,7 @@ import os
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional, Set, Tuple
 
 import asyncio
@@ -53,6 +53,7 @@ class CameraStreamManager:
         camera_repository_factory=None,
         alarm_repository_factory=None,
         recording_repository_factory=None,
+        person_analytics_repository_factory=None,
         frame_source_factory=None,
         ai_interval: float = 0.5,
         display_fps: float = 15.0,
@@ -64,6 +65,7 @@ class CameraStreamManager:
         self._camera_repository_factory = camera_repository_factory
         self._alarm_repository_factory = alarm_repository_factory
         self._recording_repository_factory = recording_repository_factory
+        self._person_analytics_repository_factory = person_analytics_repository_factory
         self._frame_source_factory = frame_source_factory
         self._ai_interval = ai_interval
         self._frame_interval = 1.0 / display_fps
@@ -477,6 +479,10 @@ class CameraStreamManager:
                 alarm = result.alarm
                 detection_payload = self._serialize_detection_result(result)
                 if detection_payload["detections"]:
+                    await loop.run_in_executor(
+                        self._executor,
+                        lambda: self._record_person_analytics_sync(camera_id, detection_payload),
+                    )
                     self._latest_detection_messages[camera_id] = (time.monotonic(), detection_payload)
                     self._broadcast(camera_id, {
                         "frame": None,
@@ -636,7 +642,7 @@ class CameraStreamManager:
         cutoff = time.monotonic() - self._event_buffer_seconds()
         return [frame.copy() for timestamp, frame in cached if timestamp >= cutoff]
 
-    def _handle_continuous_recording_frame(self, camera_id: int, frame, enabled_for_camera: bool) -> None:
+    def _handle_continuous_recording_frame(self, camera_id: int, frame, enabled_for_camera: bool = True) -> None:
         if not enabled_for_camera or not self._continuous_recording_active_now():
             self._continuous_recording_buffers.pop(camera_id, None)
             self._continuous_recording_started_at.pop(camera_id, None)
@@ -868,6 +874,37 @@ class CameraStreamManager:
                 "changed_percent": round(result.motion_ratio * 100, 2),
             },
         }
+
+    def _record_person_analytics_sync(self, camera_id: int, detection_payload: dict) -> None:
+        """AI insan tespiti sonucunu saatlik kamera yogunlugu istatistigine ekler."""
+        detections = detection_payload.get("detections") or []
+        if not detections or not self._db_session_factory or not self._person_analytics_repository_factory:
+            return
+        detected_at_raw = detection_payload.get("detected_at")
+        try:
+            detected_at = datetime.fromisoformat(str(detected_at_raw).replace("Z", "+00:00")).astimezone(timezone.utc)
+        except Exception:
+            detected_at = utc_now()
+        confidences = [
+            float(item.get("confidence"))
+            for item in detections
+            if isinstance(item, dict) and item.get("confidence") is not None
+        ]
+        db = self._db_session_factory()
+        try:
+            repo = self._person_analytics_repository_factory(db)
+            repo.record_detection(
+                camera_id=camera_id,
+                detected_at=detected_at,
+                person_count=len(detections),
+                max_confidence=max(confidences) if confidences else None,
+            )
+            retention_days = int(os.environ.get("PERSON_ANALYTICS_RETENTION_DAYS", "90") or "90")
+            repo.prune_older_than(min(max(retention_days, 1), 3650))
+        except Exception as exc:
+            logger.debug("[PersonAnalytics] Kamera %s istatistik yazimi basarisiz: %s", camera_id, exc)
+        finally:
+            db.close()
 
     # ------------------------------------------------------------------
     # Bloklayıcı (senkron) işlemler — ThreadPoolExecutor içinde çalışır

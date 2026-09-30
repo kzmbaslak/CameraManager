@@ -575,6 +575,37 @@ class CameraStreamMetricSummaryResponse(BaseModel):
     samples: list[CameraStreamMetricResponse]
 
 
+class CameraPersonHourlyStatResponse(BaseModel):
+    """Saatlik kamera insan yogunlugu olcumu."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    camera_id: int
+    hour_start: datetime
+    detection_samples: int
+    total_person_count: int
+    max_person_count: int
+    max_confidence: Optional[float] = None
+    first_detected_at: datetime
+    last_detected_at: datetime
+    average_person_count: float
+
+
+class CameraPersonHourlySummaryResponse(BaseModel):
+    """Kamera insan yogunlugu saatlik grafik yaniti."""
+
+    camera_id: int
+    hours: int
+    bucket_count: int
+    total_detection_samples: int
+    total_person_count: int
+    peak_person_count: int
+    average_person_count_per_detection: Optional[float] = None
+    latest_detected_at: Optional[datetime] = None
+    buckets: list[CameraPersonHourlyStatResponse]
+
+
 class CameraHealthSampleResponse(BaseModel):
     """Tek kamera saglik gecmisi olcumu."""
 

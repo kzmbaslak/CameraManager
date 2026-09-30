@@ -1,6 +1,6 @@
 // Kamera CRUD API çağrıları — list, get, add, update, updateStatus, toggleAI, delete
 import client from './client'
-import type { Camera, CameraCreate, CameraPageResponse, CameraPtzGotoPresetRequest, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, StreamTokenResponse, OpenApiSchemas } from '../types/api'
+import type { Camera, CameraCreate, CameraPageResponse, CameraPtzGotoPresetRequest, CameraPtzGotoPresetResponse, CameraPtzHomeResponse, CameraPtzMoveRequest, CameraPtzMoveResponse, CameraPtzPatrolRequest, CameraPtzPatrolResponse, CameraPtzPresetListResponse, CameraStatus, CameraScanRequest, CameraScanResult, CameraHealthListItem, CameraHealthSummary, CameraOnvifPreviewRequest, CameraOnvifPreviewResponse, CameraPersonHourlySummary, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamDiagnostics, CameraStreamMetricSummary, StreamTokenResponse, OpenApiSchemas } from '../types/api'
 
 /** Kamera güncelleme için kısmi veri tipi */
 export type CameraUpdate = OpenApiSchemas['CameraUpdate']
@@ -150,6 +150,14 @@ export const camerasApi = {
   diagnoseHealthHistory: async (id: number, limit = 120): Promise<CameraHealthSummary> => {
     const { data } = await client.get<CameraHealthSummary>(`/cameras/${id}/diagnostics/health-history`, {
       params: { limit },
+    })
+    return data
+  },
+
+  /** Kameranin saatlik insan tespiti yogunlugu analitigini dondurur. */
+  personHourlyAnalytics: async (id: number, hours = 24): Promise<CameraPersonHourlySummary> => {
+    const { data } = await client.get<CameraPersonHourlySummary>(`/cameras/${id}/analytics/person-hourly`, {
+      params: { hours },
     })
     return data
   },

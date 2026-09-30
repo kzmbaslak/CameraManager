@@ -226,6 +226,40 @@ def ensure_camera_stream_metrics_table() -> None:
         conn.close()
 
 
+def ensure_camera_person_hourly_stats_table() -> None:
+    """Eski SQLite kurulumlarinda saatlik insan yogunlugu tablosunu idempotent olusturur."""
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):
+        return
+    import sqlite3
+
+    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "", 1)
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS camera_person_hourly_stats (
+                id INTEGER PRIMARY KEY,
+                camera_id INTEGER,
+                hour_start DATETIME,
+                detection_samples INTEGER DEFAULT 0,
+                total_person_count INTEGER DEFAULT 0,
+                max_person_count INTEGER DEFAULT 0,
+                max_confidence REAL,
+                first_detected_at DATETIME NOT NULL,
+                last_detected_at DATETIME NOT NULL,
+                FOREIGN KEY(camera_id) REFERENCES cameras(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_person_hourly_stats_id ON camera_person_hourly_stats (id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_person_hourly_stats_camera_id ON camera_person_hourly_stats (camera_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_camera_person_hourly_stats_hour_start ON camera_person_hourly_stats (hour_start)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_camera_person_hourly_stats_camera_hour ON camera_person_hourly_stats (camera_id, hour_start)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def ensure_recording_segments_table() -> None:
     """Eski SQLite kurulumlarinda kayit segmentleri tablosunu idempotent olusturur."""
     if not SQLALCHEMY_DATABASE_URL.startswith("sqlite:///"):

@@ -140,6 +140,20 @@ class CameraStreamMetricModel(Base):
     failure_count = Column(Integer, default=0)
 
 
+class CameraPersonHourlyStatModel(Base):
+    __tablename__ = "camera_person_hourly_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
+    hour_start = Column(DateTime, index=True)
+    detection_samples = Column(Integer, default=0)
+    total_person_count = Column(Integer, default=0)
+    max_person_count = Column(Integer, default=0)
+    max_confidence = Column(Float, nullable=True)
+    first_detected_at = Column(DateTime, nullable=False)
+    last_detected_at = Column(DateTime, nullable=False)
+
+
 class RecordingSegmentModel(Base):
     __tablename__ = "recording_segments"
 

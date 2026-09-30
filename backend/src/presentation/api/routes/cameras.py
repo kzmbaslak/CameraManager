@@ -11,7 +11,7 @@ PATCH  /cameras/{id}/ai           — AI insan tespitini açar/kapatır, akış 
 """
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Request
 from typing import List
 from urllib.parse import unquote, urlparse
@@ -20,6 +20,7 @@ from src.presentation.api.dependencies import (
     get_camera_stream_metric_repository,
     get_camera_use_cases,
     get_nvr_probe_service,
+    get_person_analytics_repository,
     get_stream_manager,
     get_camera_diagnostics_user,
     get_camera_manage_user,
@@ -59,6 +60,7 @@ from src.presentation.api.schemas.camera_schema import (
     CameraStreamTokenResponse,
     CameraStreamDiagnostics,
     CameraStreamMetricSummaryResponse,
+    CameraPersonHourlySummaryResponse,
 )
 from src.domain.entities.camera_stream_metric import CameraStreamMetric
 from src.domain.entities.camera import CameraStatus
@@ -1215,6 +1217,46 @@ async def diagnose_camera_stream_history(
         "total_open_failures": sum(sample.open_failures for sample in samples),
         "total_failure_count": sum(sample.failure_count for sample in samples),
         "samples": samples,
+    }
+
+
+@router.get("/{camera_id:int}/analytics/person-hourly", response_model=CameraPersonHourlySummaryResponse)
+async def get_camera_person_hourly_analytics(
+    camera_id: int,
+    hours: int = Query(default=24, ge=1, le=168),
+    use_cases: CameraUseCases = Depends(get_camera_use_cases),
+    analytics_repo=Depends(get_person_analytics_repository),
+    current_user: dict = Depends(get_camera_diagnostics_user),
+):
+    """Kameranin insan tespiti yogunlugunu saatlik kovalar halinde dondurur."""
+    camera = use_cases.get_camera(camera_id)
+    if not camera:
+        raise HTTPException(status_code=404, detail="Kamera bulunamadi")
+
+    until = utc_now().replace(minute=0, second=0, microsecond=0)
+    since = until - timedelta(hours=hours - 1)
+    buckets = list(analytics_repo.list_hourly(camera_id, since, until, limit=hours))
+    total_samples = sum(item.detection_samples for item in buckets)
+    total_people = sum(item.total_person_count for item in buckets)
+    latest = max((item.last_detected_at for item in buckets), default=None)
+
+    return {
+        "camera_id": camera_id,
+        "hours": hours,
+        "bucket_count": len(buckets),
+        "total_detection_samples": total_samples,
+        "total_person_count": total_people,
+        "peak_person_count": max((item.max_person_count for item in buckets), default=0),
+        "average_person_count_per_detection": round(total_people / total_samples, 2) if total_samples else None,
+        "latest_detected_at": latest,
+        "buckets": [
+            {
+                **item.__dict__,
+                "average_person_count": round(item.total_person_count / item.detection_samples, 2)
+                if item.detection_samples else 0.0,
+            }
+            for item in buckets
+        ],
     }
 
 

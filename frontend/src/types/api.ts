@@ -96,6 +96,8 @@ export type CameraOnvifPreviewResponse = OpenApiSchemas['CameraOnvifPreviewRespo
 export type CameraStreamDiagnostics = OpenApiSchemas['CameraStreamDiagnostics']
 export type CameraStreamMetric = OpenApiSchemas['CameraStreamMetricResponse']
 export type CameraStreamMetricSummary = OpenApiSchemas['CameraStreamMetricSummaryResponse']
+export type CameraPersonHourlyStat = OpenApiSchemas['CameraPersonHourlyStatResponse']
+export type CameraPersonHourlySummary = OpenApiSchemas['CameraPersonHourlySummaryResponse']
 
 export type CameraHealthSample = OpenApiSchemas['CameraHealthSampleResponse']
 export type CameraHealthSummary = OpenApiSchemas['CameraHealthSummaryResponse']

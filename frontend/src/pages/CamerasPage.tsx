@@ -20,7 +20,7 @@ import { useToastStore } from '../stores/toastStore'
 import { useSystemSettingsStore } from '../stores/systemSettingsStore'
 import { getApiErrorMessage } from '../utils/apiError'
 import { hasErrors, requiredText, validateDevicePassword, validateHost, validateNumberRange, validatePort, type FieldErrors } from '../utils/formValidation'
-import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamMetric, CameraStreamMetricSummary } from '../types/api'
+import type { Camera, CameraCreate, CameraStatus, CameraScanResult, CameraHealthListItem, CameraOnvifPreviewResponse, CameraPersonHourlyStat, CameraPersonHourlySummary, CameraRtspDiagnostics, CameraRtspPreviewRequest, CameraStreamMetric, CameraStreamMetricSummary } from '../types/api'
 
 const statusVariant = { active: 'success', inactive: 'neutral', error: 'danger' } as const
 const statusLabel = { active: 'Aktif', inactive: 'Pasif', error: 'Hata' }
@@ -99,6 +99,59 @@ function MetricSparkline({
         {ordered.length === 0 && (
           <span className="text-xs text-[var(--text-secondary)]">Trend verisi yok.</span>
         )}
+      </div>
+    </div>
+  )
+}
+
+function PersonHourlyChart({ summary }: { summary: CameraPersonHourlySummary }) {
+  const bucketsByHour = new Map(summary.buckets.map((bucket) => [new Date(bucket.hour_start).getTime(), bucket]))
+  const now = new Date()
+  now.setMinutes(0, 0, 0)
+  const hours = Array.from({ length: summary.hours }, (_, index) => {
+    const value = new Date(now)
+    value.setHours(now.getHours() - (summary.hours - 1 - index))
+    return value
+  })
+  const values = hours.map((hour) => bucketsByHour.get(hour.getTime()))
+  const maxPeople = Math.max(...values.map((bucket) => bucket?.total_person_count ?? 0), 1)
+
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-medium text-[var(--text-primary)]">Insan Yogunlugu ({summary.hours} saat)</p>
+          <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
+            Saatlik insan gecis ve kalabalik sinyali. Ileride anomali alarm esiklerine temel olur.
+          </p>
+        </div>
+        <Badge variant={summary.peak_person_count >= 3 ? 'warning' : summary.total_detection_samples > 0 ? 'info' : 'neutral'}>
+          Peak {summary.peak_person_count} kisi
+        </Badge>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-[var(--text-secondary)]">
+        <span>Tespit ornegi: <strong className="text-[var(--text-primary)]">{summary.total_detection_samples}</strong></span>
+        <span>Toplam kisi: <strong className="text-[var(--text-primary)]">{summary.total_person_count}</strong></span>
+        <span>Ort. kisi: <strong className="text-[var(--text-primary)]">{summary.average_person_count_per_detection ?? 'Yok'}</strong></span>
+      </div>
+      <div className="mt-3 flex h-20 items-end gap-1 overflow-hidden" aria-label="Saatlik insan yogunlugu grafigi">
+        {hours.map((hour, index) => {
+          const bucket = values[index] as CameraPersonHourlyStat | undefined
+          const count = bucket?.total_person_count ?? 0
+          const height = count === 0 ? 8 : Math.max(14, Math.min(100, (count / maxPeople) * 100))
+          return (
+            <span
+              key={hour.toISOString()}
+              title={`${hour.toLocaleString()} - ${count} kisi, ${bucket?.detection_samples ?? 0} tespit ornegi`}
+              className={`min-w-[4px] flex-1 rounded-sm ${count === 0 ? 'bg-[var(--border)]' : bucket && bucket.max_person_count >= 3 ? 'bg-[var(--warning)]' : 'bg-[var(--accent)]'}`}
+              style={{ height: `${height}%` }}
+            />
+          )
+        })}
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] text-[var(--text-muted)]">
+        <span>{hours[0]?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+        <span>{hours.at(-1)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
     </div>
   )
@@ -1447,6 +1500,13 @@ export function CamerasPage() {
     refetchInterval: 15000,
   })
 
+  const { data: personHourly } = useQuery({
+    queryKey: ['camera-person-hourly', diagnosticResult?.camera_id],
+    queryFn: () => camerasApi.personHourlyAnalytics(diagnosticResult!.camera_id, 24),
+    enabled: diagnosticResult !== null && diagnosticError === null,
+    refetchInterval: 60000,
+  })
+
   const columns = [
     ...(canEditCameras ? [{
       key: 'select',
@@ -1903,6 +1963,9 @@ export function CamerasPage() {
                   </div>
                 )}
               </div>
+            )}
+            {personHourly && (
+              <PersonHourlyChart summary={personHourly} />
             )}
             {healthHistory && (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-3">

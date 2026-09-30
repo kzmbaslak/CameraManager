@@ -81,6 +81,17 @@ REQUIRED_SCHEMA: dict[str, set[str]] = {
         "open_failures",
         "failure_count",
     },
+    "camera_person_hourly_stats": {
+        "id",
+        "camera_id",
+        "hour_start",
+        "detection_samples",
+        "total_person_count",
+        "max_person_count",
+        "max_confidence",
+        "first_detected_at",
+        "last_detected_at",
+    },
     "recording_segments": {
         "id",
         "camera_id",

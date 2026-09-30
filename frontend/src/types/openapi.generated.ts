@@ -133,6 +133,11 @@ export const openApiOperations = [
   },
   {
     "method": "get",
+    "path": "/api/cameras/{camera_id}/analytics/person-hourly",
+    "operationId": "get_camera_person_hourly_analytics_api_cameras__camera_id__analytics_person_hourly_get"
+  },
+  {
+    "method": "get",
     "path": "/api/cameras/{camera_id}/diagnostics/health-history",
     "operationId": "diagnose_camera_health_history_api_cameras__camera_id__diagnostics_health_history_get"
   },
@@ -377,6 +382,7 @@ export type OpenApiPath =
   | "/api/cameras/"
   | "/api/cameras/{camera_id}"
   | "/api/cameras/{camera_id}/ai"
+  | "/api/cameras/{camera_id}/analytics/person-hourly"
   | "/api/cameras/{camera_id}/diagnostics/health-history"
   | "/api/cameras/{camera_id}/diagnostics/rtsp"
   | "/api/cameras/{camera_id}/diagnostics/stream-history"
@@ -450,6 +456,7 @@ export type OpenApiOperation =
   | { method: "get"; path: "/api/cameras/{camera_id}"; operationId: "get_camera_api_cameras__camera_id__get" }
   | { method: "patch"; path: "/api/cameras/{camera_id}"; operationId: "update_camera_api_cameras__camera_id__patch" }
   | { method: "patch"; path: "/api/cameras/{camera_id}/ai"; operationId: "update_camera_ai_api_cameras__camera_id__ai_patch" }
+  | { method: "get"; path: "/api/cameras/{camera_id}/analytics/person-hourly"; operationId: "get_camera_person_hourly_analytics_api_cameras__camera_id__analytics_person_hourly_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/health-history"; operationId: "diagnose_camera_health_history_api_cameras__camera_id__diagnostics_health_history_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/rtsp"; operationId: "diagnose_camera_rtsp_api_cameras__camera_id__diagnostics_rtsp_get" }
   | { method: "get"; path: "/api/cameras/{camera_id}/diagnostics/stream-history"; operationId: "diagnose_camera_stream_history_api_cameras__camera_id__diagnostics_stream_history_get" }
@@ -522,6 +529,8 @@ export type OpenApiSchemaName =
   | "CameraOnvifPreviewResponse"
   | "CameraOnvifProfileInfo"
   | "CameraPageResponse"
+  | "CameraPersonHourlyStatResponse"
+  | "CameraPersonHourlySummaryResponse"
   | "CameraPtzGotoPresetRequest"
   | "CameraPtzGotoPresetResponse"
   | "CameraPtzHomeResponse"
@@ -827,6 +836,29 @@ export type OpenApiSchemas = {
     "page": number
     "page_size": number
     "total": number
+  }
+  "CameraPersonHourlyStatResponse": {
+    "average_person_count": number
+    "camera_id": number
+    "detection_samples": number
+    "first_detected_at": string
+    "hour_start": string
+    "id": number
+    "last_detected_at": string
+    "max_confidence"?: (number) | (null)
+    "max_person_count": number
+    "total_person_count": number
+  }
+  "CameraPersonHourlySummaryResponse": {
+    "average_person_count_per_detection"?: (number) | (null)
+    "bucket_count": number
+    "buckets": Array<OpenApiSchemas["CameraPersonHourlyStatResponse"]>
+    "camera_id": number
+    "hours": number
+    "latest_detected_at"?: (string) | (null)
+    "peak_person_count": number
+    "total_detection_samples": number
+    "total_person_count": number
   }
   "CameraPtzGotoPresetRequest": {
     "preset_token": string

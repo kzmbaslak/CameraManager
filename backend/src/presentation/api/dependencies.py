@@ -29,6 +29,7 @@ from src.infrastructure.database.repositories.user_repository import SqlAlchemyU
 from src.infrastructure.database.repositories.nvr_repository import SqlAlchemyNVRRepository
 from src.infrastructure.database.repositories.camera_health_repository import SqlAlchemyCameraHealthRepository
 from src.infrastructure.database.repositories.camera_stream_metric_repository import SqlAlchemyCameraStreamMetricRepository
+from src.infrastructure.database.repositories.person_analytics_repository import SqlAlchemyPersonAnalyticsRepository
 from src.infrastructure.database.repositories.recording_repository import SqlAlchemyRecordingSegmentRepository
 from src.application.use_cases.camera_use_cases import CameraUseCases
 from src.application.use_cases.nvr_use_cases import NVRUseCases
@@ -55,6 +56,7 @@ stream_manager = CameraStreamManager(
     camera_repository_factory=SqlAlchemyCameraRepository,
     alarm_repository_factory=SqlAlchemyAlarmRepository,
     recording_repository_factory=SqlAlchemyRecordingSegmentRepository,
+    person_analytics_repository_factory=SqlAlchemyPersonAnalyticsRepository,
     frame_source_factory=lambda: OpenCVStreamReader(password_service=password_service),
 )
 nvr_probe_service = ONVIFProbeService()
@@ -100,6 +102,10 @@ def get_camera_health_repository(db: Session = Depends(get_db)) -> SqlAlchemyCam
 def get_camera_stream_metric_repository(db: Session = Depends(get_db)) -> SqlAlchemyCameraStreamMetricRepository:
     """Kamera stream performans gecmisi repository'sini dondurur."""
     return SqlAlchemyCameraStreamMetricRepository(db)
+
+def get_person_analytics_repository(db: Session = Depends(get_db)) -> SqlAlchemyPersonAnalyticsRepository:
+    """Kamera insan yogunlugu analitigi repository'sini dondurur."""
+    return SqlAlchemyPersonAnalyticsRepository(db)
 
 def get_recording_segment_repository(db: Session = Depends(get_db)) -> SqlAlchemyRecordingSegmentRepository:
     """Kayit segmentleri repository'sini dondurur."""
