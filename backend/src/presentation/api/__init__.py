@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from src.application.services.camera_health_policy import CameraHealthPolicy
+from src.application.services.person_density_policy import PersonDensityPolicy
 from src.infrastructure.backup.system_backup import external_archive_dir
 from src.infrastructure.database.database import get_db
 from src.infrastructure.database.models import CameraModel, NVRModel
@@ -298,6 +299,7 @@ def security_posture(
         findings.append({"severity": "low", "message": "BACKUP_EXTERNAL_ARCHIVE_DIR ile yedekler kurumsal/NAS/kasa hedefine kopyalanmali."})
 
     camera_health_policy = CameraHealthPolicy.from_environment()
+    person_density_policy = PersonDensityPolicy.from_environment()
 
     setup_checks = [
         {"key": check.key, "ok": check.ok, "severity": check.severity, "message": check.message}
@@ -329,6 +331,13 @@ def security_posture(
         "camera_health_warning_availability_percent": camera_health_policy.warning_availability_percent,
         "camera_health_max_latency_ms": camera_health_policy.max_latency_ms,
         "camera_health_stale_sample_seconds": camera_health_policy.stale_sample_seconds,
+        "person_density_anomaly_enabled": person_density_policy.enabled,
+        "person_density_baseline_window_hours": person_density_policy.baseline_window_hours,
+        "person_density_min_baseline_buckets": person_density_policy.min_baseline_buckets,
+        "person_density_baseline_multiplier": person_density_policy.baseline_multiplier,
+        "person_density_absolute_peak_person_count": person_density_policy.absolute_peak_person_count,
+        "person_density_min_current_peak_person_count": person_density_policy.min_current_peak_person_count,
+        "person_density_alarm_cooldown_seconds": person_density_policy.alarm_cooldown_seconds,
         "app_log_rotation_configured": app_log_rotation_configured,
         "app_log_json_format": app_log_json_format,
         "app_log_sensitive_query_masking": app_log_sensitive_query_masking,

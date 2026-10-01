@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Archive, Download, Moon, Plus, Pencil, ScanLine, Sun, Trash2, Volume2 } from 'lucide-react'
+import { Activity, Archive, Download, Moon, Plus, Pencil, ScanLine, Sun, Trash2, Users, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -272,6 +272,38 @@ function GeneralSettingsPanel({ securityPosture }: { securityPosture?: SecurityP
       env: 'CAMERA_HEALTH_STALE_SAMPLE_SECONDS',
     },
   ] : []
+  const personDensityPolicy = securityPosture ? [
+    {
+      label: 'Alarm aktif',
+      value: securityPosture.person_density_anomaly_enabled ? 'Evet' : 'Hayir',
+      env: 'PERSON_DENSITY_ANOMALY_ENABLED',
+    },
+    {
+      label: 'Mutlak tepe kisi',
+      value: `${securityPosture.person_density_absolute_peak_person_count} kisi`,
+      env: 'PERSON_DENSITY_ABSOLUTE_PEAK_PERSON_COUNT',
+    },
+    {
+      label: 'Gecmis pencere',
+      value: `${securityPosture.person_density_baseline_window_hours} saat`,
+      env: 'PERSON_DENSITY_BASELINE_WINDOW_HOURS',
+    },
+    {
+      label: 'Minimum gecmis saat',
+      value: `${securityPosture.person_density_min_baseline_buckets} saat`,
+      env: 'PERSON_DENSITY_MIN_BASELINE_BUCKETS',
+    },
+    {
+      label: 'Gecmise gore carpan',
+      value: `${securityPosture.person_density_baseline_multiplier}x`,
+      env: 'PERSON_DENSITY_BASELINE_MULTIPLIER',
+    },
+    {
+      label: 'Alarm bekleme',
+      value: `${securityPosture.person_density_alarm_cooldown_seconds} sn`,
+      env: 'PERSON_DENSITY_ALARM_COOLDOWN_SECONDS',
+    },
+  ] : []
 
   return (
     <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
@@ -355,6 +387,35 @@ function GeneralSettingsPanel({ securityPosture }: { securityPosture?: SecurityP
         ) : (
           <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-3 text-xs text-[var(--text-secondary)]">
             Kamera saglik esikleri security.status yetkisiyle okunur; admin veya operator oturumu gereklidir.
+          </p>
+        )}
+      </div>
+
+      <div className="mb-5 border-b border-[var(--border)] pb-4">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <Users size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Insan Yogunlugu Alarm Esikleri</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Saatlik kisi yogunlugu alarmi backend runtime policy degerleriyle uretilir. Deger degisikligi icin .env guncellenip servis yeniden baslatilmalidir.
+            </p>
+          </div>
+        </div>
+        {personDensityPolicy.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {personDensityPolicy.map((item) => (
+              <div key={item.env} className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+                <p className="text-[11px] text-[var(--text-secondary)]">{item.label}</p>
+                <p className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">{item.value}</p>
+                <p className="mt-1 truncate font-mono text-[10px] text-[var(--text-muted)]" title={item.env}>{item.env}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-3 text-xs text-[var(--text-secondary)]">
+            Insan yogunlugu alarm esikleri security.status yetkisiyle okunur; admin veya operator oturumu gereklidir.
           </p>
         )}
       </div>

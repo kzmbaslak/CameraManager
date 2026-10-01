@@ -1290,6 +1290,13 @@ export type OpenApiSchemas = {
     "overdue_camera_password_count": number
     "overdue_device_password_count": number
     "overdue_nvr_password_count": number
+    "person_density_absolute_peak_person_count": number
+    "person_density_alarm_cooldown_seconds": number
+    "person_density_anomaly_enabled": boolean
+    "person_density_baseline_multiplier": number
+    "person_density_baseline_window_hours": number
+    "person_density_min_baseline_buckets": number
+    "person_density_min_current_peak_person_count": number
     "recording_continuous_active_end"?: (string) | (null)
     "recording_continuous_active_start"?: (string) | (null)
     "recording_continuous_enabled": boolean

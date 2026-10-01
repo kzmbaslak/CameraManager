@@ -55,6 +55,13 @@ class SecurityPostureResponse(BaseModel):
     camera_health_warning_availability_percent: float
     camera_health_max_latency_ms: float
     camera_health_stale_sample_seconds: int
+    person_density_anomaly_enabled: bool
+    person_density_baseline_window_hours: int
+    person_density_min_baseline_buckets: int
+    person_density_baseline_multiplier: float
+    person_density_absolute_peak_person_count: int
+    person_density_min_current_peak_person_count: int
+    person_density_alarm_cooldown_seconds: int
     app_log_rotation_configured: bool
     app_log_json_format: bool
     app_log_sensitive_query_masking: bool
