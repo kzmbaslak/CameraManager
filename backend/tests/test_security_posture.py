@@ -28,6 +28,13 @@ class SecurityPostureTests(unittest.TestCase):
                 "CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT",
                 "CAMERA_HEALTH_MAX_LATENCY_MS",
                 "CAMERA_HEALTH_STALE_SAMPLE_SECONDS",
+                "PERSON_DENSITY_ANOMALY_ENABLED",
+                "PERSON_DENSITY_BASELINE_WINDOW_HOURS",
+                "PERSON_DENSITY_MIN_BASELINE_BUCKETS",
+                "PERSON_DENSITY_BASELINE_MULTIPLIER",
+                "PERSON_DENSITY_ABSOLUTE_PEAK_PERSON_COUNT",
+                "PERSON_DENSITY_MIN_CURRENT_PEAK_PERSON_COUNT",
+                "PERSON_DENSITY_ALARM_COOLDOWN_SECONDS",
             )
         }
         os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-with-more-than-32-characters"
@@ -41,6 +48,13 @@ class SecurityPostureTests(unittest.TestCase):
         os.environ["CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT"] = "96"
         os.environ["CAMERA_HEALTH_MAX_LATENCY_MS"] = "1500"
         os.environ["CAMERA_HEALTH_STALE_SAMPLE_SECONDS"] = "180"
+        os.environ["PERSON_DENSITY_ANOMALY_ENABLED"] = "true"
+        os.environ["PERSON_DENSITY_BASELINE_WINDOW_HOURS"] = "48"
+        os.environ["PERSON_DENSITY_MIN_BASELINE_BUCKETS"] = "8"
+        os.environ["PERSON_DENSITY_BASELINE_MULTIPLIER"] = "2.5"
+        os.environ["PERSON_DENSITY_ABSOLUTE_PEAK_PERSON_COUNT"] = "9"
+        os.environ["PERSON_DENSITY_MIN_CURRENT_PEAK_PERSON_COUNT"] = "3"
+        os.environ["PERSON_DENSITY_ALARM_COOLDOWN_SECONDS"] = "1200"
 
         self.engine = create_engine(
             "sqlite:///:memory:",
@@ -107,6 +121,13 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertEqual(result["camera_health_warning_availability_percent"], 96.0)
         self.assertEqual(result["camera_health_max_latency_ms"], 1500.0)
         self.assertEqual(result["camera_health_stale_sample_seconds"], 180)
+        self.assertTrue(result["person_density_anomaly_enabled"])
+        self.assertEqual(result["person_density_baseline_window_hours"], 48)
+        self.assertEqual(result["person_density_min_baseline_buckets"], 8)
+        self.assertEqual(result["person_density_baseline_multiplier"], 2.5)
+        self.assertEqual(result["person_density_absolute_peak_person_count"], 9)
+        self.assertEqual(result["person_density_min_current_peak_person_count"], 3)
+        self.assertEqual(result["person_density_alarm_cooldown_seconds"], 1200)
         self.assertTrue(any(check["key"] == "migration_script_inventory" for check in result["setup_checks"]))
         self.assertTrue(any("cihaz parolasi kayitli degil" in item["message"] for item in result["findings"]))
         self.assertFalse(any("HttpOnly/SameSite secure cookie" in item["message"] for item in result["findings"]))
