@@ -573,6 +573,7 @@ export type OpenApiSchemaName =
   | "RecordingPruneResponse"
   | "RecordingSegmentListResponse"
   | "RecordingSegmentResponse"
+  | "RecordingTamperMetadata"
   | "SecurityPermissionsResponse"
   | "SecurityPostureFindingResponse"
   | "SecurityPostureResponse"
@@ -1202,6 +1203,7 @@ export type OpenApiSchemas = {
     "frame_width"?: (number) | (null)
     "motion"?: (OpenApiSchemas["RecordingMotionMetadata"]) | (null)
     "segment_id": number
+    "tamper"?: (OpenApiSchemas["RecordingTamperMetadata"]) | (null)
   }
   "RecordingMotionMetadata": {
     "changed_percent": number
@@ -1239,6 +1241,12 @@ export type OpenApiSchemas = {
     "started_at": string
     "status": string
     "width"?: (number) | (null)
+  }
+  "RecordingTamperMetadata": {
+    "blur_variance": number
+    "brightness_mean": number
+    "brightness_stddev": number
+    "reason": string
   }
   "SecurityPermissionsResponse": {
     "permissions": Array<string>

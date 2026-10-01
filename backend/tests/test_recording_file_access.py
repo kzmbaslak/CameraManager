@@ -2,6 +2,7 @@
 
 import tempfile
 import unittest
+import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -110,6 +111,31 @@ class RecordingFileAccessTests(unittest.TestCase):
             self.assertEqual(metadata.motion.changed_ratio, 0.1875)
             self.assertEqual(metadata.motion.changed_percent, 18.75)
 
+    def test_recording_metadata_reads_tamper_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            path = root / "event.mp4"
+            path.write_bytes(b"video")
+            path.with_suffix(".detections.json").write_text(
+                json.dumps({
+                    "detections": [],
+                    "tamper": {
+                        "reason": "dark_frame",
+                        "brightness_mean": 0.0,
+                        "brightness_stddev": 0.0,
+                        "blur_variance": 0.0,
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            metadata = _recording_metadata_response(self._segment(path), root)
+
+            self.assertEqual(metadata.detections, [])
+            self.assertIsNotNone(metadata.tamper)
+            self.assertEqual(metadata.tamper.reason, "dark_frame")
+            self.assertEqual(metadata.tamper.blur_variance, 0.0)
+
     def test_recording_metadata_returns_empty_when_sidecar_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
@@ -121,6 +147,7 @@ class RecordingFileAccessTests(unittest.TestCase):
             self.assertEqual(metadata.detections, [])
             self.assertEqual(metadata.frame_width, None)
             self.assertIsNone(metadata.motion)
+            self.assertIsNone(metadata.tamper)
 
 
 if __name__ == "__main__":

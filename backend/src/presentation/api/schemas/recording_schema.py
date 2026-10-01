@@ -66,6 +66,15 @@ class RecordingMotionMetadata(BaseModel):
     changed_percent: float
 
 
+class RecordingTamperMetadata(BaseModel):
+    """Kamera sabotaj/karartma olayi icin goruntu kalitesi ozeti."""
+
+    reason: str
+    brightness_mean: float
+    brightness_stddev: float
+    blur_variance: float
+
+
 class RecordingMetadataResponse(BaseModel):
     """Kayit segmenti icin yol sizdirmayan playback metadata'si."""
 
@@ -77,3 +86,4 @@ class RecordingMetadataResponse(BaseModel):
     detected_at: Optional[datetime] = None
     detections: list[RecordingDetectionItem]
     motion: Optional[RecordingMotionMetadata] = None
+    tamper: Optional[RecordingTamperMetadata] = None

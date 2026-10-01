@@ -466,6 +466,15 @@ class CameraStreamManager:
                     "alarm_id": alarm.id,
                     **detection_payload,
                 })
+                post_seconds = self._event_post_seconds()
+                if post_seconds > 0:
+                    await asyncio.sleep(post_seconds)
+                clip_frames = self._recording_clip_frames(camera_id)
+                if clip_frames:
+                    await loop.run_in_executor(
+                        self._executor,
+                        lambda: self._save_event_recording_clip_sync(camera_id, alarm.id, clip_frames, detection_payload),
+                    )
                 logger.warning(
                     "[StreamManager] Kamera %s sabotaj supheli: %s, Alarm ID: %s",
                     camera_id,
@@ -856,6 +865,7 @@ class CameraStreamManager:
             "detected_at": detection_payload.get("detected_at"),
             "detections": detection_payload.get("detections") or [],
             "motion": detection_payload.get("motion"),
+            "tamper": detection_payload.get("tamper"),
         }
         with open(metadata_path, "w", encoding="utf-8") as file:
             json.dump(payload, file, ensure_ascii=False, separators=(",", ":"))

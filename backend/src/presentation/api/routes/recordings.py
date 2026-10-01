@@ -71,6 +71,7 @@ def _recording_metadata_response(
             detected_at=None,
             detections=[],
             motion=None,
+            tamper=None,
         )
     try:
         with open(metadata_path, "r", encoding="utf-8") as file:
@@ -110,6 +111,18 @@ def _recording_metadata_response(
             }
         except (TypeError, ValueError):
             motion = None
+    tamper = None
+    tamper_payload = payload.get("tamper")
+    if isinstance(tamper_payload, dict):
+        try:
+            tamper = {
+                "reason": str(tamper_payload.get("reason") or "unknown"),
+                "brightness_mean": float(tamper_payload.get("brightness_mean") or 0),
+                "brightness_stddev": float(tamper_payload.get("brightness_stddev") or 0),
+                "blur_variance": float(tamper_payload.get("blur_variance") or 0),
+            }
+        except (TypeError, ValueError):
+            tamper = None
     return RecordingMetadataResponse(
         segment_id=segment.id or 0,
         camera_id=segment.camera_id,
@@ -119,6 +132,7 @@ def _recording_metadata_response(
         detected_at=detected_at,
         detections=detections,
         motion=motion,
+        tamper=tamper,
     )
 
 

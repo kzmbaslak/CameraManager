@@ -115,6 +115,42 @@ class RecordingEventClipTests(unittest.TestCase):
         with open(metadata_path, "r", encoding="utf-8") as file:
             self.assertIn('"confidence":0.91', file.read())
 
+    def test_event_clip_writes_tamper_metadata(self):
+        manager = CameraStreamManager(
+            ai_service=None,
+            db_session_factory=self.session_factory,
+            recording_repository_factory=SqlAlchemyRecordingSegmentRepository,
+        )
+        frames = [
+            np.zeros((32, 48, 3), dtype=np.uint8),
+            np.zeros((32, 48, 3), dtype=np.uint8),
+        ]
+
+        manager._save_event_recording_clip_sync(camera_id=8, alarm_id=12, frames=frames, detection_payload={
+            "frame_width": None,
+            "frame_height": None,
+            "detected_at": "2026-07-28T10:00:00Z",
+            "detections": [],
+            "tamper": {
+                "reason": "dark_frame",
+                "brightness_mean": 0.0,
+                "brightness_stddev": 0.0,
+                "blur_variance": 0.0,
+            },
+        })
+
+        db = self.session_factory()
+        try:
+            repo = SqlAlchemyRecordingSegmentRepository(db)
+            segments = list(repo.list_segments(camera_id=8, limit=10))
+        finally:
+            db.close()
+        metadata_path = os.path.splitext(segments[0].file_path)[0] + ".detections.json"
+        with open(metadata_path, "r", encoding="utf-8") as file:
+            metadata = file.read()
+        self.assertIn('"reason":"dark_frame"', metadata)
+        self.assertIn('"tamper"', metadata)
+
     def test_event_clip_pre_post_seconds_are_clamped_and_summed(self):
         manager = CameraStreamManager(ai_service=None)
         os.environ["RECORDING_EVENT_PRE_SECONDS"] = "8"

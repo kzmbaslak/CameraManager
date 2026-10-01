@@ -135,6 +135,7 @@ export function RecordingsPage() {
     : null
   const previewDetections = preview?.metadata?.detections ?? []
   const previewMotionPercent = preview?.metadata?.motion?.changed_percent ?? null
+  const previewTamper = preview?.metadata?.tamper ?? null
   const previewMaxConfidence = previewDetections.length
     ? Math.max(...previewDetections.map((detection) => detection.confidence))
     : null
@@ -680,10 +681,14 @@ export function RecordingsPage() {
               </div>
               <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase text-text-secondary">
-                  {previewMotionPercent !== null ? 'Hareket Orani' : 'En Yuksek Guven'}
+                  {previewTamper ? 'Sabotaj' : previewMotionPercent !== null ? 'Hareket Orani' : 'En Yuksek Guven'}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-text-primary">
-                  {previewMotionPercent !== null ? formatPercent(previewMotionPercent) : formatConfidence(previewMaxConfidence)}
+                  {previewTamper
+                    ? previewTamper.reason
+                    : previewMotionPercent !== null
+                    ? formatPercent(previewMotionPercent)
+                    : formatConfidence(previewMaxConfidence)}
                 </p>
               </div>
               <div className="rounded-md border border-border bg-bg-secondary px-3 py-2">
@@ -697,6 +702,11 @@ export function RecordingsPage() {
               <span>
                 Olay penceresi: {preview.segment.duration_seconds == null ? '-' : `${preview.segment.duration_seconds.toFixed(1)} sn`}
               </span>
+              {previewTamper && (
+                <span>
+                  Parlaklik {previewTamper.brightness_mean.toFixed(1)} · Duzluk {previewTamper.brightness_stddev.toFixed(1)} · Bulaniklik {previewTamper.blur_variance.toFixed(1)}
+                </span>
+              )}
               <span>
                 {previewDetectionOffset !== null
                   ? `Alarm ani: ${previewDetectionOffset.toFixed(1)} sn`
