@@ -676,7 +676,7 @@ export type OpenApiSchemas = {
     "snapshot_annotated_sha256"?: (string) | (null)
     "snapshot_sha256"?: (string) | (null)
   }
-  "AlarmType": "human_detected" | "camera_offline" | "camera_health_degraded" | "motion_detected" | "person_density_anomaly"
+  "AlarmType": "human_detected" | "camera_offline" | "camera_health_degraded" | "motion_detected" | "person_density_anomaly" | "camera_tampered"
   "AlarmUpdate": {
     "assigned_to"?: (string) | (null)
     "false_positive"?: (boolean) | (null)
@@ -1268,6 +1268,13 @@ export type OpenApiSchemas = {
     "camera_health_warning_availability_percent": number
     "camera_onvif_capability_unknown_count": number
     "camera_ptz_supported_count": number
+    "camera_tamper_alarm_cooldown_seconds": number
+    "camera_tamper_blur_variance_threshold": number
+    "camera_tamper_consecutive_frames": number
+    "camera_tamper_dark_mean_threshold": number
+    "camera_tamper_detection_enabled": boolean
+    "camera_tamper_flat_stddev_threshold": number
+    "camera_tamper_frame_stride": number
     "camera_without_password_count": number
     "content_security_policy_enabled": boolean
     "continuous_recording_excluded_camera_count": number

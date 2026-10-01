@@ -1,7 +1,7 @@
 // Kullanıcı yönetimi sayfası — listeleme, ekleme, düzenleme (rol/aktiflik/şifre), silme
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Activity, Archive, Download, Moon, Plus, Pencil, ScanLine, Sun, Trash2, Users, Volume2 } from 'lucide-react'
+import { Activity, Archive, Download, Moon, Plus, Pencil, ScanLine, Sun, Trash2, Users, VideoOff, Volume2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import { systemApi } from '../api/system'
 import { usersApi, type UserUpdate } from '../api/users'
@@ -304,6 +304,43 @@ function GeneralSettingsPanel({ securityPosture }: { securityPosture?: SecurityP
       env: 'PERSON_DENSITY_ALARM_COOLDOWN_SECONDS',
     },
   ] : []
+  const cameraTamperPolicy = securityPosture ? [
+    {
+      label: 'Alarm aktif',
+      value: securityPosture.camera_tamper_detection_enabled ? 'Evet' : 'Hayir',
+      env: 'CAMERA_TAMPER_DETECTION_ENABLED',
+    },
+    {
+      label: 'Frame adimi',
+      value: `${securityPosture.camera_tamper_frame_stride} frame`,
+      env: 'CAMERA_TAMPER_FRAME_STRIDE',
+    },
+    {
+      label: 'Ardisik supheli',
+      value: `${securityPosture.camera_tamper_consecutive_frames} frame`,
+      env: 'CAMERA_TAMPER_CONSECUTIVE_FRAMES',
+    },
+    {
+      label: 'Karanlik esigi',
+      value: `${securityPosture.camera_tamper_dark_mean_threshold}`,
+      env: 'CAMERA_TAMPER_DARK_MEAN_THRESHOLD',
+    },
+    {
+      label: 'Duz goruntu esigi',
+      value: `${securityPosture.camera_tamper_flat_stddev_threshold}`,
+      env: 'CAMERA_TAMPER_FLAT_STDDEV_THRESHOLD',
+    },
+    {
+      label: 'Bulaniklik esigi',
+      value: `${securityPosture.camera_tamper_blur_variance_threshold}`,
+      env: 'CAMERA_TAMPER_BLUR_VARIANCE_THRESHOLD',
+    },
+    {
+      label: 'Alarm bekleme',
+      value: `${securityPosture.camera_tamper_alarm_cooldown_seconds} sn`,
+      env: 'CAMERA_TAMPER_ALARM_COOLDOWN_SECONDS',
+    },
+  ] : []
 
   return (
     <section className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4">
@@ -416,6 +453,35 @@ function GeneralSettingsPanel({ securityPosture }: { securityPosture?: SecurityP
         ) : (
           <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-3 text-xs text-[var(--text-secondary)]">
             Insan yogunlugu alarm esikleri security.status yetkisiyle okunur; admin veya operator oturumu gereklidir.
+          </p>
+        )}
+      </div>
+
+      <div className="mb-5 border-b border-[var(--border)] pb-4">
+        <div className="mb-3 flex items-start gap-3">
+          <div className="mt-0.5 rounded-lg bg-[var(--accent)]/10 p-2 text-[var(--accent)]">
+            <VideoOff size={18} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Kamera Sabotaj Alarm Esikleri</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Kararma, kapama ve asiri bulaniklasma alarmi backend runtime policy degerleriyle uretilir. Deger degisikligi icin .env guncellenip servis yeniden baslatilmalidir.
+            </p>
+          </div>
+        </div>
+        {cameraTamperPolicy.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {cameraTamperPolicy.map((item) => (
+              <div key={item.env} className="rounded-md border border-[var(--border)] bg-[var(--bg-secondary)] p-3">
+                <p className="text-[11px] text-[var(--text-secondary)]">{item.label}</p>
+                <p className="mt-1 font-mono text-sm font-semibold text-[var(--text-primary)]">{item.value}</p>
+                <p className="mt-1 truncate font-mono text-[10px] text-[var(--text-muted)]" title={item.env}>{item.env}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-3 text-xs text-[var(--text-secondary)]">
+            Kamera sabotaj alarm esikleri security.status yetkisiyle okunur; admin veya operator oturumu gereklidir.
           </p>
         )}
       </div>

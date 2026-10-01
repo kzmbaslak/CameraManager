@@ -18,6 +18,7 @@ class AlarmType(str, Enum):
     CAMERA_HEALTH_DEGRADED = "camera_health_degraded"
     MOTION_DETECTED = "motion_detected"
     PERSON_DENSITY_ANOMALY = "person_density_anomaly"
+    CAMERA_TAMPERED = "camera_tampered"
 
 
 class AlarmSeverity(str, Enum):

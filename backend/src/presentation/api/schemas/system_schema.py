@@ -55,6 +55,13 @@ class SecurityPostureResponse(BaseModel):
     camera_health_warning_availability_percent: float
     camera_health_max_latency_ms: float
     camera_health_stale_sample_seconds: int
+    camera_tamper_detection_enabled: bool
+    camera_tamper_frame_stride: int
+    camera_tamper_consecutive_frames: int
+    camera_tamper_dark_mean_threshold: float
+    camera_tamper_flat_stddev_threshold: float
+    camera_tamper_blur_variance_threshold: float
+    camera_tamper_alarm_cooldown_seconds: int
     person_density_anomaly_enabled: bool
     person_density_baseline_window_hours: int
     person_density_min_baseline_buckets: int

@@ -69,6 +69,7 @@ const typeLabel: Record<string, string> = {
   human_detected: 'İnsan Tespiti',
   motion_detected: 'Hareket',
   person_density_anomaly: 'Yogunluk Anomalisi',
+  camera_tampered: 'Kamera Sabotaj',
   camera_health_degraded: 'Kamera Saglik Uyarisi',
   camera_offline: 'Kamera Çevrimdışı',
 }

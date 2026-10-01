@@ -28,6 +28,13 @@ class SecurityPostureTests(unittest.TestCase):
                 "CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT",
                 "CAMERA_HEALTH_MAX_LATENCY_MS",
                 "CAMERA_HEALTH_STALE_SAMPLE_SECONDS",
+                "CAMERA_TAMPER_DETECTION_ENABLED",
+                "CAMERA_TAMPER_FRAME_STRIDE",
+                "CAMERA_TAMPER_CONSECUTIVE_FRAMES",
+                "CAMERA_TAMPER_DARK_MEAN_THRESHOLD",
+                "CAMERA_TAMPER_FLAT_STDDEV_THRESHOLD",
+                "CAMERA_TAMPER_BLUR_VARIANCE_THRESHOLD",
+                "CAMERA_TAMPER_ALARM_COOLDOWN_SECONDS",
                 "PERSON_DENSITY_ANOMALY_ENABLED",
                 "PERSON_DENSITY_BASELINE_WINDOW_HOURS",
                 "PERSON_DENSITY_MIN_BASELINE_BUCKETS",
@@ -48,6 +55,13 @@ class SecurityPostureTests(unittest.TestCase):
         os.environ["CAMERA_HEALTH_WARNING_AVAILABILITY_PERCENT"] = "96"
         os.environ["CAMERA_HEALTH_MAX_LATENCY_MS"] = "1500"
         os.environ["CAMERA_HEALTH_STALE_SAMPLE_SECONDS"] = "180"
+        os.environ["CAMERA_TAMPER_DETECTION_ENABLED"] = "true"
+        os.environ["CAMERA_TAMPER_FRAME_STRIDE"] = "11"
+        os.environ["CAMERA_TAMPER_CONSECUTIVE_FRAMES"] = "4"
+        os.environ["CAMERA_TAMPER_DARK_MEAN_THRESHOLD"] = "10.5"
+        os.environ["CAMERA_TAMPER_FLAT_STDDEV_THRESHOLD"] = "3.5"
+        os.environ["CAMERA_TAMPER_BLUR_VARIANCE_THRESHOLD"] = "18.5"
+        os.environ["CAMERA_TAMPER_ALARM_COOLDOWN_SECONDS"] = "1800"
         os.environ["PERSON_DENSITY_ANOMALY_ENABLED"] = "true"
         os.environ["PERSON_DENSITY_BASELINE_WINDOW_HOURS"] = "48"
         os.environ["PERSON_DENSITY_MIN_BASELINE_BUCKETS"] = "8"
@@ -121,6 +135,13 @@ class SecurityPostureTests(unittest.TestCase):
         self.assertEqual(result["camera_health_warning_availability_percent"], 96.0)
         self.assertEqual(result["camera_health_max_latency_ms"], 1500.0)
         self.assertEqual(result["camera_health_stale_sample_seconds"], 180)
+        self.assertTrue(result["camera_tamper_detection_enabled"])
+        self.assertEqual(result["camera_tamper_frame_stride"], 11)
+        self.assertEqual(result["camera_tamper_consecutive_frames"], 4)
+        self.assertEqual(result["camera_tamper_dark_mean_threshold"], 10.5)
+        self.assertEqual(result["camera_tamper_flat_stddev_threshold"], 3.5)
+        self.assertEqual(result["camera_tamper_blur_variance_threshold"], 18.5)
+        self.assertEqual(result["camera_tamper_alarm_cooldown_seconds"], 1800)
         self.assertTrue(result["person_density_anomaly_enabled"])
         self.assertEqual(result["person_density_baseline_window_hours"], 48)
         self.assertEqual(result["person_density_min_baseline_buckets"], 8)

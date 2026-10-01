@@ -13,6 +13,7 @@ from typing import Dict, Optional, Set, Tuple
 import asyncio
 import cv2
 
+from src.application.services.camera_tamper_policy import CameraTamperAnalysisResult, CameraTamperPolicy
 from src.application.services.person_density_policy import PersonDensityPolicy
 from src.domain.entities.alarm import Alarm, AlarmSeverity, AlarmStatus, AlarmType
 from src.domain.entities.camera import CameraStatus
@@ -71,6 +72,7 @@ class CameraStreamManager:
         self._ai_interval = ai_interval
         self._frame_interval = 1.0 / display_fps
         self._cooldown_seconds = cooldown_seconds
+        self._camera_tamper_policy = CameraTamperPolicy.from_environment()
         self._person_density_policy = PersonDensityPolicy.from_environment()
 
         self._producers: Dict[int, asyncio.Task] = {}
@@ -86,11 +88,14 @@ class CameraStreamManager:
         self._last_ai_time: Dict[int, float] = {}
         self._active_ai_tasks: Dict[int, asyncio.Task] = {}
         self._active_motion_tasks: Dict[int, asyncio.Task] = {}
+        self._active_tamper_tasks: Dict[int, asyncio.Task] = {}
         self._ai_enabled_cache: Dict[int, bool] = {}
         self._motion_enabled_cache: Dict[int, bool] = {}
         self._ai_frame_stride_cache: Dict[int, int] = {}
         self._ai_frame_counters: Dict[int, int] = {}
         self._motion_frame_counters: Dict[int, int] = {}
+        self._tamper_frame_counters: Dict[int, int] = {}
+        self._tamper_suspicious_counts: Dict[int, int] = {}
         self._motion_previous_frames: Dict[int, object] = {}
         self._latest_detection_messages: Dict[int, Tuple[float, dict]] = {}
         self._recording_buffers: Dict[int, deque[Tuple[float, object]]] = {}
@@ -196,7 +201,11 @@ class CameraStreamManager:
         motion_task = self._active_motion_tasks.pop(camera_id, None)
         if motion_task and not motion_task.done():
             motion_task.cancel()
+        tamper_task = self._active_tamper_tasks.pop(camera_id, None)
+        if tamper_task and not tamper_task.done():
+            tamper_task.cancel()
         self._motion_previous_frames.pop(camera_id, None)
+        self._tamper_suspicious_counts.pop(camera_id, None)
 
     # ------------------------------------------------------------------
     # Genel yönetim — uygulama başlangıcı/kapanışı, status/AI toggle route'ları
@@ -249,6 +258,10 @@ class CameraStreamManager:
             if not task.done():
                 task.cancel()
         self._active_motion_tasks.clear()
+        for task in list(self._active_tamper_tasks.values()):
+            if not task.done():
+                task.cancel()
+        self._active_tamper_tasks.clear()
         self._executor.shutdown(wait=False)
         self._ai_executor.shutdown(wait=False)
         logger.info("[StreamManager] Tüm kamera producer'ları durduruldu.")
@@ -295,7 +308,11 @@ class CameraStreamManager:
         motion_task = self._active_motion_tasks.pop(camera_id, None)
         if motion_task and not motion_task.done():
             motion_task.cancel()
+        tamper_task = self._active_tamper_tasks.pop(camera_id, None)
+        if tamper_task and not tamper_task.done():
+            tamper_task.cancel()
         self._motion_previous_frames.pop(camera_id, None)
+        self._tamper_suspicious_counts.pop(camera_id, None)
         self._producers.pop(camera_id, None)
         # Yeni bağlantı parametrelerine göre yayını tekrar başlat
         await self.ensure_running_state(camera_id)
@@ -357,10 +374,13 @@ class CameraStreamManager:
                 has_subscribers = bool(self._subscribers.get(camera_id))
                 should_run_ai = frame is not None and ai_enabled and self._should_run_ai(camera_id, ai_frame_stride)
                 should_run_motion = frame is not None and motion_enabled and self._should_run_motion(camera_id)
+                should_run_tamper = frame is not None and self._should_run_tamper(camera_id)
 
                 if should_run_ai:
                     self._last_ai_time[camera_id] = loop.time()
                     self._schedule_ai_detection(camera_id, frame.copy())
+                if should_run_tamper:
+                    self._schedule_tamper_detection(camera_id, frame.copy())
                 if frame is not None and motion_enabled:
                     previous_frame = self._motion_previous_frames.get(camera_id)
                     if should_run_motion and previous_frame is not None:
@@ -386,6 +406,7 @@ class CameraStreamManager:
             frame_source.release(camera_id)
             self._producers.pop(camera_id, None)
             self._motion_previous_frames.pop(camera_id, None)
+            self._tamper_suspicious_counts.pop(camera_id, None)
 
     def _should_run_ai(self, camera_id: int, frame_stride: int = 1) -> bool:
         """AI taramasının bu turda tetiklenmeye uygun olup olmadığını döner."""
@@ -415,6 +436,53 @@ class CameraStreamManager:
             return False
         task = self._active_motion_tasks.get(camera_id)
         return task is None or task.done()
+
+    def _should_run_tamper(self, camera_id: int) -> bool:
+        """Kamera sabotaj analizinin bu turda calisip calismayacagini dondurur."""
+        if not self._camera_tamper_policy.enabled:
+            return False
+        self._tamper_frame_counters[camera_id] = self._tamper_frame_counters.get(camera_id, 0) + 1
+        if (self._tamper_frame_counters[camera_id] - 1) % self._camera_tamper_policy.frame_stride != 0:
+            return False
+        task = self._active_tamper_tasks.get(camera_id)
+        return task is None or task.done()
+
+    def _schedule_tamper_detection(self, camera_id: int, frame) -> None:
+        """Kamera karartma/kapama/bulaniklastirma analizini arka planda calistirir."""
+        loop = asyncio.get_running_loop()
+
+        async def _runner() -> None:
+            try:
+                alarm, result = await loop.run_in_executor(
+                    self._ai_executor,
+                    lambda: self._detect_tamper_and_alarm_sync(camera_id, frame),
+                )
+                if alarm is None or result is None:
+                    return
+                detection_payload = self._serialize_tamper_result(result)
+                self._broadcast(camera_id, {
+                    "frame": None,
+                    "alarm_triggered": True,
+                    "alarm_id": alarm.id,
+                    **detection_payload,
+                })
+                logger.warning(
+                    "[StreamManager] Kamera %s sabotaj supheli: %s, Alarm ID: %s",
+                    camera_id,
+                    result.reason,
+                    alarm.id,
+                )
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:
+                logger.warning(f"[StreamManager] Kamera {camera_id} sabotaj analiz gorevi hatasi: {exc}")
+            finally:
+                current = self._active_tamper_tasks.get(camera_id)
+                if current is asyncio.current_task():
+                    self._active_tamper_tasks.pop(camera_id, None)
+
+        task = asyncio.create_task(_runner(), name=f"cam_tamper_{camera_id}")
+        self._active_tamper_tasks[camera_id] = task
 
     def _schedule_motion_detection(self, camera_id: int, previous_frame, current_frame) -> None:
         """Hareket analizini capture dongusunden ayirip arka planda calistirir."""
@@ -877,6 +945,22 @@ class CameraStreamManager:
             },
         }
 
+    def _serialize_tamper_result(self, result: CameraTamperAnalysisResult) -> dict:
+        """Kamera sabotaj analiz sonucunu WebSocket metadata formatina cevirir."""
+        return {
+            "detections": [],
+            "frame_width": None,
+            "frame_height": None,
+            "detected_at": utc_now().isoformat() + "Z",
+            "ai_inference_ms": None,
+            "tamper": {
+                "reason": result.reason,
+                "brightness_mean": round(result.brightness_mean, 2),
+                "brightness_stddev": round(result.brightness_stddev, 2),
+                "blur_variance": round(result.blur_variance, 2),
+            },
+        }
+
     def _record_person_analytics_sync(self, camera_id: int, detection_payload: dict) -> None:
         """AI insan tespiti sonucunu saatlik kamera yogunlugu istatistigine ekler."""
         detections = detection_payload.get("detections") or []
@@ -963,6 +1047,78 @@ class CameraStreamManager:
         ))
         camera_alarm_times[(camera_id, alarm_type)] = now_value
 
+    def _file_sha256(self, filepath: str) -> str:
+        with open(filepath, "rb") as file:
+            return hashlib.sha256(file.read()).hexdigest()
+
+    def _save_tamper_snapshot(self, frame: object, camera_id: int) -> tuple[str | None, str | None]:
+        snapshot_dir = os.environ.get("SNAPSHOT_DIR", "snapshots") or "snapshots"
+        os.makedirs(snapshot_dir, exist_ok=True)
+        path = os.path.join(snapshot_dir, f"cam_{camera_id}_{utc_now().strftime('%Y%m%d_%H%M%S')}_tamper.jpg")
+        if not cv2.imwrite(path, frame):
+            return None, None
+        return path, self._file_sha256(path)
+
+    def _detect_tamper_and_alarm_sync(self, camera_id: int, frame) -> tuple[Alarm | None, CameraTamperAnalysisResult | None]:
+        """Goruntu karartma/kapama/bulaniklastirma sinyalinden sabotaj alarmi uretir."""
+        if not self._db_session_factory or not self._alarm_repository_factory:
+            return None, None
+
+        result = self._camera_tamper_policy.analyze(frame)
+        if not result.triggered:
+            self._tamper_suspicious_counts[camera_id] = 0
+            return None, result
+
+        suspicious_count = self._tamper_suspicious_counts.get(camera_id, 0) + 1
+        self._tamper_suspicious_counts[camera_id] = suspicious_count
+        if suspicious_count < self._camera_tamper_policy.consecutive_frames:
+            return None, result
+
+        now_value = utc_now()
+        alarm_type = AlarmType.CAMERA_TAMPERED
+        camera_alarm_times = self._last_alarm_times.setdefault(camera_id, {})
+        last_alarm_at = camera_alarm_times.get((camera_id, alarm_type))
+        if last_alarm_at and now_value - last_alarm_at < timedelta(seconds=self._camera_tamper_policy.alarm_cooldown_seconds):
+            return None, result
+
+        db = self._db_session_factory()
+        try:
+            camera_repo = self._camera_repo(db)
+            camera = camera_repo.get_by_id(camera_id)
+            if not camera or camera.status != CameraStatus.ACTIVE:
+                return None, result
+            alarm_repo = self._alarm_repo(db)
+            open_alarm = alarm_repo.get_latest_open(camera_id, alarm_type)
+            if open_alarm is not None:
+                camera_alarm_times[(camera_id, alarm_type)] = now_value
+                return open_alarm, result
+
+            snapshot_path, snapshot_sha256 = self._save_tamper_snapshot(frame, camera_id)
+            alarm = Alarm(
+                id=None,
+                camera_id=camera_id,
+                alarm_type=alarm_type,
+                status=AlarmStatus.NEW,
+                confidence=min(max(result.score, 0.0), 1.0),
+                bounding_box=None,
+                snapshot_path=snapshot_path,
+                snapshot_sha256=snapshot_sha256,
+                snapshot_annotated_path=None,
+                snapshot_annotated_sha256=None,
+                severity=AlarmSeverity.HIGH,
+                message=(
+                    "Kamera sabotaj supheli: "
+                    f"{result.reason}; parlaklik {result.brightness_mean:.1f}, "
+                    f"duzlugu {result.brightness_stddev:.1f}, bulaniklik {result.blur_variance:.1f}."
+                ),
+                created_at=now_value,
+            )
+            saved_alarm = alarm_repo.add(alarm)
+            camera_alarm_times[(camera_id, alarm_type)] = now_value
+            return saved_alarm, result
+        finally:
+            db.close()
+
     # ------------------------------------------------------------------
     # Bloklayıcı (senkron) işlemler — ThreadPoolExecutor içinde çalışır
     # ------------------------------------------------------------------
@@ -1004,6 +1160,7 @@ class CameraStreamManager:
         producer_task = self._producers.get(camera_id)
         ai_task = self._active_ai_tasks.get(camera_id)
         motion_task = self._active_motion_tasks.get(camera_id)
+        tamper_task = self._active_tamper_tasks.get(camera_id)
         subscriber_count = len(self._subscribers.get(camera_id, ()))
         producer_started_at_monotonic = self._producer_started_at_monotonic.get(camera_id)
         return {
@@ -1016,6 +1173,7 @@ class CameraStreamManager:
             "current_broadcast_fps": self._current_broadcast_fps(camera_id),
             "ai_task_running": bool(ai_task and not ai_task.done()),
             "motion_task_running": bool(motion_task and not motion_task.done()),
+            "tamper_task_running": bool(tamper_task and not tamper_task.done()),
             "ai_provider": getattr(self._ai_service, "active_provider", None),
             "ai_frame_stride": self._ai_frame_stride_cache.get(camera_id, 1),
             "last_ai_inference_ms": self._last_ai_inference_ms.get(camera_id),

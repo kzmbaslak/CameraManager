@@ -1,7 +1,7 @@
 // Alarm table row with status, confidence, timestamp and quick acknowledgement.
 import dayjs from 'dayjs'
 import 'dayjs/locale/tr'
-import { Activity, CheckCircle, Eye, User, Users, Wifi } from 'lucide-react'
+import { Activity, CheckCircle, Eye, User, Users, VideoOff, Wifi } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import type { Alarm } from '../../types/api'
@@ -34,6 +34,11 @@ const typeConfig: Record<string, {
   person_density_anomaly: {
     label: 'Yogunluk Anomalisi',
     icon: <Users size={13} />,
+    badgeVariant: 'danger',
+  },
+  camera_tampered: {
+    label: 'Kamera Sabotaj',
+    icon: <VideoOff size={13} />,
     badgeVariant: 'danger',
   },
   camera_offline: {
@@ -76,7 +81,7 @@ export function AlarmRow({ alarm, cameraName, onAcknowledge, onInspect, acknowle
       <td className="max-w-[280px] px-4 py-3">
         <div className="flex items-start gap-2">
           <span className={`mt-0.5 shrink-0 ${
-            alarm.alarm_type === 'human_detected' || alarm.alarm_type === 'person_density_anomaly' ? 'text-danger' :
+            alarm.alarm_type === 'human_detected' || alarm.alarm_type === 'person_density_anomaly' || alarm.alarm_type === 'camera_tampered' ? 'text-danger' :
             alarm.alarm_type === 'motion_detected' || alarm.alarm_type === 'camera_health_degraded' ? 'text-warning' :
             'text-text-secondary'
           }`}>

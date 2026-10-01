@@ -9,6 +9,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from src.application.services.camera_health_policy import CameraHealthPolicy
+from src.application.services.camera_tamper_policy import CameraTamperPolicy
 from src.application.services.person_density_policy import PersonDensityPolicy
 from src.infrastructure.backup.system_backup import external_archive_dir
 from src.infrastructure.database.database import get_db
@@ -299,6 +300,7 @@ def security_posture(
         findings.append({"severity": "low", "message": "BACKUP_EXTERNAL_ARCHIVE_DIR ile yedekler kurumsal/NAS/kasa hedefine kopyalanmali."})
 
     camera_health_policy = CameraHealthPolicy.from_environment()
+    camera_tamper_policy = CameraTamperPolicy.from_environment()
     person_density_policy = PersonDensityPolicy.from_environment()
 
     setup_checks = [
@@ -331,6 +333,13 @@ def security_posture(
         "camera_health_warning_availability_percent": camera_health_policy.warning_availability_percent,
         "camera_health_max_latency_ms": camera_health_policy.max_latency_ms,
         "camera_health_stale_sample_seconds": camera_health_policy.stale_sample_seconds,
+        "camera_tamper_detection_enabled": camera_tamper_policy.enabled,
+        "camera_tamper_frame_stride": camera_tamper_policy.frame_stride,
+        "camera_tamper_consecutive_frames": camera_tamper_policy.consecutive_frames,
+        "camera_tamper_dark_mean_threshold": camera_tamper_policy.dark_mean_threshold,
+        "camera_tamper_flat_stddev_threshold": camera_tamper_policy.flat_stddev_threshold,
+        "camera_tamper_blur_variance_threshold": camera_tamper_policy.blur_variance_threshold,
+        "camera_tamper_alarm_cooldown_seconds": camera_tamper_policy.alarm_cooldown_seconds,
         "person_density_anomaly_enabled": person_density_policy.enabled,
         "person_density_baseline_window_hours": person_density_policy.baseline_window_hours,
         "person_density_min_baseline_buckets": person_density_policy.min_baseline_buckets,

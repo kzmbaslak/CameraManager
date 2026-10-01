@@ -92,7 +92,7 @@ export function useAlarmNotifications() {
 
       addNotification(alarm)
       const soundMuted = soundMutedUntil !== null && soundMutedUntil > Date.now()
-      if ((alarm.alarm_type === 'human_detected' || alarm.alarm_type === 'person_density_anomaly') && soundEnabled && !soundMuted) {
+      if ((alarm.alarm_type === 'human_detected' || alarm.alarm_type === 'person_density_anomaly' || alarm.alarm_type === 'camera_tampered') && soundEnabled && !soundMuted) {
         stopSoundRef.current = playHumanDetectionSound(soundDuration, stopSoundRef.current)
       }
     })
