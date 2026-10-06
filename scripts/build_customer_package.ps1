@@ -77,14 +77,14 @@ Write-Host "==> Backend kaynak kodu şifreleniyor (PyArmor)..." -ForegroundColor
 $PkgBackend = Join-Path $PkgDir "backend"
 New-Item -ItemType Directory -Path $PkgBackend -Force | Out-Null
 
-$PlainSourceFallback = $false
+$BytecodeSourceFallback = $false
 $PyArmorExe = Join-Path $RepoRoot "backend\venv\Scripts\pyarmor.exe"
 if (-not (Test-Path $PyArmorExe)) {
-    Write-Host "[UYARI] pyarmor.exe bulunamadi; calisir musteri paketi icin kaynak kod plain olarak kopyalaniyor." -ForegroundColor Yellow
-    $PlainSourceFallback = $true
+    Write-Host "[UYARI] pyarmor.exe bulunamadi; calisir musteri paketi icin bytecode fallback kullaniliyor." -ForegroundColor Yellow
+    $BytecodeSourceFallback = $true
 }
 
-if (-not $PlainSourceFallback) {
+if (-not $BytecodeSourceFallback) {
     Push-Location $BackendSrc
     try {
         # main.py ve src klasorundeki kodlari sifreleyerek cikti klasorune yaz.
@@ -98,19 +98,39 @@ if (-not $PlainSourceFallback) {
             $ErrorActionPreference = $PreviousErrorActionPreference
         }
         if ($PyArmorExitCode -ne 0) {
-            Write-Host "[UYARI] PyArmor sifreleme basarisiz oldu; calisir musteri paketi icin kaynak kod plain olarak kopyalaniyor." -ForegroundColor Yellow
+            Write-Host "[UYARI] PyArmor sifreleme basarisiz oldu; calisir musteri paketi icin bytecode fallback kullaniliyor." -ForegroundColor Yellow
             Write-Host "        Ayrinti: scripts\cache\pyarmor-package.log" -ForegroundColor Yellow
-            $PlainSourceFallback = $true
+            $BytecodeSourceFallback = $true
         }
     } finally {
         Pop-Location
     }
 }
 
-if ($PlainSourceFallback) {
+if ($BytecodeSourceFallback) {
+    Get-ChildItem -Path $PkgBackend -Directory -Filter "pyarmor_runtime*" -ErrorAction SilentlyContinue |
+        Remove-Item -Recurse -Force
     Copy-Item (Join-Path $BackendSrc "main.py") $PkgBackend -Force
     robocopy (Join-Path $BackendSrc "src") (Join-Path $PkgBackend "src") /E /NFL /NDL /NJH /NJS /NC /NS | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "Backend kaynak kodu kopyalama hatasi (robocopy kod: $LASTEXITCODE)" }
+
+    $BuildPythonExe = Join-Path $BackendSrc "venv\Scripts\python.exe"
+    if (-not (Test-Path $BuildPythonExe)) {
+        throw "Bytecode fallback icin backend venv python bulunamadi: $BuildPythonExe"
+    }
+    Write-Host "==> Backend kaynaklari bytecode olarak derleniyor..." -ForegroundColor Cyan
+    & $BuildPythonExe -m compileall -q -b (Join-Path $PkgBackend "main.py") (Join-Path $PkgBackend "src")
+    if ($LASTEXITCODE -ne 0) { throw "Backend bytecode derleme basarisiz oldu." }
+
+    Remove-Item -LiteralPath (Join-Path $PkgBackend "main.py") -Force
+    Get-ChildItem -Path (Join-Path $PkgBackend "src") -Recurse -Filter "*.py" -File |
+        Remove-Item -Force
+    if (-not (Test-Path (Join-Path $PkgBackend "main.pyc"))) {
+        throw "Paket dogrulamasi basarisiz: main.pyc uretilmedi."
+    }
+    if (Get-ChildItem -Path (Join-Path $PkgBackend "src") -Recurse -Filter "*.py" -File) {
+        throw "Paket dogrulamasi basarisiz: src altinda okunabilir .py dosyasi kaldi."
+    }
 }
 
 # Diğer backend klasörlerini (models, scripts vb.) ve gereksinimleri kopyala
